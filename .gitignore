@@ -1,0 +1,23 @@
+
+# python generated files
+*.pyc
+__pycache__
+.pytest
+*.egg-info
+bin
+dist
+build
+.pytest_cache
+
+# common virtual environment names
+venv
+env
+
+# editors
+.idea
+.vscode
+.vs
+
+# misc
+.DS_STORE
+
