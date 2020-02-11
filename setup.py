@@ -41,7 +41,7 @@ except ImportError:
 
 
 setup(
-    name='y',
+    name='genomic_report',
     version='0.1.0',
     packages=find_packages(),
     install_requires=INSTALL_REQS,

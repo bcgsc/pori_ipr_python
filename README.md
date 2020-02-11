@@ -1,5 +1,5 @@
 
-# Y
+# Genomic Report
 
 
 
@@ -74,4 +74,3 @@ buildout
 ```
 
 This will create a directory `bin` with the executable scripts
-
