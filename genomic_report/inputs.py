@@ -6,6 +6,25 @@ import re
 
 
 def load_variant_file(filename, required, optional, row_to_key):
+    """
+    Load a tab delimited file and
+    - check that the required columns are present
+    - check that a unique key can be formed for each row
+    - drop any non-defined columns
+
+    Args:
+        filename (str): the file to be read
+        required (List.<str>): list of required column names
+        optional (List.<str>): list of optional column names
+        row_to_key (Function): function to generate a key for a given row
+
+    Raises:
+        ValueError: row keys are not unique
+        ValueError: A required column is missing
+
+    Returns:
+        List.<dict>: the rows from the tab file as dictionaries
+    """
     header = required + optional
 
     result = []
@@ -32,6 +51,16 @@ def load_variant_file(filename, required, optional, row_to_key):
 
 
 def validate_row_patterns(rows, patterns):
+    """
+    Validate rows against a regex for some set of columns
+
+    Args:
+        rows (List.<dict>): input rows read from a delimited file
+        patterns (dict.<str,str>): mapping of column names to regex patterns the column are expected to match
+
+    Raises:
+        ValueError: A row does not match the expected pattern for a given column
+    """
     for row in rows:
         for col, pattern in patterns.items():
             if not re.match(pattern, row[col]):
