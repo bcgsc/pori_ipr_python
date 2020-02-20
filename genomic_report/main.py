@@ -1,12 +1,14 @@
-import os
-import json
 import argparse
+import json
+import logging
+import os
 
 from argparse_env import ArgumentParser, Action
 from graphkb import GraphKBConnection
 
 from .inputs import load_copy_variants, load_small_mutations
-from .annotate import annotate_variants
+from .annotate import annotate_copy_variants, annotate_small_mutations
+from .util import logger
 
 
 def file_path(path):
@@ -51,6 +53,13 @@ def command_interface():
 
 
 def main(args):
+    # set the default logging configuration
+    logging.basicConfig(
+        level=os.environ.get('LOG_LEVEL', logging.INFO),
+        format='%(asctime)s %(name)s %(levelname)s %(message)s',
+        datefmt='%m-%d-%y %H:%M:%S',
+    )
+
     conn = GraphKBConnection()
     conn.login(args.username, args.password)
 
@@ -58,10 +67,10 @@ def main(args):
     genes_with_variants = set()  # filter excess copy variants
 
     copy_variants = load_copy_variants(args.copy_variants) if args.copy_variants else []
-    print(f'loaded {len(copy_variants)} copy variants')
+    logger.info(f'loaded {len(copy_variants)} copy variants')
 
     small_mutations = load_small_mutations(args.small_mutations) if args.small_mutations else []
-    print(f'loaded {len(small_mutations)} small mutations')
+    logger.info(f'loaded {len(small_mutations)} small mutations')
 
     # filter excess variants not required for extra gene information
 
@@ -78,12 +87,12 @@ def main(args):
             )
         genes_with_variants.add(gene)
 
-    alterations = annotate_variants(conn, small_mutations=small_mutations)
-    alterations.extend(annotate_variants(conn, copy_variants=copy_variants))
+    alterations = annotate_small_mutations(conn, small_mutations)
+    alterations.extend(annotate_copy_variants(conn, copy_variants))
 
     # TODO: Append gene level information to each variant type (until IPR does this itself)
 
-    print(f'writing: {args.output_json}')
+    logger.info(f'writing: {args.output_json}')
     with open(args.output_json, 'w') as fh:
         fh.write(
             json.dumps(
@@ -96,5 +105,5 @@ def main(args):
                 sort_keys=True,
             )
         )
-    print(f'made {conn.request_count} requests to graphkb')
+    logger.info(f'made {conn.request_count} requests to graphkb')
     # TODO: upload to IPR
