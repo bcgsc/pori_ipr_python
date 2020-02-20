@@ -1,7 +1,6 @@
 """
 handles annotating variants with annotation information from graphkb
 """
-from Bio.Data.IUPACData import protein_letters_3to1
 from graphkb.match import (
     match_copy_variant,
     match_positional_variant,
@@ -11,8 +10,6 @@ from graphkb.constants import BASE_RETURN_PROPERTIES, GENERIC_RETURN_PROPERTIES
 
 from .ipr import convert_statements_to_alterations
 from .util import logger
-
-protein_letters_3to1.setdefault('Ter', '*')
 
 
 def get_statements_from_variants(graphkb_conn, variants):
@@ -107,10 +104,6 @@ def annotate_small_mutations(graphkb_conn, variants):
     """
     errors = 0
     alterations = []
-
-    for row in variants:
-        for longAA, shortAA in protein_letters_3to1.items():
-            row['proteinChange'] = row['proteinChange'].replace(longAA, shortAA)
 
     for row in variants:
         hgvsp = '{}:{}'.format(row['gene'], row['proteinChange'])

@@ -5,8 +5,11 @@ from csv import DictReader
 import re
 
 from graphkb.match import INPUT_COPY_CATEGORIES
+from Bio.Data.IUPACData import protein_letters_3to1
 
 from .util import hash_key
+
+protein_letters_3to1.setdefault('Ter', '*')
 
 
 def load_variant_file(filename, required, optional, row_to_key):
@@ -125,6 +128,11 @@ def load_small_mutations(filename):
     patterns = {'location': r'^\w+:\d+$', 'refAlt': r'^[A-Z]+>[A-Z]+$'}
 
     validate_row_patterns(result, patterns)
+
+    # change 3 letter AA to 1 letter AA notation
+    for row in result:
+        for longAA, shortAA in protein_letters_3to1.items():
+            row['proteinChange'] = row['proteinChange'].replace(longAA, shortAA)
 
     return result
 
