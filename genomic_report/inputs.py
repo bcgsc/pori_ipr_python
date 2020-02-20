@@ -4,6 +4,10 @@ Read/Validate the variant input files
 from csv import DictReader
 import re
 
+from graphkb.match import INPUT_COPY_CATEGORIES
+
+from .util import hash_key
+
 
 def load_variant_file(filename, required, optional, row_to_key):
     """
@@ -40,7 +44,7 @@ def load_variant_file(filename, required, optional, row_to_key):
                     if req_col not in row:
                         raise ValueError(f'header missing required column ({req_col})')
                 header_validated = True
-            row_key = row_to_key(row)
+            row_key = hash_key(row_to_key(row))
             if row_key in keys:
                 raise ValueError(f'duplicate row key ({row_key})')
             row['key'] = row_key
@@ -72,7 +76,7 @@ def validate_row_patterns(rows, patterns):
 
 def load_copy_variants(filename):
     def row_key(row):
-        return row['gene']
+        return ('cnv', row['gene'])
 
     result = load_variant_file(
         filename,
@@ -87,6 +91,7 @@ def load_copy_variants(filename):
 def load_small_mutations(filename):
     def row_key(row):
         return (
+            'small mutation',
             row['location'],
             row['refAlt'],
             row['gene'],
@@ -110,7 +115,7 @@ def load_small_mutations(filename):
 
 def load_expression_variants(filename):
     def row_key(row):
-        return row['gene']
+        return ('expression', row['gene'])
 
     result = load_variant_file(
         filename,
@@ -151,7 +156,7 @@ def load_expression_variants(filename):
 
 def load_structural_variants(filename):
     def row_key(row):
-        return (row['eventType'], row['breakpoint'])
+        return ('sv', row['eventType'], row['breakpoint'])
 
     result = load_variant_file(
         filename,
