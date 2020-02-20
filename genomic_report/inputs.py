@@ -87,6 +87,22 @@ def load_copy_variants(filename):
         row_key,
     )
 
+    patterns = {'cnvState': r'(Loss|Gain|Amplification|Homozygous Loss|Neutral)'}
+    validate_row_patterns(result, patterns)
+
+    for row in result:
+        category = ''
+        if row['cnvState'] == 'Loss':
+            category = INPUT_COPY_CATEGORIES.LOSS
+        elif row['cnvState'] == 'Gain':
+            category = INPUT_COPY_CATEGORIES.GAIN
+        elif row['cnvState'] == 'Amplification':
+            category = INPUT_COPY_CATEGORIES.AMP
+        elif row['cnvState'] == 'Homozygous Loss':
+            category = INPUT_COPY_CATEGORIES.DEEP
+
+        row['variant'] = category
+
     return result
 
 
