@@ -7,7 +7,7 @@ from graphkb.vocab import get_term_tree
 
 
 BASE_THERAPEUTIC_TERM = 'therapeutic efficacy'
-BASE_DIAGNOSITC_TERM = 'diagnostic indicator'
+BASE_DIAGNOSTIC_TERM = 'diagnostic indicator'
 BASE_PROGNOSTIC_TERM = 'prognostic indicator'
 BASE_BIOLOGICAL_TERM = 'functional effect'
 
@@ -21,6 +21,19 @@ REPORT_KB_SECTIONS = IterableNamespace(
     diagnostic='diagnostic',
 )
 
+APPROVED_EVIDENCE_LEVELS = {
+    # sourceIds of levels by source name
+    'oncokb': ['1', 'r1'],
+    'profyle': ['t1'],
+    'cancer genome interpreter': [
+        'cpic guidelines',
+        'european leukemianet guidelines',
+        'fda guidelines',
+        'nccn guidelines',
+        'nccn/cap guidelines',
+    ],
+}
+
 
 def display_evidence_levels(statement):
     result = []
@@ -29,6 +42,20 @@ def display_evidence_levels(statement):
         result.append(evidence_level['displayName'])
 
     return ';'.join(sorted(result))
+
+
+def get_approved_evidence_levels(graphkb_conn):
+    filters = []
+    for source, names in APPROVED_EVIDENCE_LEVELS.items():
+        filters.append(
+            {
+                'AND': [
+                    {'source': {'target': 'Source', 'filters': {'name': source}}},
+                    {'name': names, 'operator': 'IN'},
+                ]
+            }
+        )
+    return graphkb_conn.query({'target': 'EvidenceLevel', 'filters': {'OR': filters}})
 
 
 def convert_statements_to_alterations(graphkb_conn, statements, disease_name):
@@ -55,6 +82,8 @@ def convert_statements_to_alterations(graphkb_conn, statements, disease_name):
 
     rows = []
 
+    approved = set(convert_to_rid_list(get_approved_evidence_levels(graphkb_conn)))
+
     therapeutic_terms = set(
         convert_to_rid_list(
             get_term_tree(graphkb_conn, BASE_THERAPEUTIC_TERM, include_superclasses=False)
@@ -62,7 +91,7 @@ def convert_statements_to_alterations(graphkb_conn, statements, disease_name):
     )
     diagnostic_terms = set(
         convert_to_rid_list(
-            get_term_tree(graphkb_conn, BASE_DIAGNOSITC_TERM, include_superclasses=False)
+            get_term_tree(graphkb_conn, BASE_DIAGNOSTIC_TERM, include_superclasses=False)
         )
     )
     prognostic_terms = set(
@@ -84,8 +113,16 @@ def convert_statements_to_alterations(graphkb_conn, statements, disease_name):
         ipr_section = REPORT_KB_SECTIONS.unknown  # table this goes to in IPR
         relevance_id = statement['relevance']['@rid']
 
+        approved_therapy = False
+
         if relevance_id in therapeutic_terms:
             ipr_section = REPORT_KB_SECTIONS.therapeutic
+
+            for level in statement['evidenceLevel'] or []:
+                if level['@rid'] in approved:
+                    approved_therapy = True
+                    break
+
         elif relevance_id in diagnostic_terms:
             ipr_section = REPORT_KB_SECTIONS.diagnostic
         elif relevance_id in prognostic_terms:
@@ -101,6 +138,7 @@ def convert_statements_to_alterations(graphkb_conn, statements, disease_name):
                 'kb_event_key': variant['@rid'],
                 'kb_entry_type': ipr_section,
                 'alterationType': ipr_section,
+                'approvedTherapy': approved_therapy,
                 'association': statement['relevance']['displayName'],
                 'therapeuticContext': (
                     statement['subject']['displayName'] if statement['subject'] else None
