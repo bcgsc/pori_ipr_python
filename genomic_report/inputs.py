@@ -25,7 +25,7 @@ def load_variant_file(filename, required, optional, row_to_key):
     Returns:
         List.<dict>: the rows from the tab file as dictionaries
     """
-    header = required + optional
+    header = required + optional + ['key']
 
     result = []
     keys = set()
@@ -40,13 +40,14 @@ def load_variant_file(filename, required, optional, row_to_key):
                     if req_col not in row:
                         raise ValueError(f'header missing required column ({req_col})')
                 header_validated = True
-
-            result.append({col: row.get(col, '') for col in header})
             row_key = row_to_key(row)
             if row_key in keys:
                 raise ValueError(f'duplicate row key ({row_key})')
             row['key'] = row_key
             keys.add(row_key)
+
+            result.append({col: row.get(col, '') for col in header})
+
     return result
 
 
