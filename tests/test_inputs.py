@@ -1,5 +1,7 @@
 import os
 
+import pytest
+
 from genomic_report.inputs import load_small_mutations, load_copy_variants
 
 
@@ -16,3 +18,13 @@ def test_load_copy_variants():
     records = load_copy_variants(os.path.join(DATA_DIR, 'copy_variants.tab'))
     assert records
     assert len(records) == 4599
+
+
+@pytest.mark.skip('TODO')
+def test_load_structural_variants():
+    pass
+
+
+@pytest.mark.skip('TODO')
+def test_load_expression_variants():
+    pass
