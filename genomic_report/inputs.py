@@ -49,7 +49,7 @@ def load_variant_file(filename, required, optional, row_to_key):
                 header_validated = True
 
             result.append({col: row.get(col, '') for col in header})
-            row_key = row_to_key(row)
+            row_key = hash_key(row_to_key(row))
             if row_key in keys:
                 raise ValueError(f'duplicate row key ({row_key})')
             row['key'] = row_key
