@@ -178,7 +178,7 @@ def load_expression_variants(filename):
 
     validate_row_patterns(result, patterns)
 
-    # TODO: transform expression class to 'variant' column of GraphKB vocabulary
+    # transform expression class to 'variant' column of GraphKB vocabulary
     for row in result:
         variant = ''
 
