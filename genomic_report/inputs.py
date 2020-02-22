@@ -111,6 +111,11 @@ def load_small_mutations(filename):
 
     validate_row_patterns(result, patterns)
 
+    # change 3 letter AA to 1 letter AA notation
+    for row in result:
+        for longAA, shortAA in protein_letters_3to1.items():
+            row['proteinChange'] = row['proteinChange'].replace(longAA, shortAA)
+
     return result
 
 
