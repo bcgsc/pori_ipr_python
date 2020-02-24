@@ -1,6 +1,6 @@
 import os
 
-from genomic_report.inputs import load_small_mutations, load_copy_variants
+from genomic_report.inputs import load_small_mutations, load_copy_variants, load_structural_variants
 
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'test_data')
@@ -16,3 +16,9 @@ def test_load_copy_variants():
     records = load_copy_variants(os.path.join(DATA_DIR, 'copy_variants.tab'))
     assert records
     assert len(records) == 4599
+
+
+def test_load_structural_variants():
+    records = load_structural_variants(os.path.join(DATA_DIR, 'fusions.tab'))
+    assert records
+    assert len(records) == 3
