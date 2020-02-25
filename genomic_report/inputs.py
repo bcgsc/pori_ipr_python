@@ -171,7 +171,7 @@ def load_structural_variants(filename):
         'genes': r'^\w+::\w+$',
         'breakpoint': r'^\w+:\d+\|\w+:\d+$',
         # "e:e" just means no exon data.
-        'exons': r'^e\d+:e\d+$|e:e',
+        'exons': r'^e(\d+)?:e(\d+)?$',
     }
     validate_row_patterns(result, patterns)
 
