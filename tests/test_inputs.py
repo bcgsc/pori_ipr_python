@@ -26,14 +26,12 @@ def test_load_copy_variants():
     assert len(records) == 4599
 
 
-@pytest.mark.skip('TODO: waiting for this test file to be added to REPO')
 def test_load_structural_variants():
     records = load_structural_variants(os.path.join(DATA_DIR, 'fusions.tab'))
     assert records
     assert len(records) == 3
 
 
-@pytest.mark.skip('TODO: waiting for this test file to be added to REPO')
 def test_load_expression_variants():
     records = load_expression_variants(os.path.join(DATA_DIR, 'expression.tab'))
     assert records
