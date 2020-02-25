@@ -41,11 +41,29 @@ def test_load_expression_variants():
 
 
 class TestCheckVariantLinks:
+    def test_sm_missing_copy_empty_ok(self):
+        genes = check_variant_links(
+            small_mutations=[{'gene': 'KRAS'}],
+            copy_variants=[],
+            expression_variants=[{'gene': 'KRAS', 'variant': ''}],
+            structural_variants=[],
+        )
+        assert genes == {'KRAS'}
+
+    def test_sm_missing_exp_empty_ok(self):
+        genes = check_variant_links(
+            small_mutations=[{'gene': 'KRAS'}],
+            copy_variants=[{'gene': 'KRAS', 'variant': ''}],
+            expression_variants=[],
+            structural_variants=[],
+        )
+        assert genes == {'KRAS'}
+
     def test_sm_missing_copy(self):
         with pytest.raises(KeyError):
             check_variant_links(
                 small_mutations=[{'gene': 'KRAS'}],
-                copy_variants=[],
+                copy_variants=[{'gene': 'CDK'}],
                 expression_variants=[{'gene': 'KRAS', 'variant': ''}],
                 structural_variants=[],
             )
@@ -55,7 +73,7 @@ class TestCheckVariantLinks:
             check_variant_links(
                 small_mutations=[{'gene': 'KRAS'}],
                 copy_variants=[{'gene': 'KRAS', 'variant': ''}],
-                expression_variants=[],
+                expression_variants=[{'gene': 'CDK'}],
                 structural_variants=[],
             )
 
