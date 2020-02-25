@@ -6,8 +6,14 @@ import os
 from argparse_env import ArgumentParser, Action
 from graphkb import GraphKBConnection
 
-from .inputs import load_copy_variants, load_small_mutations
-from .annotate import annotate_copy_variants, annotate_small_mutations
+from .inputs import (
+    load_copy_variants,
+    load_small_mutations,
+    load_expression_variants,
+    load_structural_variants,
+    check_variant_links,
+)
+from .annotate import annotate_category_variants, annotate_small_mutations
 from .util import logger
 
 
@@ -62,9 +68,7 @@ def main(args):
 
     conn = GraphKBConnection()
     conn.login(args.username, args.password)
-
-    copy_variant_genes = set()
-    genes_with_variants = set()  # filter excess copy variants
+    disease_name = 'colorectal cancer'
 
     copy_variants = load_copy_variants(args.copy_variants) if args.copy_variants else []
     logger.info(f'loaded {len(copy_variants)} copy variants')
@@ -72,23 +76,24 @@ def main(args):
     small_mutations = load_small_mutations(args.small_mutations) if args.small_mutations else []
     logger.info(f'loaded {len(small_mutations)} small mutations')
 
+    expression_variants = (
+        load_expression_variants(args.expression_variants) if args.expression_variants else []
+    )
+    logger.info(f'loaded {len(expression_variants)} expression variants')
+
+    structural_variants = (
+        load_structural_variants(args.structural_variants) if args.structural_variants else []
+    )
+    logger.info(f'loaded {len(structural_variants)} structural variants')
+
+    genes_with_variants = check_variant_links(
+        small_mutations, expression_variants, copy_variants, structural_variants
+    )
+
     # filter excess variants not required for extra gene information
-
-    for variant in copy_variants:
-        if variant['variant']:
-            genes_with_variants.add(variant['gene'])
-        copy_variant_genes.add(variant['gene'])
-
-    for variant in small_mutations:
-        gene = variant['gene']
-        if gene not in copy_variant_genes:
-            raise ValueError(
-                f'gene ({gene}) has a small mutation but is missing copy number information'
-            )
-        genes_with_variants.add(gene)
-
-    alterations = annotate_small_mutations(conn, small_mutations)
-    alterations.extend(annotate_copy_variants(conn, copy_variants))
+    alterations = annotate_small_mutations(conn, small_mutations, disease_name)
+    alterations.extend(annotate_category_variants(conn, copy_variants, disease_name))
+    alterations.extend(annotate_category_variants(conn, expression_variants, disease_name, False))
 
     # TODO: Append gene level information to each variant type (until IPR does this itself)
 
@@ -100,6 +105,7 @@ def main(args):
                     'alterations': alterations,
                     'cnv': [c for c in copy_variants if c['gene'] in genes_with_variants],
                     'smallMutations': small_mutations,
+                    'outliers': expression_variants,
                 },
                 indent='  ',
                 sort_keys=True,

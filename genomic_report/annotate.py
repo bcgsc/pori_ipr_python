@@ -4,6 +4,7 @@ handles annotating variants with annotation information from graphkb
 from graphkb.match import (
     match_copy_variant,
     match_positional_variant,
+    match_expression_variant,
 )
 from graphkb.util import convert_to_rid_list
 from graphkb.constants import BASE_RETURN_PROPERTIES, GENERIC_RETURN_PROPERTIES
@@ -43,7 +44,7 @@ def get_statements_from_variants(graphkb_conn, variants):
     return statements
 
 
-def annotate_copy_variants(graphkb_conn, variants):
+def annotate_category_variants(graphkb_conn, variants, disease_name, copy_variant=True):
     """
     Annotate variant calls with information from GraphKB and return these annotations in the IPR
     alterations format
@@ -67,12 +68,15 @@ def annotate_copy_variants(graphkb_conn, variants):
             continue
 
         try:
-            matches = match_copy_variant(graphkb_conn, gene, variant)
+            if copy_variant:
+                matches = match_copy_variant(graphkb_conn, gene, variant)
+            else:
+                matches = match_expression_variant(graphkb_conn, gene, variant)
 
             if matches:
                 statements = get_statements_from_variants(graphkb_conn, matches)
                 for ipr_row in convert_statements_to_alterations(
-                    graphkb_conn, statements, 'colorectal cancer'
+                    graphkb_conn, statements, disease_name
                 ):
                     new_row = {
                         'gene': gene,
@@ -82,15 +86,16 @@ def annotate_copy_variants(graphkb_conn, variants):
                     new_row.update(ipr_row)
                     alterations.append(new_row)
         except ValueError as err:
-            logger.warning(f'failed to match copy variants ({gene} {variant}): {err}')
+            logger.warning(f'failed to match variants ({gene} {variant}): {err}')
             errors += 1
 
-    logger.info(f'skipped matching {skipped} neutral copy variants')
-    logger.info(f'skipped {errors} copy number variants due to errors')
+    logger.info(f'skipped matching {skipped} non variant information rows')
+    logger.info(f'skipped {errors} variants due to errors')
+    logger.info(f'matched {len(variants)} variants to {len(alterations)} graphkb annotations')
     return alterations
 
 
-def annotate_small_mutations(graphkb_conn, variants):
+def annotate_small_mutations(graphkb_conn, variants, disease_name):
     """
     Annotate variant calls with information from GraphKB and return these annotations in the IPR
     alterations format
@@ -114,7 +119,7 @@ def annotate_small_mutations(graphkb_conn, variants):
                 statements = get_statements_from_variants(graphkb_conn, matches)
 
                 for ipr_row in convert_statements_to_alterations(
-                    graphkb_conn, statements, 'colorectal cancer'
+                    graphkb_conn, statements, disease_name
                 ):
                     new_row = {
                         'gene': row['gene'],
