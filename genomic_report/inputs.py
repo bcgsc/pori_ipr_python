@@ -72,7 +72,7 @@ def validate_row_patterns(rows, patterns):
         for col, pattern in patterns.items():
             if not re.match(pattern, row[col]):
                 raise ValueError(
-                    f'row value ({row[col]}) does not match expected column ({col}) pattern'
+                    f'row value ({row[col]}) does not match expected column ({col}) pattern of "{pattern}"'
                 )
 
 
@@ -212,7 +212,7 @@ def load_structural_variants(filename):
         row_key,
     )
     patterns = {
-        'genes': r'^\w+::\w+$',
+        'genes': r'^(\w|-)+::(\w|-)+$',
         'breakpoint': r'^\w+:\d+\|\w+:\d+$',
         # "e:e" just means no exon data.
         'exons': r'^e(\d+)?:e(\d+)?$',
