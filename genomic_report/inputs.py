@@ -73,7 +73,7 @@ def validate_row_patterns(rows, patterns):
         for col, pattern in patterns.items():
             if not re.match(pattern, row[col]):
                 raise ValueError(
-                    f'row value ({row[col]}) does not match expected column ({col}) pattern'
+                    f'row value ({row[col]}) does not match expected column ({col}) pattern of "{pattern}"'
                 )
 
 
@@ -180,7 +180,7 @@ def load_expression_variants(filename):
 
     validate_row_patterns(result, patterns)
 
-    # TODO: transform expression class to 'variant' column of GraphKB vocabulary
+    # transform expression class to 'variant' column of GraphKB vocabulary
     for row in result:
         variant = ''
 
@@ -214,9 +214,10 @@ def load_structural_variants(filename):
         row_key,
     )
     patterns = {
-        'genes': r'^\w+::\w+$',
+        'genes': r'^(\w|-)+::(\w|-)+$',
         'breakpoint': r'^\w+:\d+\|\w+:\d+$',
-        'exons': r'^e\d+:e\d+$',
+        # "e:e" just means no exon data.
+        'exons': r'^e(\d+)?:e(\d+)?$',
     }
     validate_row_patterns(result, patterns)
 
@@ -249,7 +250,7 @@ def check_variant_links(small_mutations, expression_variants, copy_variants, str
         if variant['variant']:
             genes_with_variants.add(gene)
 
-            if gene not in expression_variant_genes:
+            if expression_variant_genes and gene not in expression_variant_genes:
                 raise KeyError(
                     f'gene ({gene}) has a copy variant but is missing expression information'
                 )
@@ -259,18 +260,18 @@ def check_variant_links(small_mutations, expression_variants, copy_variants, str
         if variant['variant']:
             genes_with_variants.add(gene)
 
-            if gene not in copy_variant_genes:
+            if copy_variant_genes and gene not in copy_variant_genes:
                 raise KeyError(
                     f'gene ({gene}) has an expression variant but is missing copy number information'
                 )
 
     for variant in small_mutations:
         gene = variant['gene']
-        if gene not in copy_variant_genes:
+        if copy_variant_genes and gene not in copy_variant_genes:
             raise KeyError(
                 f'gene ({gene}) has a small mutation but is missing copy number information'
             )
-        if gene not in expression_variant_genes:
+        if expression_variant_genes and gene not in expression_variant_genes:
             raise KeyError(
                 f'gene ({gene}) has a small mutation but is missing expression information'
             )

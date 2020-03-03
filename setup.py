@@ -1,7 +1,11 @@
 from setuptools import setup, find_packages
 
 # Dependencies required to use your package
+<<<<<<< HEAD
 INSTALL_REQS = ['graphkb==1.0.0', 'argparse-env==0.1.0', 'biopython==1.76']
+=======
+INSTALL_REQS = ['graphkb>=1.0.0', 'biopython==1.76']
+>>>>>>> develop
 
 # Dependencies required for development
 DEV_REQS = ['flake8', 'black']
@@ -31,7 +35,7 @@ except ImportError:
 
 setup(
     name='genomic_report',
-    version='0.1.0',
+    version='0.1.1',
     packages=find_packages(),
     install_requires=INSTALL_REQS,
     extras_require={
@@ -49,5 +53,9 @@ setup(
     dependency_links=[],
     test_suite='tests',
     tests_require=TEST_REQS,
+<<<<<<< HEAD
     entry_points={'console_scripts': ['genomic_report = genomic_report.main:command_interface']},
+=======
+    entry_points={'console_scripts': []},
+>>>>>>> develop
 )
