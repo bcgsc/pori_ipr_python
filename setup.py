@@ -1,11 +1,7 @@
 from setuptools import setup, find_packages
 
 # Dependencies required to use your package
-<<<<<<< HEAD
-INSTALL_REQS = ['graphkb==1.0.0', 'argparse-env==0.1.0', 'biopython==1.76']
-=======
-INSTALL_REQS = ['graphkb>=1.0.0', 'biopython==1.76']
->>>>>>> develop
+INSTALL_REQS = ['graphkb+=1.0.0', 'argparse-env==0.1.0', 'biopython==1.76']
 
 # Dependencies required for development
 DEV_REQS = ['flake8', 'black']
