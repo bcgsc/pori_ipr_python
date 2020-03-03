@@ -223,6 +223,20 @@ def load_structural_variants(filename):
     }
     validate_row_patterns(result, patterns)
 
+    for row in result:
+        exon1, exon2 = re.match(r'^e(\d+)?:e(\d+)?$', row['exons']).group(1, 2)
+        gene1, gene2 = row['genes'].split('::')
+
+        row[
+            'variant'
+        ] = f'({gene1},{gene2}):fusion(e.{exon1 if exon1 else "?"},e.{exon2 if exon2 else "?"})'
+        del row['genes']
+        del row['exons']
+        row['gene1'] = gene1
+        row['gene2'] = gene2
+        row['exon1'] = exon1
+        row['exon2'] = exon2
+
     return result
 
 
@@ -278,5 +292,18 @@ def check_variant_links(small_mutations, expression_variants, copy_variants, str
                 f'gene ({gene}) has a small mutation but is missing expression information'
             )
         genes_with_variants.add(gene)
+
+    for variant in structural_variants:
+        for gene in [variant['gene1'], variant['gene2']]:
+            if gene:  # genes are optional for structural variants
+                if gene not in copy_variant_genes:
+                    raise KeyError(
+                        f'gene ({gene}) has a structural variant but is missing copy number information'
+                    )
+                if gene not in expression_variant_genes:
+                    raise KeyError(
+                        f'gene ({gene}) has a structural variant but is missing expression information'
+                    )
+                genes_with_variants.add(gene)
 
     return genes_with_variants

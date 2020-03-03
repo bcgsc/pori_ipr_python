@@ -91,11 +91,22 @@ def main(args):
     )
 
     # filter excess variants not required for extra gene information
-    alterations = annotate_small_mutations(conn, small_mutations, disease_name)
-    alterations.extend(annotate_category_variants(conn, copy_variants, disease_name))
-    alterations.extend(annotate_category_variants(conn, expression_variants, disease_name, False))
+    alterations = []  # annotate_positional_variants(graphkb_conn, small_mutations, disease_name)
+    logger.info('annotating structural variants')
+    alterations.extend(
+        annotate_positional_variants(graphkb_conn, structural_variants, disease_name)
+    )
 
-    # TODO: Append gene level information to each variant type (until IPR does this itself)
+    logger.info('annotating copy variants')
+    alterations.extend(annotate_category_variants(graphkb_conn, copy_variants, disease_name))
+
+    logger.info('annotating expression variants')
+    alterations.extend(
+        annotate_category_variants(graphkb_conn, expression_variants, disease_name, False)
+    )
+    logger.info('fetching gene annotations')
+    gene_information = get_gene_information(graphkb_conn, genes_with_variants)
+    # TODO: Append gene level information to each variant type (until IPR does this itself?)
 
     logger.info(f'writing: {args.output_json}')
     with open(args.output_json, 'w') as fh:
@@ -105,11 +116,15 @@ def main(args):
                     'alterations': alterations,
                     'cnv': [c for c in copy_variants if c['gene'] in genes_with_variants],
                     'smallMutations': small_mutations,
-                    'outliers': expression_variants,
+                    'outliers': [
+                        e for e in expression_variants if e['gene'] in genes_with_variants
+                    ],
+                    'sv': structural_variants,
+                    'genes': gene_information,
                 },
                 indent='  ',
                 sort_keys=True,
             )
         )
-    logger.info(f'made {conn.request_count} requests to graphkb')
+    logger.info(f'made {graphkb_conn.request_count} requests to graphkb')
     # TODO: upload to IPR
