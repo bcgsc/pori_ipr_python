@@ -11,3 +11,7 @@ def hash_key(key):
     body = json.dumps({'key': key}, sort_keys=True)
     hash_code = hashlib.md5(body.encode('utf-8')).hexdigest()
     return hash_code
+
+
+def convert_to_rid_set(records):
+    return {r['@rid'] for r in records}

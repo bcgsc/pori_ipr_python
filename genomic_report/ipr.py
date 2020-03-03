@@ -2,9 +2,10 @@
 upload variant and report information to IPR
 """
 
-from graphkb.util import IterableNamespace, convert_to_rid_list
+from graphkb.util import IterableNamespace
 from graphkb.vocab import get_term_tree
 
+from .util import convert_to_rid_set
 
 BASE_THERAPEUTIC_TERM = 'therapeutic efficacy'
 BASE_DIAGNOSTIC_TERM = 'diagnostic indicator'
@@ -82,27 +83,19 @@ def convert_statements_to_alterations(graphkb_conn, statements, disease_name):
 
     rows = []
 
-    approved = set(convert_to_rid_list(get_approved_evidence_levels(graphkb_conn)))
+    approved = convert_to_rid_set(get_approved_evidence_levels(graphkb_conn))
 
-    therapeutic_terms = set(
-        convert_to_rid_list(
-            get_term_tree(graphkb_conn, BASE_THERAPEUTIC_TERM, include_superclasses=False)
-        )
+    therapeutic_terms = convert_to_rid_set(
+        get_term_tree(graphkb_conn, BASE_THERAPEUTIC_TERM, include_superclasses=False)
     )
-    diagnostic_terms = set(
-        convert_to_rid_list(
-            get_term_tree(graphkb_conn, BASE_DIAGNOSTIC_TERM, include_superclasses=False)
-        )
+    diagnostic_terms = convert_to_rid_set(
+        get_term_tree(graphkb_conn, BASE_DIAGNOSTIC_TERM, include_superclasses=False)
     )
-    prognostic_terms = set(
-        convert_to_rid_list(
-            get_term_tree(graphkb_conn, BASE_PROGNOSTIC_TERM, include_superclasses=False)
-        )
+    prognostic_terms = convert_to_rid_set(
+        get_term_tree(graphkb_conn, BASE_PROGNOSTIC_TERM, include_superclasses=False)
     )
-    biological_terms = set(
-        convert_to_rid_list(
-            get_term_tree(graphkb_conn, BASE_BIOLOGICAL_TERM, include_superclasses=False)
-        )
+    biological_terms = convert_to_rid_set(
+        get_term_tree(graphkb_conn, BASE_BIOLOGICAL_TERM, include_superclasses=False)
     )
 
     for statement in statements:
