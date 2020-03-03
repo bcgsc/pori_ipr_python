@@ -66,8 +66,8 @@ def main(args):
         datefmt='%m-%d-%y %H:%M:%S',
     )
 
-    conn = GraphKBConnection()
-    conn.login(args.username, args.password)
+    graphkb_conn = GraphKBConnection()
+    graphkb_conn.login(args.username, args.password)
     disease_name = 'colorectal cancer'
 
     copy_variants = load_copy_variants(args.copy_variants) if args.copy_variants else []
