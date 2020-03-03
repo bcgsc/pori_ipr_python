@@ -69,7 +69,7 @@ def main(args):
 
     graphkb_conn = GraphKBConnection()
     graphkb_conn.login(args.username, args.password)
-    disease_name = 'colorectal cancer'
+    disease_name = 'colorectal cancer'  # TODO: use patient disease not dummy one
 
     copy_variants = load_copy_variants(args.copy_variants) if args.copy_variants else []
     logger.info(f'loaded {len(copy_variants)} copy variants')
@@ -93,19 +93,19 @@ def main(args):
 
     # filter excess variants not required for extra gene information
     alterations = []  # annotate_positional_variants(graphkb_conn, small_mutations, disease_name)
-    logger.info('annotating structural variants')
+    logger.verbose('annotating structural variants')
     alterations.extend(
         annotate_positional_variants(graphkb_conn, structural_variants, disease_name)
     )
 
-    logger.info('annotating copy variants')
+    logger.verbose('annotating copy variants')
     alterations.extend(annotate_category_variants(graphkb_conn, copy_variants, disease_name))
 
-    logger.info('annotating expression variants')
+    logger.verbose('annotating expression variants')
     alterations.extend(
         annotate_category_variants(graphkb_conn, expression_variants, disease_name, False)
     )
-    logger.info('fetching gene annotations')
+    logger.verbose('fetching gene annotations')
     gene_information = get_gene_information(graphkb_conn, genes_with_variants)
     # TODO: Append gene level information to each variant type (until IPR does this itself?)
 
