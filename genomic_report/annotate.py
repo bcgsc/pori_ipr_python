@@ -5,12 +5,68 @@ from graphkb.match import (
     match_copy_variant,
     match_positional_variant,
     match_expression_variant,
+    get_equivalent_features,
 )
+from graphkb.genes import get_oncokb_oncogenes, get_oncokb_tumour_supressors
 from graphkb.util import convert_to_rid_list
 from graphkb.constants import BASE_RETURN_PROPERTIES, GENERIC_RETURN_PROPERTIES
 
 from .ipr import convert_statements_to_alterations
-from .util import logger
+from .util import logger, convert_to_rid_set
+
+
+def get_cancer_related_genes(graphkb_conn):
+    """
+    Get the list of genes on any variant in GKB
+
+    Args:
+        graphkb_conn (GraphKBConnection): graphkb connection object
+
+    Returns:
+        set.<str>: set of records IDs
+    """
+    # cancer related means any gene that has a variant in GKB
+    variants = graphkb_conn.query(
+        {'target': 'Variant', 'returnProperties': ['reference1', 'reference2']}
+    )
+
+    genes = set()
+    for variant in variants:
+        genes.add(variant['reference1'])
+        if variant['reference2']:
+            genes.add(variant['reference2'])
+    return genes
+
+
+def get_gene_information(graphkb_conn, gene_names):
+    """
+    Create the Gene Info object for upload to IPR with the other report information
+
+    Args:
+        graphkb_conn ([type]): [description]
+        gene_names ([type]): [description]
+    """
+    oncogenes = convert_to_rid_set(get_oncokb_oncogenes(graphkb_conn))
+    tumour_suppressors = convert_to_rid_set(get_oncokb_tumour_supressors(graphkb_conn))
+    cancer_related = get_cancer_related_genes(graphkb_conn)
+
+    result = []
+
+    for gene_name in gene_names:
+        equivalent = convert_to_rid_set(get_equivalent_features(graphkb_conn, gene_name))
+
+        row = {
+            'name': gene_name,
+            'oncogene': bool(equivalent & oncogenes),
+            'tumourSuppressor': bool(equivalent & tumour_suppressors),
+            'drugTargetable': False,
+            'cancerGene': bool(equivalent & cancer_related),
+        }
+
+        if any(row[c] for c in row if c != 'name'):
+            result.append(row)
+
+    return result
 
 
 def get_statements_from_variants(graphkb_conn, variants):

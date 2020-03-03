@@ -13,7 +13,7 @@ from .inputs import (
     load_structural_variants,
     check_variant_links,
 )
-from .annotate import annotate_category_variants, annotate_small_mutations
+from .annotate import annotate_category_variants, annotate_positional_variants, get_gene_information
 from .util import logger
 
 
