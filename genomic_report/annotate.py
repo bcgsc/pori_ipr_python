@@ -65,9 +65,15 @@ def get_gene_information(graphkb_conn, gene_names):
             'drugTargetable': False,
             'cancerGene': bool(equivalent & cancer_related),
         }
+        flags = [c for c in row.keys() if c != 'name']
 
-        if any(row[c] for c in row if c != 'name'):
+        if any(row[c] for c in flags):
             result.append(row)
+
+            # make smaller JSON to upload since all default to false already
+            for flag in flags:
+                if not row[flag]:
+                    del row[flag]
 
     return result
 
