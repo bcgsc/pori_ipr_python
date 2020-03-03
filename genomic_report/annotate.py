@@ -62,8 +62,8 @@ def get_gene_information(graphkb_conn, gene_names):
             'name': gene_name,
             'oncogene': bool(equivalent & oncogenes),
             'tumourSuppressor': bool(equivalent & tumour_suppressors),
-            'drugTargetable': False,
-            'cancerGene': bool(equivalent & cancer_related),
+            'drugTargetable': False,  # TODO: Get definition for what should be added here
+            'cancerRelated': bool(equivalent & cancer_related),
         }
         flags = [c for c in row.keys() if c != 'name']
 
