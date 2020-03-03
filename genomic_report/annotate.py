@@ -46,8 +46,11 @@ def get_gene_information(graphkb_conn, gene_names):
         graphkb_conn ([type]): [description]
         gene_names ([type]): [description]
     """
+    logger.verbose('fetching oncogenes list')
     oncogenes = convert_to_rid_set(get_oncokb_oncogenes(graphkb_conn))
+    logger.verbose('fetching tumour supressors list')
     tumour_suppressors = convert_to_rid_set(get_oncokb_tumour_supressors(graphkb_conn))
+    logger.verbose('fetching cancer related genes list')
     cancer_related = get_cancer_related_genes(graphkb_conn)
 
     result = []

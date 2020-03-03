@@ -14,7 +14,7 @@ from .inputs import (
     check_variant_links,
 )
 from .annotate import annotate_category_variants, annotate_positional_variants, get_gene_information
-from .util import logger
+from .util import logger, LOG_LEVELS
 
 
 def file_path(path):
@@ -44,6 +44,7 @@ def command_interface():
     parser.add_argument('-m', '--small_mutations', required=False, type=file_path)
     parser.add_argument('-s', '--structural_variants', required=False, type=file_path)
     parser.add_argument('-e', '--expression_variants', required=False, type=file_path)
+    parser.add_argument('--log_level', default='info', choices=LOG_LEVELS.keys())
 
     # TODO: upload JSON to IPR instead of writing output
     parser.add_argument(
@@ -61,7 +62,7 @@ def command_interface():
 def main(args):
     # set the default logging configuration
     logging.basicConfig(
-        level=os.environ.get('LOG_LEVEL', logging.INFO),
+        level=LOG_LEVELS[args.log_level],
         format='%(asctime)s %(name)s %(levelname)s %(message)s',
         datefmt='%m-%d-%y %H:%M:%S',
     )
@@ -110,21 +111,16 @@ def main(args):
 
     logger.info(f'writing: {args.output_json}')
     with open(args.output_json, 'w') as fh:
-        fh.write(
-            json.dumps(
-                {
-                    'alterations': alterations,
-                    'cnv': [c for c in copy_variants if c['gene'] in genes_with_variants],
-                    'smallMutations': small_mutations,
-                    'outliers': [
-                        e for e in expression_variants if e['gene'] in genes_with_variants
-                    ],
-                    'sv': structural_variants,
-                    'genes': gene_information,
-                },
-                indent='  ',
-                sort_keys=True,
-            )
-        )
+        output = {
+            'alterations': alterations,
+            'cnv': [c for c in copy_variants if c['gene'] in genes_with_variants],
+            'smallMutations': small_mutations,
+            'outliers': [e for e in expression_variants if e['gene'] in genes_with_variants],
+            'sv': structural_variants,
+            'genes': gene_information,
+        }
+        for section in output:
+            logger.info(f'section {section} has {len(output[section])} rows')
+        fh.write(json.dumps(output, indent='  ', sort_keys=True,))
     logger.info(f'made {graphkb_conn.request_count} requests to graphkb')
     # TODO: upload to IPR
