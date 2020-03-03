@@ -49,9 +49,5 @@ setup(
     dependency_links=[],
     test_suite='tests',
     tests_require=TEST_REQS,
-<<<<<<< HEAD
     entry_points={'console_scripts': ['genomic_report = genomic_report.main:command_interface']},
-=======
-    entry_points={'console_scripts': []},
->>>>>>> develop
 )
