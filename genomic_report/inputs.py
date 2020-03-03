@@ -133,6 +133,8 @@ def load_small_mutations(filename):
     for row in result:
         for longAA, shortAA in protein_letters_3to1.items():
             row['proteinChange'] = row['proteinChange'].replace(longAA, shortAA)
+        hgvsp = '{}:{}'.format(row['gene'], row['proteinChange'])
+        row['variant'] = hgvsp
 
     return result
 

@@ -95,7 +95,7 @@ def annotate_category_variants(graphkb_conn, variants, disease_name, copy_varian
     return alterations
 
 
-def annotate_small_mutations(graphkb_conn, variants, disease_name):
+def annotate_positional_variants(graphkb_conn, variants, disease_name):
     """
     Annotate variant calls with information from GraphKB and return these annotations in the IPR
     alterations format
@@ -111,9 +111,9 @@ def annotate_small_mutations(graphkb_conn, variants, disease_name):
     alterations = []
 
     for row in variants:
-        hgvsp = '{}:{}'.format(row['gene'], row['proteinChange'])
+        variant = row['variant']
         try:
-            matches = match_positional_variant(graphkb_conn, hgvsp)
+            matches = match_positional_variant(graphkb_conn, variant)
 
             if matches:
                 statements = get_statements_from_variants(graphkb_conn, matches)
@@ -122,27 +122,19 @@ def annotate_small_mutations(graphkb_conn, variants, disease_name):
                     graphkb_conn, statements, disease_name
                 ):
                     new_row = {
-                        'gene': row['gene'],
-                        'variant': row['proteinChange'],
+                        'variant': variant,
                         '_variant_key': row['key'],
                     }
                     new_row.update(ipr_row)
                     alterations.append(new_row)
         except ValueError as err:
             errors += 1
-            logger.warning(f'failed to match small mutation ({hgvsp}): {err}')
+            logger.warning(f'failed to match positional variants ({variant}): {err}')
         except Exception as err:
             errors += 1
-            logger.error(f'failed to match small mutation ({hgvsp}): {err}')
+            logger.error(f'failed to match positional variants ({variant}): {err}')
 
-    logger.info(f'skipped {errors} small mutations due to errors')
+    logger.info(f'skipped {errors} positional variants due to errors')
+    logger.info(f'matched {len(variants)} variants to {len(alterations)} graphkb annotations')
 
     return alterations
-
-
-def annotate_structural_variants():
-    raise NotImplementedError('TODO')
-
-
-def annotate_expression_variants():
-    raise NotImplementedError('TODO')
