@@ -32,7 +32,7 @@ def load_variant_file(filename, required, optional, row_to_key):
     Returns:
         List.<dict>: the rows from the tab file as dictionaries
     """
-    header = required + optional
+    header = required + optional + ['key']
 
     result = []
     keys = set()
@@ -47,13 +47,14 @@ def load_variant_file(filename, required, optional, row_to_key):
                     if req_col not in row:
                         raise ValueError(f'header missing required column ({req_col})')
                 header_validated = True
-
-            result.append({col: row.get(col, '') for col in header})
             row_key = hash_key(row_to_key(row))
             if row_key in keys:
                 raise ValueError(f'duplicate row key ({row_key})')
             row['key'] = row_key
             keys.add(row_key)
+
+            result.append({col: row.get(col, '') for col in header})
+
     return result
 
 
@@ -78,7 +79,7 @@ def validate_row_patterns(rows, patterns):
 
 def load_copy_variants(filename):
     def row_key(row):
-        return row['gene']
+        return ('cnv', row['gene'])
 
     result = load_variant_file(
         filename,
@@ -109,6 +110,7 @@ def load_copy_variants(filename):
 def load_small_mutations(filename):
     def row_key(row):
         return (
+            'small mutation',
             row['location'],
             row['refAlt'],
             row['gene'],
@@ -131,13 +133,15 @@ def load_small_mutations(filename):
     for row in result:
         for longAA, shortAA in protein_letters_3to1.items():
             row['proteinChange'] = row['proteinChange'].replace(longAA, shortAA)
+        hgvsp = '{}:{}'.format(row['gene'], row['proteinChange'])
+        row['variant'] = hgvsp
 
     return result
 
 
 def load_expression_variants(filename):
     def row_key(row):
-        return row['gene']
+        return ('expression', row['gene'])
 
     result = load_variant_file(
         filename,
@@ -194,7 +198,7 @@ def load_expression_variants(filename):
 
 def load_structural_variants(filename):
     def row_key(row):
-        return (row['eventType'], row['breakpoint'])
+        return ('sv', row['eventType'], row['breakpoint'])
 
     result = load_variant_file(
         filename,
@@ -218,6 +222,20 @@ def load_structural_variants(filename):
         'exons': r'^e(\d+)?:e(\d+)?$',
     }
     validate_row_patterns(result, patterns)
+
+    for row in result:
+        exon1, exon2 = re.match(r'^e(\d+)?:e(\d+)?$', row['exons']).group(1, 2)
+        gene1, gene2 = row['genes'].split('::')
+
+        row[
+            'variant'
+        ] = f'({gene1},{gene2}):fusion(e.{exon1 if exon1 else "?"},e.{exon2 if exon2 else "?"})'
+        del row['genes']
+        del row['exons']
+        row['gene1'] = gene1
+        row['gene2'] = gene2
+        row['exon1'] = exon1
+        row['exon2'] = exon2
 
     return result
 
@@ -274,5 +292,18 @@ def check_variant_links(small_mutations, expression_variants, copy_variants, str
                 f'gene ({gene}) has a small mutation but is missing expression information'
             )
         genes_with_variants.add(gene)
+
+    for variant in structural_variants:
+        for gene in [variant['gene1'], variant['gene2']]:
+            if gene:  # genes are optional for structural variants
+                if gene not in copy_variant_genes:
+                    raise KeyError(
+                        f'gene ({gene}) has a structural variant but is missing copy number information'
+                    )
+                if gene not in expression_variant_genes:
+                    raise KeyError(
+                        f'gene ({gene}) has a structural variant but is missing expression information'
+                    )
+                genes_with_variants.add(gene)
 
     return genes_with_variants
