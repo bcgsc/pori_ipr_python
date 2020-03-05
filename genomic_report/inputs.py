@@ -173,7 +173,7 @@ def load_expression_variants(filename):
         row_key,
     )
     patterns = {
-        'expression_class': r'^(overexpressed|outlier_high|outlier_low|low_percentile|na|)$'
+        'expression_class': r'^(overexpressed|outlier_high|high_percentile|outlier_low|low_percentile|underexpressed|no_category|na|)$'
     }
 
     validate_row_patterns(result, patterns)
@@ -182,9 +182,9 @@ def load_expression_variants(filename):
     for row in result:
         variant = ''
 
-        if row['expression_class'] in {'outlier_low', 'low_percentile'}:
+        if row['expression_class'] in {'outlier_low', 'underexpressed', 'low_percentile'}:
             variant = INPUT_EXPRESSION_CATEGORIES.DOWN
-        elif row['expression_class'] in {'outlier_high', 'overexpressed'}:
+        elif row['expression_class'] in {'outlier_high', 'overexpressed', 'high_percentile'}:
             variant = INPUT_EXPRESSION_CATEGORIES.UP
 
         row['variant'] = variant
