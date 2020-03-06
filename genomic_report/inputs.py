@@ -48,15 +48,19 @@ EXP_OPTIONAL = [
     'gtexAvgkIQR',
 ]
 
+SV_KEY = ['eventType', 'breakpoint']
 SV_REQ = [
-    'ctermGene',
-    'ntermGene',
+    'eventType',
+    'breakpoint',
+    'nterm_hugo',
+    'cterm_hugo',
+    'ctermGene',  # as weird 'hugo(ENSG)' form
+    'ntermGene',  # as weird 'hugo(ENSG)' form
     'ctermTranscript',
     'ntermTranscript',
-    'exons',
-    'eventType',
-    'genes',
-    'breakpoint',
+    # 'exons',
+    'exon1',  # n-terminal
+    'exon2',  # c-terminal
 ]
 SV_OPTIONAL = ['detectedIn', 'conventionalName', 'svg', 'svgTitle', 'name', 'frame']
 
@@ -209,26 +213,22 @@ def load_structural_variants(filename):
 
     result = load_variant_file(filename, SV_REQ, SV_OPTIONAL, row_key)
     patterns = {
-        'genes': r'^(\w|-)+::(\w|-)+$',
+        # 'genes': r'^(\w|-)+::(\w|-)+$',
+        'nterm_hugo': r'(\w|-)+',
+        'cterm_hugo': r'(\w|-)+',
         'breakpoint': r'^\w+:\d+\|\w+:\d+$',
-        # "e:e" just means no exon data.
-        'exons': r'^e(\d+)?:e(\d+)?$',
+        'exon1': r'^(\d+)?',
+        'exon2': r'^(\d+)?',
     }
     validate_row_patterns(result, patterns)
 
     for row in result:
-        exon1, exon2 = re.match(r'^e(\d+)?:e(\d+)?$', row['exons']).group(1, 2)
-        gene1, gene2 = row['genes'].split('::')
-
         row[
             'variant'
-        ] = f'({gene1},{gene2}):fusion(e.{exon1 if exon1 else "?"},e.{exon2 if exon2 else "?"})'
-        del row['genes']
-        del row['exons']
-        row['gene1'] = gene1
-        row['gene2'] = gene2
-        row['exon1'] = exon1
-        row['exon2'] = exon2
+        ] = f'({row["nterm_hugo"]},{row["cterm_hugo"]}):fusion(e.{row["exon1"] if row["exon1"] else "?"},e.{row["exon2"] if row["exon2"] else "?"})'
+        # This is confusing because mavis already has 'gene1' and 'gene2' definitions
+        row['gene1'] = row['nterm_hugo']
+        row['gene2'] = row['cterm_hugo']
 
     return result
 
