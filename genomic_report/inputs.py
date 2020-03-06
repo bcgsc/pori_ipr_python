@@ -12,6 +12,55 @@ from .util import hash_key
 protein_letters_3to1.setdefault('Ter', '*')
 
 
+COPY_REQ = ['gene', 'cnvState']
+COPY_OPTIONAL = ['chromosomeBand', 'ploidyCorrCpChange', 'start', 'end', 'lohState']
+
+SMALL_MUT_REQ = ['location', 'refAlt', 'gene', 'proteinChange', 'transcript']
+SMALL_MUT_OPTIONAL = ['zygosity', 'tumourReads', 'RNAReads']
+
+EXP_REQ = ['gene', 'expression_class']
+EXP_OPTIONAL = [
+    'rnaReads',
+    'rpkm',
+    'foldChange',
+    'tcgaPerc',
+    'tcgaPercCol',
+    'tcgakIQR',
+    'tcgaQC',
+    'tcgaQCCol',
+    'tcgaAvgPerc',
+    'tcgaAvgkIQR',
+    'tcgaAvgQC',
+    'tcgaAvgQCCol',
+    'tcgaNormPerc',
+    'tcgaNormkIQR',
+    'ptxPerc',
+    'ptxkIQR',
+    'ptxQC',
+    'ptxPercCol',
+    'ptxTotSampObs',
+    'ptsPogPerc',
+    'gtexComp',
+    'gtexFC',
+    'gtexkIQR',
+    'gtexAvgPerc',
+    'gtexAvgFC',
+    'gtexAvgkIQR',
+]
+
+SV_REQ = [
+    'ctermGene',
+    'ntermGene',
+    'ctermTranscript',
+    'ntermTranscript',
+    'exons',
+    'eventType',
+    'genes',
+    'breakpoint',
+]
+SV_OPTIONAL = ['detectedIn', 'conventionalName', 'svg', 'svgTitle', 'name', 'frame']
+
+
 def load_variant_file(filename, required, optional, row_to_key):
     """
     Load a tab delimited file and
@@ -81,12 +130,7 @@ def load_copy_variants(filename):
     def row_key(row):
         return ('cnv', row['gene'])
 
-    result = load_variant_file(
-        filename,
-        ['gene', 'cnvState'],
-        ['chromosomeBand', 'ploidyCorrCpChange', 'start', 'end', 'lohState'],
-        row_key,
-    )
+    result = load_variant_file(filename, COPY_REQ, COPY_OPTIONAL, row_key,)
 
     patterns = {'cnvState': r'(Loss|Gain|Amplification|Homozygous Loss|Neutral)'}
     validate_row_patterns(result, patterns)
@@ -118,12 +162,7 @@ def load_small_mutations(filename):
             row['transcript'],
         )
 
-    result = load_variant_file(
-        filename,
-        ['location', 'refAlt', 'gene', 'proteinChange', 'transcript'],
-        ['zygosity', 'tumourReads', 'RNAReads'],
-        row_key,
-    )
+    result = load_variant_file(filename, SMALL_MUT_REQ, SMALL_MUT_OPTIONAL, row_key,)
 
     patterns = {'location': r'^\w+:\d+$', 'refAlt': r'^[A-Z]+>[A-Z]+$'}
 
@@ -143,39 +182,7 @@ def load_expression_variants(filename):
     def row_key(row):
         return ('expression', row['gene'])
 
-    result = load_variant_file(
-        filename,
-        ['gene', 'expression_class'],
-        [
-            'rnaReads',
-            'rpkm',
-            'foldChange',
-            'tcgaPerc',
-            'tcgaPercCol',
-            'tcgakIQR',
-            'tcgaQC',
-            'tcgaQCCol',
-            'tcgaAvgPerc',
-            'tcgaAvgkIQR',
-            'tcgaAvgQC',
-            'tcgaAvgQCCol',
-            'tcgaNormPerc',
-            'tcgaNormkIQR',
-            'ptxPerc',
-            'ptxkIQR',
-            'ptxQC',
-            'ptxPercCol',
-            'ptxTotSampObs',
-            'ptsPogPerc',
-            'gtexComp',
-            'gtexFC',
-            'gtexkIQR',
-            'gtexAvgPerc',
-            'gtexAvgFC',
-            'gtexAvgkIQR',
-        ],
-        row_key,
-    )
+    result = load_variant_file(filename, EXP_REQ, EXP_OPTIONAL, row_key,)
     patterns = {
         'expression_class': r'^(overexpressed|outlier_high|high_percentile|outlier_low|low_percentile|underexpressed|no_category|na|)$'
     }
@@ -200,21 +207,7 @@ def load_structural_variants(filename):
     def row_key(row):
         return ('sv', row['eventType'], row['breakpoint'])
 
-    result = load_variant_file(
-        filename,
-        [
-            'ctermGene',
-            'ntermGene',
-            'ctermTranscript',
-            'ntermTranscript',
-            'exons',
-            'eventType',
-            'genes',
-            'breakpoint',
-        ],
-        ['detectedIn', 'conventionalName', 'svg', 'svgTitle', 'name', 'frame'],
-        row_key,
-    )
+    result = load_variant_file(filename, SV_REQ, SV_OPTIONAL, row_key)
     patterns = {
         'genes': r'^(\w|-)+::(\w|-)+$',
         'breakpoint': r'^\w+:\d+\|\w+:\d+$',
