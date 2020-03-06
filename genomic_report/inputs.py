@@ -225,7 +225,7 @@ def load_structural_variants(filename):
     for row in result:
         row[
             'variant'
-        ] = f'({row["nterm_hugo"]},{row["cterm_hugo"]}):fusion(e.{row["exon1"] if row["exon1"] else "?"},e.{row["exon2"] if row["exon2"] else "?"})'
+        ] = f'({row["nterm_hugo"]},{row["cterm_hugo"]}):fusion(e.{row["exon1"]},e.{row["exon2"]})'
         # This is confusing because mavis already has 'gene1' and 'gene2' definitions
         row['gene1'] = row['nterm_hugo']
         row['gene2'] = row['cterm_hugo']
