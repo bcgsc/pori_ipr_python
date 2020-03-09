@@ -12,8 +12,24 @@ from .util import hash_key
 protein_letters_3to1.setdefault('Ter', '*')
 
 
-COPY_REQ = ['gene', 'cnvState']
-COPY_OPTIONAL = ['chromosomeBand', 'ploidyCorrCpChange', 'start', 'end', 'lohState']
+COPY_REQ = ['gene', 'variant']  # 'variant' in INPUT_COPY_CATEGORIES
+COPY_OPTIONAL = [
+    'cnvState',  # displayed 'variant'
+    'ploidyCorrCpChange',
+    'lohState',  # Loss of Heterzygosity state - informative detail to analyst
+    # These are details about the region the 'copy change relevant region'
+    # that encompasses the entire gene.
+    'chromosomeBand',
+    'start',
+    'end',
+]
+# default map for display - concise names
+COPY_VARIANT2CNVSTATE = {
+    INPUT_COPY_CATEGORIES.DEEP: "Deep Loss",
+    INPUT_COPY_CATEGORIES.AMP: "Amplification",
+    INPUT_COPY_CATEGORIES.GAIN: "Gain",
+    INPUT_COPY_CATEGORIES.LOSS: "Loss",
+}
 
 SMALL_MUT_REQ = ['location', 'refAlt', 'gene', 'proteinChange', 'transcript']
 SMALL_MUT_OPTIONAL = ['zygosity', 'tumourReads', 'RNAReads']
@@ -130,23 +146,24 @@ def load_copy_variants(filename):
     def row_key(row):
         return ('cnv', row['gene'])
 
-    result = load_variant_file(filename, COPY_REQ, COPY_OPTIONAL, row_key,)
+    result = load_variant_file(filename, COPY_REQ, COPY_OPTIONAL, row_key)
 
-    patterns = {'cnvState': r'(Loss|Gain|Amplification|Homozygous Loss|Neutral)'}
+    # verify the copy number category is valid or blank
+    patterns = {'variant': f'({"|".join(INPUT_COPY_CATEGORIES.values())}|)'}
     validate_row_patterns(result, patterns)
 
+    # Create a 'cnvState' display value if needed
     for row in result:
-        category = ''
-        if row['cnvState'] == 'Loss':
-            category = INPUT_COPY_CATEGORIES.LOSS
-        elif row['cnvState'] == 'Gain':
-            category = INPUT_COPY_CATEGORIES.GAIN
-        elif row['cnvState'] == 'Amplification':
-            category = INPUT_COPY_CATEGORIES.AMP
-        elif row['cnvState'] == 'Homozygous Loss':
-            category = INPUT_COPY_CATEGORIES.DEEP
-
-        row['variant'] = category
+        if 'cnvState' in row.keys():
+            # column already exists
+            break
+        elif row['variant'] in COPY_VARIANT2CNVSTATE:
+            row['cnvState'] = COPY_VARIANT2CNVSTATE[row['variant']]
+        # any non-blank measurement, without another category, is Neutral.
+        elif 'ploidyCorrCpChange' in row.keys() and row['ploidyCorrCpChange'] not in ('', 'na'):
+            row['cnvState'] = 'Neutral'
+        else:
+            row['cnvState'] = ''  # no measurement
 
     return result
 
