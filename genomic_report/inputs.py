@@ -2,6 +2,7 @@
 Read/Validate the variant input files
 """
 from csv import DictReader
+import logging
 import re
 
 from graphkb.match import INPUT_COPY_CATEGORIES, INPUT_EXPRESSION_CATEGORIES
@@ -18,8 +19,9 @@ COPY_OPTIONAL = ['chromosomeBand', 'ploidyCorrCpChange', 'start', 'end', 'lohSta
 SMALL_MUT_REQ = ['location', 'refAlt', 'gene', 'proteinChange', 'transcript']
 SMALL_MUT_OPTIONAL = ['zygosity', 'tumourReads', 'RNAReads']
 
-EXP_REQ = ['gene', 'expression_class']
+EXP_REQ = ['gene', 'variant']
 EXP_OPTIONAL = [
+    'expression_class',  # for display
     'rnaReads',
     'rpkm',
     'foldChange',
@@ -182,23 +184,17 @@ def load_expression_variants(filename):
     def row_key(row):
         return ('expression', row['gene'])
 
-    result = load_variant_file(filename, EXP_REQ, EXP_OPTIONAL, row_key,)
-    patterns = {
-        'expression_class': r'^(overexpressed|outlier_high|high_percentile|outlier_low|low_percentile|underexpressed|no_category|na|)$'
-    }
-
-    validate_row_patterns(result, patterns)
-
-    # transform expression class to 'variant' column of GraphKB vocabulary
+    result = load_variant_file(filename, EXP_REQ, EXP_OPTIONAL, row_key)
+    errors = []
     for row in result:
-        variant = ''
-
-        if row['expression_class'] in {'outlier_low', 'underexpressed', 'low_percentile'}:
-            variant = INPUT_EXPRESSION_CATEGORIES.DOWN
-        elif row['expression_class'] in {'outlier_high', 'overexpressed', 'high_percentile'}:
-            variant = INPUT_EXPRESSION_CATEGORIES.UP
-
-        row['variant'] = variant
+        if row['variant'] and row['variant'] not in INPUT_EXPRESSION_CATEGORIES.values():
+            err_msg = (
+                f"{row['gene']} variant '{row['variant']}' not in {INPUT_EXPRESSION_CATEGORIES}"
+            )
+            errors.append(err_msg)
+            logging.error(err_msg)
+    if errors:
+        raise ValueError(f"{len(errors)} Invalid expression variants in file - {filename}")
 
     return result
 
