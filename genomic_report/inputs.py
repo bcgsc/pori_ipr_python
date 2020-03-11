@@ -2,6 +2,7 @@
 Read/Validate the variant input files
 """
 from csv import DictReader
+import logging
 import re
 
 from graphkb.match import INPUT_COPY_CATEGORIES, INPUT_EXPRESSION_CATEGORIES
@@ -12,14 +13,21 @@ from .util import hash_key
 protein_letters_3to1.setdefault('Ter', '*')
 
 
-COPY_REQ = ['gene', 'cnvState']
-COPY_OPTIONAL = ['chromosomeBand', 'ploidyCorrCpChange', 'start', 'end', 'lohState']
+COPY_REQ = ['gene', 'variant']  # 'variant' in INPUT_COPY_CATEGORIES
+COPY_OPTIONAL = [
+    'ploidyCorrCpChange',
+    'lohState',  # Loss of Heterzygosity state - informative detail to analyst
+    'chromosomeBand',
+    'start',
+    'end',
+]
 
 SMALL_MUT_REQ = ['location', 'refAlt', 'gene', 'proteinChange', 'transcript']
 SMALL_MUT_OPTIONAL = ['zygosity', 'tumourReads', 'RNAReads']
 
-EXP_REQ = ['gene', 'expression_class']
+EXP_REQ = ['gene', 'variant']
 EXP_OPTIONAL = [
+    'expression_class',  # for display
     'rnaReads',
     'rpkm',
     'foldChange',
@@ -131,26 +139,32 @@ def validate_row_patterns(rows, patterns):
 
 
 def load_copy_variants(filename):
+    # default map for display - concise names
+    COPY_VARIANT2CNVSTATE = {
+        INPUT_COPY_CATEGORIES.DEEP: "Deep Loss",
+        INPUT_COPY_CATEGORIES.AMP: "Amplification",
+        INPUT_COPY_CATEGORIES.GAIN: "Gain",
+        INPUT_COPY_CATEGORIES.LOSS: "Loss",
+    }
+
     def row_key(row):
         return ('cnv', row['gene'])
 
-    result = load_variant_file(filename, COPY_REQ, COPY_OPTIONAL, row_key,)
+    result = load_variant_file(filename, COPY_REQ, COPY_OPTIONAL, row_key)
 
-    patterns = {'cnvState': r'(Loss|Gain|Amplification|Homozygous Loss|Neutral)'}
+    # verify the copy number category is valid or blank
+    patterns = {'variant': f'({"|".join(INPUT_COPY_CATEGORIES.values())}|)'}
     validate_row_patterns(result, patterns)
 
+    # Create a 'cnvState' displayed variant label
     for row in result:
-        category = ''
-        if row['cnvState'] == 'Loss':
-            category = INPUT_COPY_CATEGORIES.LOSS
-        elif row['cnvState'] == 'Gain':
-            category = INPUT_COPY_CATEGORIES.GAIN
-        elif row['cnvState'] == 'Amplification':
-            category = INPUT_COPY_CATEGORIES.AMP
-        elif row['cnvState'] == 'Homozygous Loss':
-            category = INPUT_COPY_CATEGORIES.DEEP
-
-        row['variant'] = category
+        if row['variant'] in COPY_VARIANT2CNVSTATE:
+            row['cnvState'] = COPY_VARIANT2CNVSTATE[row['variant']]
+        # any non-blank measurement, without another category, is Neutral.
+        elif 'ploidyCorrCpChange' in row.keys() and row['ploidyCorrCpChange'] not in ('', 'na'):
+            row['cnvState'] = 'Neutral'
+        else:
+            row['cnvState'] = ''  # no measurement
 
     return result
 
@@ -186,23 +200,17 @@ def load_expression_variants(filename):
     def row_key(row):
         return ('expression', row['gene'])
 
-    result = load_variant_file(filename, EXP_REQ, EXP_OPTIONAL, row_key,)
-    patterns = {
-        'expression_class': r'^(overexpressed|outlier_high|high_percentile|outlier_low|low_percentile|underexpressed|no_category|na|)$'
-    }
-
-    validate_row_patterns(result, patterns)
-
-    # transform expression class to 'variant' column of GraphKB vocabulary
+    result = load_variant_file(filename, EXP_REQ, EXP_OPTIONAL, row_key)
+    errors = []
     for row in result:
-        variant = ''
-
-        if row['expression_class'] in {'outlier_low', 'underexpressed', 'low_percentile'}:
-            variant = INPUT_EXPRESSION_CATEGORIES.DOWN
-        elif row['expression_class'] in {'outlier_high', 'overexpressed', 'high_percentile'}:
-            variant = INPUT_EXPRESSION_CATEGORIES.UP
-
-        row['variant'] = variant
+        if row['variant'] and row['variant'] not in INPUT_EXPRESSION_CATEGORIES.values():
+            err_msg = (
+                f"{row['gene']} variant '{row['variant']}' not in {INPUT_EXPRESSION_CATEGORIES}"
+            )
+            errors.append(err_msg)
+            logging.error(err_msg)
+    if errors:
+        raise ValueError(f"{len(errors)} Invalid expression variants in file - {filename}")
 
     return result
 
