@@ -14,22 +14,12 @@ protein_letters_3to1.setdefault('Ter', '*')
 
 COPY_REQ = ['gene', 'variant']  # 'variant' in INPUT_COPY_CATEGORIES
 COPY_OPTIONAL = [
-    'cnvState',  # displayed 'variant'
     'ploidyCorrCpChange',
     'lohState',  # Loss of Heterzygosity state - informative detail to analyst
-    # These are details about the region the 'copy change relevant region'
-    # that encompasses the entire gene.
     'chromosomeBand',
     'start',
     'end',
 ]
-# default map for display - concise names
-COPY_VARIANT2CNVSTATE = {
-    INPUT_COPY_CATEGORIES.DEEP: "Deep Loss",
-    INPUT_COPY_CATEGORIES.AMP: "Amplification",
-    INPUT_COPY_CATEGORIES.GAIN: "Gain",
-    INPUT_COPY_CATEGORIES.LOSS: "Loss",
-}
 
 SMALL_MUT_REQ = ['location', 'refAlt', 'gene', 'proteinChange', 'transcript']
 SMALL_MUT_OPTIONAL = ['zygosity', 'tumourReads', 'RNAReads']
@@ -143,6 +133,14 @@ def validate_row_patterns(rows, patterns):
 
 
 def load_copy_variants(filename):
+    # default map for display - concise names
+    COPY_VARIANT2CNVSTATE = {
+        INPUT_COPY_CATEGORIES.DEEP: "Deep Loss",
+        INPUT_COPY_CATEGORIES.AMP: "Amplification",
+        INPUT_COPY_CATEGORIES.GAIN: "Gain",
+        INPUT_COPY_CATEGORIES.LOSS: "Loss",
+    }
+
     def row_key(row):
         return ('cnv', row['gene'])
 
@@ -152,12 +150,9 @@ def load_copy_variants(filename):
     patterns = {'variant': f'({"|".join(INPUT_COPY_CATEGORIES.values())}|)'}
     validate_row_patterns(result, patterns)
 
-    # Create a 'cnvState' display value if needed
+    # Create a 'cnvState' displayed variant label
     for row in result:
-        if 'cnvState' in row.keys():
-            # column already exists
-            break
-        elif row['variant'] in COPY_VARIANT2CNVSTATE:
+        if row['variant'] in COPY_VARIANT2CNVSTATE:
             row['cnvState'] = COPY_VARIANT2CNVSTATE[row['variant']]
         # any non-blank measurement, without another category, is Neutral.
         elif 'ploidyCorrCpChange' in row.keys() and row['ploidyCorrCpChange'] not in ('', 'na'):
