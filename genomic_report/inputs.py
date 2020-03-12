@@ -60,13 +60,12 @@ SV_KEY = ['eventType', 'breakpoint']
 SV_REQ = [
     'eventType',
     'breakpoint',
-    'nterm_hugo',
-    'cterm_hugo',
-    'ctermGene',  # as weird 'hugo(ENSG)' form
-    'ntermGene',  # as weird 'hugo(ENSG)' form
+    'gene1',  # prev: nterm_hugo
+    'gene2',  # prev: cterm_hugo
+    'ctermGene',  # combined hugo ensembl form
+    'ntermGene',  # combined hugo ensembl form
     'ctermTranscript',
     'ntermTranscript',
-    # 'exons',
     'exon1',  # n-terminal
     'exon2',  # c-terminal
 ]
@@ -220,23 +219,20 @@ def load_structural_variants(filename):
         return ('sv', row['eventType'], row['breakpoint'])
 
     result = load_variant_file(filename, SV_REQ, SV_OPTIONAL, row_key)
+    exon_pattern = r'^(\?|\d+)$'
     patterns = {
-        # 'genes': r'^(\w|-)+::(\w|-)+$',
-        'nterm_hugo': r'(\w|-)+',
-        'cterm_hugo': r'(\w|-)+',
+        'gene1': r'(\w|-)+',
+        'gene2': r'(\w|-)+',
         'breakpoint': r'^\w+:\d+\|\w+:\d+$',
-        'exon1': r'^(\d+)?',
-        'exon2': r'^(\d+)?',
+        'exon1': exon_pattern,
+        'exon2': exon_pattern,
     }
     validate_row_patterns(result, patterns)
 
     for row in result:
         row[
             'variant'
-        ] = f'({row["nterm_hugo"]},{row["cterm_hugo"]}):fusion(e.{row["exon1"]},e.{row["exon2"]})'
-        # This is confusing because mavis already has 'gene1' and 'gene2' definitions
-        row['gene1'] = row['nterm_hugo']
-        row['gene2'] = row['cterm_hugo']
+        ] = f'({row["gene1"]},{row["gene2"]}):fusion(e.{row["exon1"]},e.{row["exon2"]})'
 
     return result
 
