@@ -59,7 +59,14 @@ def command_interface():
     main(args)
 
 
-def main(args):
+def main(args, optional_content=None):
+    """
+    Run the matching and create the report JSON for upload (TODO) to IPR
+
+    Args:
+        args (argparse.Namespace): Namespace of arguments with file names for variant inputs etc
+        optional_content (dict): Pass-through content to include in the JSON upload
+    """
     # set the default logging configuration
     logging.basicConfig(
         level=LOG_LEVELS[args.log_level],
@@ -111,14 +118,17 @@ def main(args):
 
     logger.info(f'writing: {args.output_json}')
     with open(args.output_json, 'w') as fh:
-        output = {
-            'alterations': alterations,
-            'cnv': [c for c in copy_variants if c['gene'] in genes_with_variants],
-            'smallMutations': small_mutations,
-            'outliers': [e for e in expression_variants if e['gene'] in genes_with_variants],
-            'sv': structural_variants,
-            'genes': gene_information,
-        }
+        output = optional_content or dict()
+        output.update(
+            {
+                'alterations': alterations,
+                'cnv': [c for c in copy_variants if c['gene'] in genes_with_variants],
+                'smallMutations': small_mutations,
+                'outliers': [e for e in expression_variants if e['gene'] in genes_with_variants],
+                'sv': structural_variants,
+                'genes': gene_information,
+            }
+        )
         for section in output:
             logger.info(f'section {section} has {len(output[section])} rows')
         fh.write(json.dumps(output, indent='  ', sort_keys=True,))
