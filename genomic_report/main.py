@@ -15,6 +15,7 @@ from .inputs import (
 )
 from .annotate import annotate_category_variants, annotate_positional_variants, get_gene_information
 from .util import logger, LOG_LEVELS
+from .ipr import IprConnection, DEFAULT_URL as DEFAULT_IPR_URL
 
 
 def file_path(path):
@@ -44,6 +45,7 @@ def command_interface():
     parser.add_argument('-m', '--small_mutations', required=False, type=file_path)
     parser.add_argument('-s', '--structural_variants', required=False, type=file_path)
     parser.add_argument('-e', '--expression_variants', required=False, type=file_path)
+    parser.add_argument('--ipr_url', default=DEFAULT_IPR_URL)
     parser.add_argument('--log_level', default='info', choices=LOG_LEVELS.keys())
 
     # TODO: upload JSON to IPR instead of writing output
@@ -73,7 +75,7 @@ def main(args, optional_content=None):
         format='%(asctime)s %(name)s %(levelname)s %(message)s',
         datefmt='%m-%d-%y %H:%M:%S',
     )
-
+    ipr_conn = IprConnection(args.username, args.password, args.ipr_url)
     graphkb_conn = GraphKBConnection()
     graphkb_conn.login(args.username, args.password)
     disease_name = 'colorectal cancer'  # TODO: use patient disease not dummy one
@@ -117,8 +119,10 @@ def main(args, optional_content=None):
     # TODO: Append gene level information to each variant type (until IPR does this itself?)
 
     logger.info(f'writing: {args.output_json}')
+    output = optional_content or dict()
+
     with open(args.output_json, 'w') as fh:
-        output = optional_content or dict()
+
         output.update(
             {
                 'alterations': alterations,
@@ -131,6 +135,6 @@ def main(args, optional_content=None):
         )
         for section in output:
             logger.info(f'section {section} has {len(output[section])} rows')
-        fh.write(json.dumps(output, indent='  ', sort_keys=True,))
+        fh.write(json.dumps(output, indent='  ', sort_keys=True))
     logger.info(f'made {graphkb_conn.request_count} requests to graphkb')
-    # TODO: upload to IPR
+    ipr_conn.upload_report(output)
