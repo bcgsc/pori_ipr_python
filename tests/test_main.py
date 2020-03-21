@@ -1,4 +1,3 @@
-
 import os
 from unittest.mock import patch, MagicMock
 from argparse import Namespace
@@ -9,11 +8,7 @@ from genomic_report.main import main
 
 
 def get_test_file(name):
-    return os.path.join(
-        os.path.dirname(__file__),
-        'test_data',
-        name
-    )
+    return os.path.join(os.path.dirname(__file__), 'test_data', name)
 
 
 def test_report_upload(tmpdir):
@@ -30,7 +25,7 @@ def test_report_upload(tmpdir):
             password=os.environ['PASSWORD'],
             output_json=os.path.join(tmpdir, 'output.json'),
             log_level='info',
-            ipr_url='http://fake.url.ca'
+            ipr_url='http://fake.url.ca',
         )
 
         main(args, {'blargh': 'some fake content'})
@@ -40,7 +35,14 @@ def test_report_upload(tmpdir):
     report_content = mock.call_args[0][0]
     sections = set(report_content.keys())
 
-    for section in ['structuralVariants', 'expressionVariants', 'copyVariants', 'smallMutations', 'kbMatches', 'genes']:
+    for section in [
+        'structuralVariants',
+        'expressionVariants',
+        'copyVariants',
+        'smallMutations',
+        'kbMatches',
+        'genes',
+    ]:
         assert section in sections
 
     # check the passthorough content was added
