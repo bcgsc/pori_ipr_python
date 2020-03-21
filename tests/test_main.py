@@ -33,7 +33,7 @@ def test_report_upload(tmpdir):
             ipr_url='http://fake.url.ca'
         )
 
-        main(args)
+        main(args, {'blargh': 'some fake content'})
 
     assert mock.called
 
@@ -42,3 +42,6 @@ def test_report_upload(tmpdir):
 
     for section in ['structuralVariants', 'expressionVariants', 'copyVariants', 'smallMutations', 'kbMatches', 'genes']:
         assert section in sections
+
+    # check the passthorough content was added
+    assert 'blargh' in sections
