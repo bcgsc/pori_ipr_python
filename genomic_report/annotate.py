@@ -122,7 +122,6 @@ def annotate_category_variants(graphkb_conn, variants, disease_name, copy_varian
         [type]: [description]
     """
     skipped = 0
-    errors = 0
     alterations = []
     for row in variants:
         gene = row['gene']
@@ -144,18 +143,14 @@ def annotate_category_variants(graphkb_conn, variants, disease_name, copy_varian
                     graphkb_conn, statements, disease_name
                 ):
                     new_row = {
-                        'gene': gene,
-                        'variant': variant,
-                        '_variant_key': row['key'],
+                        'variant': row['key'],
                     }
                     new_row.update(ipr_row)
                     alterations.append(new_row)
         except ValueError as err:
-            logger.warning(f'failed to match variants ({gene} {variant}): {err}')
-            errors += 1
+            logger.debug(f'failed to match variants ({gene} {variant}): {err}')
 
     logger.info(f'skipped matching {skipped} non variant information rows')
-    logger.info(f'skipped {errors} variants due to errors')
     logger.info(f'matched {len(variants)} variants to {len(alterations)} graphkb annotations')
     return alterations
 
@@ -187,14 +182,12 @@ def annotate_positional_variants(graphkb_conn, variants, disease_name):
                     graphkb_conn, statements, disease_name
                 ):
                     new_row = {
-                        'variant': variant,
-                        '_variant_key': row['key'],
+                        'variant': row['key'],
                     }
                     new_row.update(ipr_row)
                     alterations.append(new_row)
         except ValueError as err:
-            errors += 1
-            logger.warning(f'failed to match positional variants ({variant}): {err}')
+            logger.debug(f'failed to match positional variants ({variant}): {err}')
         except Exception as err:
             errors += 1
             logger.error(f'failed to match positional variants ({variant}): {err}')

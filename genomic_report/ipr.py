@@ -143,7 +143,6 @@ def convert_statements_to_alterations(graphkb_conn, statements, disease_name):
                 'matchedCancer': disease_match,
                 'reference': pmid,
                 'relevance': statement['relevance']['displayName'],
-                'variant': variant['key'],
                 # TODO: remove, these columns are for debugging but not to output to IPR
                 '_source': statement['source']['displayName'] if statement['source'] else None,
                 '_sourceId': statement['sourceId'],
