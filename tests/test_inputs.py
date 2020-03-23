@@ -23,7 +23,7 @@ def test_load_small_mutations():
 def test_load_copy_variants():
     records = load_copy_variants(os.path.join(DATA_DIR, 'copy_variants.tab'))
     assert records
-    assert len(records) == 4599
+    assert len(records) == 4603
 
 
 def test_load_structural_variants():
@@ -35,7 +35,7 @@ def test_load_structural_variants():
 def test_load_expression_variants():
     records = load_expression_variants(os.path.join(DATA_DIR, 'expression.tab'))
     assert records
-    assert len(records) == 6
+    assert len(records) == 4603
 
 
 class TestCheckVariantLinks:
