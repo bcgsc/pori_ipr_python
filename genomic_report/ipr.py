@@ -184,4 +184,5 @@ class IprConnection:
         return self.request(uri, method='POST', data=json.dumps(data), **kwargs)
 
     def upload_report(self, content):
-        return self.post('/reports', content)
+        pass  # TODO: add when IPR endpoint is ready
+        # return self.post('/reports', content)
