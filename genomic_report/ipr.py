@@ -37,7 +37,7 @@ APPROVED_EVIDENCE_LEVELS = {
     ],
 }
 
-DEFAULT_URL = 'https://graphkb-api.bcgsc.ca/api'
+DEFAULT_URL = 'http://iprdev-api.bcgsc.ca/api'
 DEFAULT_LIMIT = 1000
 
 
