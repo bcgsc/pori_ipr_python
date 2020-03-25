@@ -7,20 +7,15 @@ from graphkb.match import (
     match_expression_variant,
     get_equivalent_features,
 )
-from graphkb.genes import (
-    get_oncokb_oncogenes,
-    get_oncokb_tumour_supressors,
-    get_genes_from_variant_types,
-)
+from graphkb.genes import get_oncokb_oncogenes, get_oncokb_tumour_supressors
 from graphkb.util import convert_to_rid_list
 from graphkb.constants import BASE_RETURN_PROPERTIES, GENERIC_RETURN_PROPERTIES
-from graphkb.vocab import get_term_tree
 
 from .ipr import convert_statements_to_alterations
 from .util import logger, convert_to_rid_set
 
 
-def get_cancer_related_genes(graphkb_conn):
+def get_variant_related_genes(graphkb_conn):
     """
     Get the list of genes on any variant in GKB
 
@@ -28,7 +23,7 @@ def get_cancer_related_genes(graphkb_conn):
         graphkb_conn (GraphKBConnection): graphkb connection object
 
     Returns:
-        set.<str>: set of records IDs
+        tuple: sets of records IDs for all and fusion variants
     """
     # cancer related means any gene that has a variant in GKB
     variants = graphkb_conn.query(
@@ -36,11 +31,14 @@ def get_cancer_related_genes(graphkb_conn):
     )
 
     genes = set()
+    fusion_genes = set()
     for variant in variants:
         genes.add(variant['reference1'])
         if variant['reference2']:
             genes.add(variant['reference2'])
-    return genes
+            fusion_genes.add(variant['reference1'])
+            fusion_genes.add(variant['reference2'])
+    return genes, fusion_genes
 
 
 def get_gene_information(graphkb_conn, gene_names):
@@ -56,18 +54,7 @@ def get_gene_information(graphkb_conn, gene_names):
     logger.verbose('fetching tumour supressors list')
     tumour_suppressors = convert_to_rid_set(get_oncokb_tumour_supressors(graphkb_conn))
     logger.verbose('fetching cancer related genes list')
-    cancer_related = get_cancer_related_genes(graphkb_conn)
-
-    fusion_types = get_term_tree(graphkb_conn, "structural variant")
-    known_fusion_partners = convert_to_rid_set(
-        [
-            fusion
-            for fusion in get_genes_from_variant_types(
-                graphkb_conn, types=[t["name"] for t in fusion_types]
-            )
-            if fusion.get("reference2", None)
-        ]
-    )
+    cancer_related, known_fusion_partners = get_variant_related_genes(graphkb_conn)
 
     result = []
 
