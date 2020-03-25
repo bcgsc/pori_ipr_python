@@ -53,11 +53,11 @@ class TestConvertStatementsToAlterations:
 
         assert len(result) == 1
         row = result[0]
-        assert row['kb_event_key'] == 'variant_rid'
-        assert row['kb_entry_key'] == 'statement_rid'
-        assert row['matched_cancer']
+        assert row['kbVariantId'] == 'variant_rid'
+        assert row['kbStatementId'] == 'statement_rid'
+        assert row['matchedCancer']
         assert row['kbVariant'] == 'KRAS increased expression'
-        assert row['association'] == 'relevance_display_name'
+        assert row['relevance'] == 'relevance_display_name'
 
     def test_no_disease_match(self, graphkb_conn):
         statement = base_graphkb_statement('other')
@@ -65,7 +65,7 @@ class TestConvertStatementsToAlterations:
 
         assert len(result) == 1
         row = result[0]
-        assert not row['matched_cancer']
+        assert not row['matchedCancer']
 
     def test_multiple_disease_not_match(self, graphkb_conn):
         statement = base_graphkb_statement('disease')
@@ -76,7 +76,7 @@ class TestConvertStatementsToAlterations:
 
         assert len(result) == 1
         row = result[0]
-        assert not row['matched_cancer']
+        assert not row['matchedCancer']
 
     def test_biological_statement(self, graphkb_conn):
         statement = base_graphkb_statement()
@@ -85,8 +85,7 @@ class TestConvertStatementsToAlterations:
         result = convert_statements_to_alterations(graphkb_conn, [statement], 'disease')
         assert len(result) == 1
         row = result[0]
-        assert row['kb_entry_type'] == 'biological'
-        assert row['alterationType'] == 'biological'
+        assert row['category'] == 'biological'
 
     def test_prognostic_statement(self, graphkb_conn):
         statement = base_graphkb_statement()
@@ -95,8 +94,7 @@ class TestConvertStatementsToAlterations:
         result = convert_statements_to_alterations(graphkb_conn, [statement], 'disease')
         assert len(result) == 1
         row = result[0]
-        assert row['kb_entry_type'] == 'prognostic'
-        assert row['alterationType'] == 'prognostic'
+        assert row['category'] == 'prognostic'
 
     def test_diagnostic_statement(self, graphkb_conn):
         statement = base_graphkb_statement()
@@ -105,8 +103,7 @@ class TestConvertStatementsToAlterations:
         result = convert_statements_to_alterations(graphkb_conn, [statement], 'disease')
         assert len(result) == 1
         row = result[0]
-        assert row['kb_entry_type'] == 'diagnostic'
-        assert row['alterationType'] == 'diagnostic'
+        assert row['category'] == 'diagnostic'
 
     def test_unapproved_therapeutic_statement(self, graphkb_conn):
         statement = base_graphkb_statement()
@@ -116,8 +113,7 @@ class TestConvertStatementsToAlterations:
         result = convert_statements_to_alterations(graphkb_conn, [statement], 'disease')
         assert len(result) == 1
         row = result[0]
-        assert row['kb_entry_type'] == 'therapeutic'
-        assert row['alterationType'] == 'therapeutic'
+        assert row['category'] == 'therapeutic'
 
     def test_approved_therapeutic_statement(self, graphkb_conn):
         statement = base_graphkb_statement()
@@ -127,5 +123,4 @@ class TestConvertStatementsToAlterations:
         result = convert_statements_to_alterations(graphkb_conn, [statement], 'disease')
         assert len(result) == 1
         row = result[0]
-        assert row['kb_entry_type'] == 'therapeutic'
-        assert row['alterationType'] == 'therapeutic'
+        assert row['category'] == 'therapeutic'

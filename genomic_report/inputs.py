@@ -23,7 +23,7 @@ COPY_OPTIONAL = [
 ]
 
 SMALL_MUT_REQ = ['location', 'refAlt', 'gene', 'proteinChange', 'transcript']
-SMALL_MUT_OPTIONAL = ['zygosity', 'tumourReads', 'RNAReads']
+SMALL_MUT_OPTIONAL = ['zygosity', 'tumourReads', 'RNAReads', 'detectedIn']
 
 EXP_REQ = ['gene', 'variant']
 EXP_OPTIONAL = [
@@ -69,7 +69,7 @@ SV_REQ = [
     'exon1',  # n-terminal
     'exon2',  # c-terminal
 ]
-SV_OPTIONAL = ['detectedIn', 'conventionalName', 'svg', 'svgTitle', 'name', 'frame']
+SV_OPTIONAL = ['detectedIn', 'conventionalName', 'svg', 'svgTitle', 'name', 'frame', 'omicSupport']
 
 
 def load_variant_file(filename, required, optional, row_to_key):

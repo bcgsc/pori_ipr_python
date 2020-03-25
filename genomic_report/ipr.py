@@ -1,6 +1,8 @@
 """
 upload variant and report information to IPR
 """
+import requests
+import json
 
 from graphkb.util import IterableNamespace
 from graphkb.vocab import get_term_tree
@@ -34,6 +36,9 @@ APPROVED_EVIDENCE_LEVELS = {
         'nccn/cap guidelines',
     ],
 }
+
+DEFAULT_URL = 'http://iprdev-api.bcgsc.ca/api'
+DEFAULT_LIMIT = 1000
 
 
 def display_evidence_levels(statement):
@@ -127,23 +132,57 @@ def convert_statements_to_alterations(graphkb_conn, statements, disease_name):
 
         for variant in variants:
             row = {
-                'kb_entry_key': statement['@rid'],
-                'kb_event_key': variant['@rid'],
-                'kb_entry_type': ipr_section,
-                'alterationType': ipr_section,
                 'approvedTherapy': approved_therapy,
-                'association': statement['relevance']['displayName'],
-                'therapeuticContext': (
-                    statement['subject']['displayName'] if statement['subject'] else None
-                ),  # may as well include for all statement types. TODO: rename in IPR to be just context
-                'kbVariant': variant['displayName'],
-                'reference': pmid,
-                'evidence': display_evidence_levels(statement),
+                'category': ipr_section,
+                'context': (statement['subject']['displayName'] if statement['subject'] else None),
                 'disease': ';'.join(sorted(d['displayName'] for d in diseases)),
-                'matched_cancer': disease_match,
+                'evidenceLevel': display_evidence_levels(statement),
+                'kbStatementId': statement['@rid'],
+                'kbVariant': variant['displayName'],
+                'kbVariantId': variant['@rid'],
+                'matchedCancer': disease_match,
+                'reference': pmid,
+                'relevance': statement['relevance']['displayName'],
                 # TODO: remove, these columns are for debugging but not to output to IPR
                 '_source': statement['source']['displayName'] if statement['source'] else None,
                 '_sourceId': statement['sourceId'],
             }
             rows.append(row)
     return rows
+
+
+class IprConnection:
+    def __init__(self, username, password, url=DEFAULT_URL):
+        self.token = None
+        self.url = url
+        self.username = username
+        self.password = password
+        self.headers = {'Accept': 'application/json', 'Content-Type': 'application/json'}
+        self.cache = {}
+        self.request_count = 0
+
+    def request(self, endpoint, method='GET', **kwargs):
+        """Request wrapper to handle adding common headers and logging
+
+        Args:
+            endpoint (string): api endpoint, excluding the base uri
+            method (str, optional): the http method. Defaults to 'GET'.
+
+        Returns:
+            dict: the json response as a python dict
+        """
+        url = f'{self.url}/{endpoint}'
+        self.request_count += 1
+        resp = requests.request(
+            method, url, headers=self.headers, auth=(self.username, self.password), **kwargs
+        )
+        resp.raise_for_status()
+        return resp.json()
+
+    def post(self, uri, data={}, **kwargs):
+        """Convenience method for making post requests"""
+        return self.request(uri, method='POST', data=json.dumps(data), **kwargs)
+
+    def upload_report(self, content):
+        pass  # TODO: add when IPR endpoint is ready
+        # return self.post('/reports', content)
