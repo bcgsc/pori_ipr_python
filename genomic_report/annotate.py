@@ -7,9 +7,14 @@ from graphkb.match import (
     match_expression_variant,
     get_equivalent_features,
 )
-from graphkb.genes import get_oncokb_oncogenes, get_oncokb_tumour_supressors
+from graphkb.genes import (
+    get_oncokb_oncogenes,
+    get_oncokb_tumour_supressors,
+    get_genes_from_variant_types,
+)
 from graphkb.util import convert_to_rid_list
 from graphkb.constants import BASE_RETURN_PROPERTIES, GENERIC_RETURN_PROPERTIES
+from graphkb.vocab import get_term_tree
 
 from .ipr import convert_statements_to_alterations
 from .util import logger, convert_to_rid_set
@@ -53,6 +58,17 @@ def get_gene_information(graphkb_conn, gene_names):
     logger.verbose('fetching cancer related genes list')
     cancer_related = get_cancer_related_genes(graphkb_conn)
 
+    fusion_types = get_term_tree(graphkb_conn, "structural variant")
+    known_fusion_partners = convert_to_rid_set(
+        [
+            fusion
+            for fusion in get_genes_from_variant_types(
+                graphkb_conn, types=[t["name"] for t in fusion_types]
+            )
+            if fusion.get("reference2", None)
+        ]
+    )
+
     result = []
 
     for gene_name in gene_names:
@@ -64,6 +80,7 @@ def get_gene_information(graphkb_conn, gene_names):
             'tumourSuppressor': bool(equivalent & tumour_suppressors),
             'drugTargetable': False,  # TODO: Get definition for what should be added here
             'cancerRelated': bool(equivalent & cancer_related),
+            'knownFusionPartner': bool(equivalent & known_fusion_partners),
         }
         flags = [c for c in row.keys() if c != 'name']
 
