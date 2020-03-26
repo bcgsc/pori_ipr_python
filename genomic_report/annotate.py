@@ -15,7 +15,7 @@ from .ipr import convert_statements_to_alterations
 from .util import logger, convert_to_rid_set
 
 
-def get_cancer_related_genes(graphkb_conn):
+def get_variant_related_genes(graphkb_conn):
     """
     Get the list of genes on any variant in GKB
 
@@ -23,7 +23,7 @@ def get_cancer_related_genes(graphkb_conn):
         graphkb_conn (GraphKBConnection): graphkb connection object
 
     Returns:
-        set.<str>: set of records IDs
+        tuple: sets of records IDs for all and fusion variants
     """
     # cancer related means any gene that has a variant in GKB
     variants = graphkb_conn.query(
@@ -31,11 +31,14 @@ def get_cancer_related_genes(graphkb_conn):
     )
 
     genes = set()
+    fusion_genes = set()
     for variant in variants:
         genes.add(variant['reference1'])
         if variant['reference2']:
             genes.add(variant['reference2'])
-    return genes
+            fusion_genes.add(variant['reference1'])
+            fusion_genes.add(variant['reference2'])
+    return genes, fusion_genes
 
 
 def get_gene_information(graphkb_conn, gene_names):
@@ -51,7 +54,7 @@ def get_gene_information(graphkb_conn, gene_names):
     logger.verbose('fetching tumour supressors list')
     tumour_suppressors = convert_to_rid_set(get_oncokb_tumour_supressors(graphkb_conn))
     logger.verbose('fetching cancer related genes list')
-    cancer_related = get_cancer_related_genes(graphkb_conn)
+    cancer_related, known_fusion_partners = get_variant_related_genes(graphkb_conn)
 
     result = []
 
@@ -62,8 +65,8 @@ def get_gene_information(graphkb_conn, gene_names):
             'name': gene_name,
             'oncogene': bool(equivalent & oncogenes),
             'tumourSuppressor': bool(equivalent & tumour_suppressors),
-            'drugTargetable': False,  # TODO: Get definition for what should be added here
             'cancerRelated': bool(equivalent & cancer_related),
+            'knownFusionPartner': bool(equivalent & known_fusion_partners),
         }
         flags = [c for c in row.keys() if c != 'name']
 

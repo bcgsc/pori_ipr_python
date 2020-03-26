@@ -11,7 +11,7 @@ def genes():
     graphkb_conn = GraphKBConnection()
     graphkb_conn.login(os.environ['USERNAME'], os.environ['PASSWORD'])
 
-    return get_gene_information(graphkb_conn, ['kras', 'cdkn2a', 'blargh-monkeys'])
+    return get_gene_information(graphkb_conn, ['kras', 'cdkn2a', 'blargh-monkeys', 'ewsr1'])
 
 
 class TestGetGeneInformation:
@@ -39,6 +39,7 @@ class TestGetGeneInformation:
         names = [g['name'] for g in genes]
         assert 'blargh-monkeys' not in names
 
-    @pytest.mark.skip('TODO')
-    def test_fetches_drug_targetable_genes(self, genes):
+    def test_fetches_fusion_partner_genes(self, genes):
         assert genes
+        names = [g['name'] for g in genes if g.get('knownFusionPartner')]
+        assert 'ewsr1' in names
