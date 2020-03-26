@@ -111,9 +111,8 @@ def main(args, optional_content=None):
     )
 
     # filter excess variants not required for extra gene information
-    alterations = []
     logger.verbose('annotating small mutations')
-    annotate_positional_variants(graphkb_conn, small_mutations, args.kb_disease_match)
+    alterations = annotate_positional_variants(graphkb_conn, small_mutations, args.kb_disease_match)
 
     logger.verbose('annotating structural variants')
     alterations.extend(
