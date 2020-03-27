@@ -116,10 +116,13 @@ def main(args, optional_content=None):
     )
     logger.verbose('fetching gene annotations')
     gene_information = get_gene_information(graphkb_conn, genes_with_variants)
-    # TODO: Append gene level information to each variant type (until IPR does this itself?)
 
     logger.info(f'writing: {args.output_json}')
     output = optional_content or dict()
+
+    key_alterations, variant_counts = ipr.create_key_alterations(
+        alterations, expression_variants, copy_variants, structural_variants, small_mutations
+    )
 
     with open(args.output_json, 'w') as fh:
 
@@ -133,6 +136,8 @@ def main(args, optional_content=None):
                 ],
                 'structuralVariants': structural_variants,
                 'genes': gene_information,
+                'genomicAlterationsIdentified': key_alterations,
+                'variantCounts': variant_counts,
             }
         )
         for section in output:

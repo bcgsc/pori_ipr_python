@@ -165,6 +165,8 @@ def load_copy_variants(filename):
         else:
             row['cnvState'] = ''  # no measurement
 
+        row['variantType'] = 'cnv'
+
     return result
 
 
@@ -191,6 +193,7 @@ def load_small_mutations(filename):
             row['proteinChange'] = row['proteinChange'].replace(longAA, shortAA)
         hgvsp = '{}:{}'.format(row['gene'], row['proteinChange'])
         row['variant'] = hgvsp
+        row['variantType'] = 'mut'
 
     return result
 
@@ -208,6 +211,7 @@ def load_expression_variants(filename):
             )
             errors.append(err_msg)
             logging.error(err_msg)
+        row['variantType'] = 'exp'
     if errors:
         raise ValueError(f"{len(errors)} Invalid expression variants in file - {filename}")
 
@@ -233,6 +237,7 @@ def load_structural_variants(filename):
         row[
             'variant'
         ] = f'({row["gene1"]},{row["gene2"]}):fusion(e.{row["exon1"]},e.{row["exon2"]})'
+        row['variantType'] = 'sv'
 
     return result
 
