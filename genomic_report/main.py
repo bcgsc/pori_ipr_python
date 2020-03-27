@@ -2,6 +2,7 @@ import argparse
 import json
 import logging
 import os
+import datetime
 
 from argparse_env import ArgumentParser, Action
 from graphkb import GraphKBConnection
@@ -22,6 +23,10 @@ def file_path(path):
     if not os.path.exists(path):
         raise argparse.ArgumentTypeError(f'{repr(path)} is not a valid filename. does not exist')
     return path
+
+
+def timestamp():
+    return datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
 
 
 def command_interface():
@@ -45,6 +50,12 @@ def command_interface():
     parser.add_argument('-m', '--small_mutations', required=False, type=file_path)
     parser.add_argument('-s', '--structural_variants', required=False, type=file_path)
     parser.add_argument('-e', '--expression_variants', required=False, type=file_path)
+    parser.add_argument(
+        '-d',
+        '--kb_disease_match',
+        required=True,
+        help='Disease name to be used in matching to GraphKB',
+    )
     parser.add_argument('--ipr_url', default=ipr.DEFAULT_URL)
     parser.add_argument('--log_level', default='info', choices=LOG_LEVELS.keys())
 
@@ -78,7 +89,6 @@ def main(args, optional_content=None):
     ipr_conn = ipr.IprConnection(args.username, args.password, args.ipr_url)
     graphkb_conn = GraphKBConnection()
     graphkb_conn.login(args.username, args.password)
-    disease_name = 'colorectal cancer'  # TODO: use patient disease not dummy one
 
     copy_variants = load_copy_variants(args.copy_variants) if args.copy_variants else []
     logger.info(f'loaded {len(copy_variants)} copy variants')
@@ -101,18 +111,22 @@ def main(args, optional_content=None):
     )
 
     # filter excess variants not required for extra gene information
-    alterations = []  # annotate_positional_variants(graphkb_conn, small_mutations, disease_name)
+    logger.verbose('annotating small mutations')
+    alterations = annotate_positional_variants(graphkb_conn, small_mutations, args.kb_disease_match)
+
     logger.verbose('annotating structural variants')
     alterations.extend(
-        annotate_positional_variants(graphkb_conn, structural_variants, disease_name)
+        annotate_positional_variants(graphkb_conn, structural_variants, args.kb_disease_match)
     )
 
     logger.verbose('annotating copy variants')
-    alterations.extend(annotate_category_variants(graphkb_conn, copy_variants, disease_name))
+    alterations.extend(
+        annotate_category_variants(graphkb_conn, copy_variants, args.kb_disease_match)
+    )
 
     logger.verbose('annotating expression variants')
     alterations.extend(
-        annotate_category_variants(graphkb_conn, expression_variants, disease_name, False)
+        annotate_category_variants(graphkb_conn, expression_variants, args.kb_disease_match, False)
     )
     logger.verbose('fetching gene annotations')
     gene_information = get_gene_information(graphkb_conn, genes_with_variants)
@@ -131,6 +145,9 @@ def main(args, optional_content=None):
                 'expressionVariants': [
                     e for e in expression_variants if e['gene'] in genes_with_variants
                 ],
+                'kbDiseaseMatch': args.kb_disease_match,
+                'kbUrl': graphkb_conn.url,
+                'kbVersion': timestamp(),
                 'structuralVariants': structural_variants,
                 'genes': gene_information,
             }
