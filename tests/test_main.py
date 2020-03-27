@@ -29,6 +29,7 @@ def report_upload_content():
                 output_json=os.path.join(tmp_dir, 'output.json'),
                 log_level='info',
                 ipr_url='http://fake.url.ca',
+                kb_disease_match='colorectal cancer',
             )
 
             main(args, {'blargh': 'some fake content'})
