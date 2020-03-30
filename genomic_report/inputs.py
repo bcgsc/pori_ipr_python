@@ -160,8 +160,6 @@ def load_copy_variants(filename):
         if row['variant'] in COPY_VARIANT2CNVSTATE:
             row['cnvState'] = COPY_VARIANT2CNVSTATE[row['variant']]
         # any non-blank measurement, without another category, is Neutral.
-        elif 'ploidyCorrCpChange' in row.keys() and row['ploidyCorrCpChange'] not in ('', 'na'):
-            row['cnvState'] = 'Neutral'
         else:
             row['cnvState'] = ''  # no measurement
 
@@ -205,12 +203,15 @@ def load_expression_variants(filename):
     result = load_variant_file(filename, EXP_REQ, EXP_OPTIONAL, row_key)
     errors = []
     for row in result:
-        if row['variant'] and row['variant'] not in INPUT_EXPRESSION_CATEGORIES.values():
-            err_msg = (
-                f"{row['gene']} variant '{row['variant']}' not in {INPUT_EXPRESSION_CATEGORIES}"
-            )
-            errors.append(err_msg)
-            logging.error(err_msg)
+        if row['variant']:
+            if row['variant'] not in INPUT_EXPRESSION_CATEGORIES.values():
+                err_msg = (
+                    f"{row['gene']} variant '{row['variant']}' not in {INPUT_EXPRESSION_CATEGORIES}"
+                )
+                errors.append(err_msg)
+                logging.error(err_msg)
+        else:
+            row['expression_class'] = ''
         row['variantType'] = 'exp'
     if errors:
         raise ValueError(f"{len(errors)} Invalid expression variants in file - {filename}")
