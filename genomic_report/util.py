@@ -26,3 +26,12 @@ def hash_key(key):
 
 def convert_to_rid_set(records):
     return {r['@rid'] for r in records}
+
+
+def trim_empty_values(obj, empty_values=['', None]):
+    keys = list(obj.keys())
+
+    for key in keys:
+        if obj[key] in empty_values:
+            del obj[key]
+    return obj

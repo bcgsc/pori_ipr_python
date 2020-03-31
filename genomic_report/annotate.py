@@ -145,9 +145,7 @@ def annotate_category_variants(graphkb_conn, variants, disease_name, copy_varian
                 for ipr_row in convert_statements_to_alterations(
                     graphkb_conn, statements, disease_name
                 ):
-                    new_row = {
-                        'variant': row['key'],
-                    }
+                    new_row = {'variant': row['key'], 'variantType': row['variantType']}
                     new_row.update(ipr_row)
                     alterations.append(new_row)
         except ValueError as err:
@@ -184,9 +182,7 @@ def annotate_positional_variants(graphkb_conn, variants, disease_name):
                 for ipr_row in convert_statements_to_alterations(
                     graphkb_conn, statements, disease_name
                 ):
-                    new_row = {
-                        'variant': row['key'],
-                    }
+                    new_row = {'variant': row['key'], 'variantType': row['variantType']}
                     new_row.update(ipr_row)
                     alterations.append(new_row)
         except ValueError as err:

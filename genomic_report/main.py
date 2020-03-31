@@ -15,7 +15,7 @@ from .inputs import (
     check_variant_links,
 )
 from .annotate import annotate_category_variants, annotate_positional_variants, get_gene_information
-from .util import logger, LOG_LEVELS
+from .util import logger, LOG_LEVELS, trim_empty_values
 from . import ipr
 
 
@@ -70,6 +70,14 @@ def command_interface():
     args = parser.parse_args()
 
     main(args)
+
+
+def clean_variant_rows(variants):
+    # IPR cannot take these as input, may add variant later but will always drop type
+    for v in variants:
+        del v['variant']
+        del v['variantType']
+    return variants
 
 
 def main(args, optional_content=None):
@@ -130,26 +138,35 @@ def main(args, optional_content=None):
     )
     logger.verbose('fetching gene annotations')
     gene_information = get_gene_information(graphkb_conn, genes_with_variants)
-    # TODO: Append gene level information to each variant type (until IPR does this itself?)
 
     logger.info(f'writing: {args.output_json}')
     output = optional_content or dict()
+
+    key_alterations, variant_counts = ipr.create_key_alterations(
+        alterations, expression_variants, copy_variants, structural_variants, small_mutations
+    )
 
     with open(args.output_json, 'w') as fh:
 
         output.update(
             {
-                'kbMatches': alterations,
-                'copyVariants': [c for c in copy_variants if c['gene'] in genes_with_variants],
-                'smallMutations': small_mutations,
+                'kbMatches': [trim_empty_values(a) for a in alterations],
+                'copyVariants': [
+                    trim_empty_values(c) for c in copy_variants if c['gene'] in genes_with_variants
+                ],
+                'smallMutations': [trim_empty_values(s) for s in small_mutations],
                 'expressionVariants': [
-                    e for e in expression_variants if e['gene'] in genes_with_variants
+                    trim_empty_values(e)
+                    for e in expression_variants
+                    if e['gene'] in genes_with_variants
                 ],
                 'kbDiseaseMatch': args.kb_disease_match,
                 'kbUrl': graphkb_conn.url,
                 'kbVersion': timestamp(),
-                'structuralVariants': structural_variants,
+                'structuralVariants': [trim_empty_values(s) for s in structural_variants],
                 'genes': gene_information,
+                'genomicAlterationsIdentified': key_alterations,
+                'variantCounts': variant_counts,
             }
         )
         for section in output:

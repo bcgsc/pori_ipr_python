@@ -151,6 +151,62 @@ def convert_statements_to_alterations(graphkb_conn, statements, disease_name):
     return rows
 
 
+def create_key_alterations(
+    kb_matches, expression_variants, copy_variants, structural_variants, small_mutations
+):
+    """
+    Creates the list of genomic key alterations which summarizes all the variants matched by the KB
+    This list of matches is also used to create the variant counts
+    """
+
+    def find_variant(kb_match, variant_type, variant_key):
+        variant_list = None
+
+        if variant_type == 'exp':
+            variant_list = expression_variants
+        elif variant_type == 'cnv':
+            variant_list = copy_variants
+        elif variant_type == 'sv':
+            variant_list = structural_variants
+        else:
+            variant_list = small_mutations
+
+        return [v for v in variant_list if v['key'] == variant_key][0]
+
+    alterations = []
+    type_mapping = {
+        'mut': 'smallMutations',
+        'cnv': 'CNVs',
+        'sv': "SVs",
+        'exp': 'expressionOutliers',
+    }
+    counts = {v: set() for v in type_mapping.values()}
+
+    for kb_match in kb_matches:
+        variant_type = kb_match['variantType']
+        variant_key = kb_match['variant']
+        variant = find_variant(kb_match, variant_type, variant_key)
+        counts[type_mapping[variant_type]].add(variant_key)
+
+        if variant_type in ['exp', 'cnv']:
+            gene = variant['gene']
+            alterations.append(f'{gene} ({variant["variant"]})')
+        else:
+            alterations.append(variant['variant'])
+
+    counted_variants = set.union(*counts.values())
+    counts['variantsUnknown'] = set()
+
+    # count the un-matched variants
+    for variant in expression_variants + structural_variants + copy_variants + small_mutations:
+        variant_key = variant['key']
+
+        if variant['variant'] and variant_key not in counted_variants:
+            counts['variantsUnknown'].add(variant_key)
+
+    return alterations, {k: len(v) for k, v in counts.items()}
+
+
 class IprConnection:
     def __init__(self, username, password, url=DEFAULT_URL):
         self.token = None
