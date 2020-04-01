@@ -1,9 +1,11 @@
 """
 upload variant and report information to IPR
 """
+from typing import List, Dict, Tuple
 import requests
 import json
 
+from graphkb import GraphKBConnection
 from graphkb.util import IterableNamespace
 from graphkb.vocab import get_term_tree
 
@@ -41,7 +43,7 @@ DEFAULT_URL = 'http://iprdev-api.bcgsc.ca/api'
 DEFAULT_LIMIT = 1000
 
 
-def display_evidence_levels(statement):
+def display_evidence_levels(statement: Dict) -> str:
     result = []
 
     for evidence_level in statement.get('evidenceLevel', []) or []:
@@ -50,7 +52,7 @@ def display_evidence_levels(statement):
     return ';'.join(sorted(result))
 
 
-def get_approved_evidence_levels(graphkb_conn):
+def get_approved_evidence_levels(graphkb_conn: GraphKBConnection) -> List[Dict]:
     filters = []
     for source, names in APPROVED_EVIDENCE_LEVELS.items():
         filters.append(
@@ -64,20 +66,22 @@ def get_approved_evidence_levels(graphkb_conn):
     return graphkb_conn.query({'target': 'EvidenceLevel', 'filters': {'OR': filters}})
 
 
-def convert_statements_to_alterations(graphkb_conn, statements, disease_name):
+def convert_statements_to_alterations(
+    graphkb_conn: GraphKBConnection, statements: List[Dict], disease_name: str
+) -> List[Dict]:
     """
     Given a set of statements matched from graphkb, convert these into their IPR equivalent representations
 
     Args:
-        graphkb_conn (GraphKBConnection): the graphkb connection object
-        statements (list.<dict>): list of statement records from graphkb
-        disease_name (str): name of the cancer type for the patient being reported on
+        graphkb_conn: the graphkb connection object
+        statements: list of statement records from graphkb
+        disease_name: name of the cancer type for the patient being reported on
 
     Raises:
         ValueError: could not find the disease type in GraphKB
 
     Returns:
-        list.<dict>: IPR graphkb row representations
+        IPR graphkb row representations
     """
     disease_matches = {
         r['@rid'] for r in get_term_tree(graphkb_conn, disease_name, ontology_class='Disease')
@@ -152,14 +156,18 @@ def convert_statements_to_alterations(graphkb_conn, statements, disease_name):
 
 
 def create_key_alterations(
-    kb_matches, expression_variants, copy_variants, structural_variants, small_mutations
-):
+    kb_matches: List[Dict],
+    expression_variants: List[Dict],
+    copy_variants: List[Dict],
+    structural_variants: List[Dict],
+    small_mutations: List[Dict],
+) -> Tuple[List[Dict], Dict]:
     """
     Creates the list of genomic key alterations which summarizes all the variants matched by the KB
     This list of matches is also used to create the variant counts
     """
 
-    def find_variant(kb_match, variant_type, variant_key):
+    def find_variant(kb_match: Dict, variant_type: str, variant_key: str) -> List[Dict]:
         variant_list = None
 
         if variant_type == 'exp':
@@ -208,7 +216,7 @@ def create_key_alterations(
 
 
 class IprConnection:
-    def __init__(self, username, password, url=DEFAULT_URL):
+    def __init__(self, username: str, password: str, url: str = DEFAULT_URL):
         self.token = None
         self.url = url
         self.username = username
@@ -217,7 +225,7 @@ class IprConnection:
         self.cache = {}
         self.request_count = 0
 
-    def request(self, endpoint, method='GET', **kwargs):
+    def request(self, endpoint: str, method: str = 'GET', **kwargs) -> Dict:
         """Request wrapper to handle adding common headers and logging
 
         Args:
@@ -235,7 +243,7 @@ class IprConnection:
         resp.raise_for_status()
         return resp.json()
 
-    def post(self, uri, data={}, **kwargs):
+    def post(self, uri: str, data: Dict = {}, **kwargs) -> Dict:
         """Convenience method for making post requests"""
         return self.request(uri, method='POST', data=json.dumps(data), **kwargs)
 

@@ -3,6 +3,7 @@ import json
 import logging
 import os
 import datetime
+from typing import Dict, Optional
 
 from argparse_env import ArgumentParser, Action
 from graphkb import GraphKBConnection
@@ -19,17 +20,17 @@ from .util import logger, LOG_LEVELS, trim_empty_values
 from . import ipr
 
 
-def file_path(path):
+def file_path(path: str) -> str:
     if not os.path.exists(path):
         raise argparse.ArgumentTypeError(f'{repr(path)} is not a valid filename. does not exist')
     return path
 
 
-def timestamp():
+def timestamp() -> str:
     return datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
 
 
-def command_interface():
+def command_interface() -> None:
     parser = ArgumentParser()
     parser.add_argument(
         '--username',
@@ -82,7 +83,7 @@ def clean_variant_rows(variants):
 
 def main(args, optional_content=None):
     """
-    Run the matching and create the report JSON for upload (TODO) to IPR
+    Run the matching and create the report JSON for upload to IPR
 
     Args:
         args (argparse.Namespace): Namespace of arguments with file names for variant inputs etc
