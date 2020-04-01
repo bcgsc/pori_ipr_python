@@ -1,4 +1,4 @@
-location	refAlt	gene	zygosity	proteinChange	transcript	tumourReads	RNAReads
+location	refAlt	gene	zygosity	proteinChange	transcript	tumourReads	rnaReads
 19:58858821	C>T	A1BG	het	p.Val460Met	ENST00000263100	48/42	26/0
 12:9243855	C>T	A2M	het	p.Arg804His	ENST00000318602	42/34	206/0
 12:125570960	T>C	AACS	het	p.Met148Thr	ENST00000316519	56/50	24/36
