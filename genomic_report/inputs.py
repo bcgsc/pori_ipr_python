@@ -13,7 +13,7 @@ from .util import hash_key
 
 protein_letters_3to1.setdefault('Ter', '*')
 
-
+FLOAT_REGEX = r'^-?((Infinity)|(\d+(\.\d+)?))$'
 COPY_REQ = ['gene', 'variant']  # 'variant' in INPUT_COPY_CATEGORIES
 COPY_OPTIONAL = [
     'ploidyCorrCpChange',
@@ -235,6 +235,9 @@ def load_structural_variants(filename):
         'exon1': exon_pattern,
         'exon2': exon_pattern,
     }
+    for col in SV_REQ + SV_OPTIONAL:
+        if col.endswith('kIQR') and col not in patterns:
+            patterns[col] = FLOAT_REGEX
     validate_row_patterns(result, patterns)
 
     for row in result:
