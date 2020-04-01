@@ -1,6 +1,9 @@
 """
 handles annotating variants with annotation information from graphkb
 """
+from typing import Tuple, Set, List, Dict
+
+from graphkb import GraphKBConnection
 from graphkb.match import (
     match_copy_variant,
     match_positional_variant,
@@ -15,7 +18,7 @@ from .ipr import convert_statements_to_alterations
 from .util import logger, convert_to_rid_set
 
 
-def get_variant_related_genes(graphkb_conn):
+def get_variant_related_genes(graphkb_conn: GraphKBConnection) -> Tuple[Set[str], Set[str]]:
     """
     Get the list of genes on any variant in GKB
 
@@ -41,7 +44,7 @@ def get_variant_related_genes(graphkb_conn):
     return genes, fusion_genes
 
 
-def get_gene_information(graphkb_conn, gene_names):
+def get_gene_information(graphkb_conn: GraphKBConnection, gene_names: List[str]) -> List[Dict]:
     """
     Create the Gene Info object for upload to IPR with the other report information
 
@@ -81,7 +84,9 @@ def get_gene_information(graphkb_conn, gene_names):
     return result
 
 
-def get_statements_from_variants(graphkb_conn, variants):
+def get_statements_from_variants(
+    graphkb_conn: GraphKBConnection, variants: List[Dict]
+) -> List[Dict]:
     """
     Given a list of variant records from GraphKB, return all the related statements
 
@@ -112,17 +117,22 @@ def get_statements_from_variants(graphkb_conn, variants):
     return statements
 
 
-def annotate_category_variants(graphkb_conn, variants, disease_name, copy_variant=True):
+def annotate_category_variants(
+    graphkb_conn: GraphKBConnection,
+    variants: List[Dict],
+    disease_name: str,
+    copy_variant: bool = True,
+) -> List[Dict]:
     """
     Annotate variant calls with information from GraphKB and return these annotations in the IPR
     alterations format
 
     Args:
-        graphkb_conn (GraphKBConnection): the graphkb api connection object
-        variants (list.<dict>): list of copy number variants
+        graphkb_conn: the graphkb api connection object
+        variants: list of copy number variants
 
     Returns:
-        [type]: [description]
+        list of kbMatches records for IPR
     """
     skipped = 0
     alterations = []
@@ -156,7 +166,9 @@ def annotate_category_variants(graphkb_conn, variants, disease_name, copy_varian
     return alterations
 
 
-def annotate_positional_variants(graphkb_conn, variants, disease_name):
+def annotate_positional_variants(
+    graphkb_conn: GraphKBConnection, variants: List[Dict], disease_name: str
+) -> List[Dict]:
     """
     Annotate variant calls with information from GraphKB and return these annotations in the IPR
     alterations format
@@ -166,7 +178,7 @@ def annotate_positional_variants(graphkb_conn, variants, disease_name):
         small_mutations (list.<dict>): list of small mutations. Defaults to [].
 
     Returns:
-        [type]: [description]
+        list of kbMatches records for IPR
     """
     errors = 0
     alterations = []

@@ -1,6 +1,7 @@
 """
 Read/Validate the variant input files
 """
+from typing import List, Dict, Tuple, Set
 from csv import DictReader
 import logging
 import re
@@ -72,7 +73,9 @@ SV_REQ = [
 SV_OPTIONAL = ['detectedIn', 'conventionalName', 'svg', 'svgTitle', 'name', 'frame', 'omicSupport']
 
 
-def load_variant_file(filename, required, optional, row_to_key):
+def load_variant_file(
+    filename: str, required: List[str], optional: List[str], row_to_key
+) -> List[Dict]:
     """
     Load a tab delimited file and
     - check that the required columns are present
@@ -118,7 +121,7 @@ def load_variant_file(filename, required, optional, row_to_key):
     return result
 
 
-def validate_row_patterns(rows, patterns):
+def validate_row_patterns(rows: List[Dict], patterns: Dict):
     """
     Validate rows against a regex for some set of columns
 
@@ -137,7 +140,7 @@ def validate_row_patterns(rows, patterns):
                 )
 
 
-def load_copy_variants(filename):
+def load_copy_variants(filename: str) -> List[Dict]:
     # default map for display - concise names
     COPY_VARIANT2CNVSTATE = {
         INPUT_COPY_CATEGORIES.DEEP: "Deep Loss",
@@ -168,8 +171,8 @@ def load_copy_variants(filename):
     return result
 
 
-def load_small_mutations(filename):
-    def row_key(row):
+def load_small_mutations(filename: str) -> List[Dict]:
+    def row_key(row: Dict) -> Tuple[str]:
         return (
             'small mutation',
             row['location'],
@@ -243,21 +246,26 @@ def load_structural_variants(filename):
     return result
 
 
-def check_variant_links(small_mutations, expression_variants, copy_variants, structural_variants):
+def check_variant_links(
+    small_mutations: List[Dict],
+    expression_variants: List[Dict],
+    copy_variants: List[Dict],
+    structural_variants: List[Dict],
+) -> Set[str]:
     """
     Check that there is matching expression and copy variant information for any genes with variants
 
     Args:
-        small_mutations (list.<dict>): list of small mutations
-        expression_variants (list.<dict>): list of expression variants
-        copy_variants (list.<dict>): list of copy variants
-        structural_variants (list.<dict>): list of structural variants
+        small_mutations: list of small mutations
+        expression_variants: list of expression variants
+        copy_variants: list of copy variants
+        structural_variants: list of structural variants
 
     Raises:
         KeyError: A variant is called on a gene without expression or without copy number information
 
     Returns:
-        set.<str>: set of gene names with variants (used for filtering before upload to IPR)
+        set of gene names with variants (used for filtering before upload to IPR)
     """
     # filter excess variants not required for extra gene information
     copy_variant_genes = {variant['gene'] for variant in copy_variants}
