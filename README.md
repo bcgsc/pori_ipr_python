@@ -1,7 +1,9 @@
 
 # Genomic Report
 
-
+This python tool takes in variant inputs as tab-delimited files and annotates them using GraphKB.
+The resulting output is uploaded to IPR as a report. Additional report content such as images and
+metadata can be passed to be included in the report upload.
 
 
 ## Getting Started
