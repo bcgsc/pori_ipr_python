@@ -26,9 +26,9 @@ COPY_OPTIONAL = [
 SMALL_MUT_REQ = ['location', 'refAlt', 'gene', 'proteinChange', 'transcript']
 SMALL_MUT_OPTIONAL = ['zygosity', 'tumourReads', 'rnaReads', 'detectedIn']
 
-EXP_REQ = ['gene', 'variant']
+# 'expression_class', is for display
+EXP_REQ = ['gene', 'variant', 'expression_class']
 EXP_OPTIONAL = [
-    'expression_class',  # for display
     'rnaReads',
     'rpkm',
     'foldChange',
@@ -57,20 +57,28 @@ EXP_OPTIONAL = [
     'gtexAvgkIQR',
 ]
 
-SV_KEY = ['eventType', 'breakpoint']
+SV_KEY = ['eventType', 'breakpoint', 'gene1', 'gene2', 'exon1', 'exon2']
 SV_REQ = [
     'eventType',
     'breakpoint',
     'gene1',  # prev: nterm_hugo
     'gene2',  # prev: cterm_hugo
-    'ctermGene',  # combined hugo ensembl form
-    'ntermGene',  # combined hugo ensembl form
-    'ctermTranscript',
-    'ntermTranscript',
     'exon1',  # n-terminal
     'exon2',  # c-terminal
 ]
-SV_OPTIONAL = ['detectedIn', 'conventionalName', 'svg', 'svgTitle', 'name', 'frame', 'omicSupport']
+SV_OPTIONAL = [
+    'ctermTranscript',
+    'ntermTranscript',
+    'ctermGene',  # combined hugo ensembl form
+    'ntermGene',  # combined hugo ensembl form
+    'detectedIn',
+    'conventionalName',
+    'svg',
+    'svgTitle',
+    'name',
+    'frame',
+    'omicSupport',
+]
 
 
 def load_variant_file(
