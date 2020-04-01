@@ -24,7 +24,7 @@ COPY_OPTIONAL = [
 ]
 
 SMALL_MUT_REQ = ['location', 'refAlt', 'gene', 'proteinChange', 'transcript']
-SMALL_MUT_OPTIONAL = ['zygosity', 'tumourReads', 'RNAReads', 'detectedIn']
+SMALL_MUT_OPTIONAL = ['zygosity', 'tumourReads', 'rnaReads', 'detectedIn']
 
 EXP_REQ = ['gene', 'variant']
 EXP_OPTIONAL = [
@@ -48,7 +48,7 @@ EXP_OPTIONAL = [
     'ptxQC',
     'ptxPercCol',
     'ptxTotSampObs',
-    'ptsPogPerc',
+    'ptxPogPerc',
     'gtexComp',
     'gtexFC',
     'gtexkIQR',
@@ -222,15 +222,15 @@ def load_expression_variants(filename):
     return result
 
 
-def load_structural_variants(filename):
+def load_structural_variants(filename: str) -> List[Dict]:
     def row_key(row):
         return ('sv', row['eventType'], row['breakpoint'])
 
     result = load_variant_file(filename, SV_REQ, SV_OPTIONAL, row_key)
-    exon_pattern = r'^(\?|\d+)$'
+    exon_pattern = r'^(\d+)?$'
     patterns = {
-        'gene1': r'(\w|-)+',
-        'gene2': r'(\w|-)+',
+        'gene1': r'^(\w|-)+$',
+        'gene2': r'^(\w|-)+$',
         'breakpoint': r'^\w+:\d+\|\w+:\d+$',
         'exon1': exon_pattern,
         'exon2': exon_pattern,
