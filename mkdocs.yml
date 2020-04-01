@@ -1,6 +1,7 @@
 site_name: Genomic Report
 nav:
   - Home: index.md
+  - Variant Inputs: variant_inputs.md
   - Reference:
       - genomic_report.main: reference/genomic_report/main.md
       - genomic_report.annotate: reference/genomic_report/annotate.md
