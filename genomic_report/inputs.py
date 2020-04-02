@@ -142,7 +142,7 @@ def validate_row_patterns(rows: List[Dict], patterns: Dict):
     """
     for row in rows:
         for col, pattern in patterns.items():
-            if not re.match(pattern, row[col]):
+            if not re.match(pattern, '' if row[col] is None else row[col]):
                 raise ValueError(
                     f'row value ({row[col]}) does not match expected column ({col}) pattern of "{pattern}"'
                 )
@@ -212,6 +212,15 @@ def load_expression_variants(filename):
         return ('expression', row['gene'])
 
     result = load_variant_file(filename, EXP_REQ, EXP_OPTIONAL, row_key)
+
+    patterns = {}
+    for col in EXP_REQ + EXP_OPTIONAL:
+        if (
+            col.endswith('kIQR') or col.endswith('Perc') or col.endswith('FC')
+        ) and col not in patterns:
+            patterns[col] = NULLABLE_FLOAT_REGEX
+    validate_row_patterns(result, patterns)
+
     errors = []
     for row in result:
         if row['variant']:
@@ -243,11 +252,6 @@ def load_structural_variants(filename: str) -> List[Dict]:
         'exon1': exon_pattern,
         'exon2': exon_pattern,
     }
-    for col in SV_REQ + SV_OPTIONAL:
-        if (
-            col.endswith('kIQR') or col.endswith('Perc') or col.endswith('FC')
-        ) and col not in patterns:
-            patterns[col] = NULLABLE_FLOAT_REGEX
     validate_row_patterns(result, patterns)
 
     for row in result:
