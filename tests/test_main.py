@@ -55,6 +55,7 @@ def test_pass_through_content_added(report_upload_content):
     assert 'blargh' in report_upload_content
 
 
+@pytest.mark.skip('TODO: currently unsupported by IPR')
 def test_found_fusion_partner_gene(report_upload_content):
     genes = report_upload_content['genes']
     assert any([g.get('knownFusionPartner', False) for g in genes])
