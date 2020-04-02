@@ -1,38 +1,34 @@
 import os
 from unittest.mock import patch, MagicMock
-from argparse import Namespace
-import tempfile
 
 import pytest
 
 from genomic_report.ipr import IprConnection
-from genomic_report.main import main
+from genomic_report.main import create_report
 
 
-def get_test_file(name):
+def get_test_file(name: str) -> str:
     return os.path.join(os.path.dirname(__file__), 'test_data', name)
 
 
 @pytest.fixture(scope='module')
 def report_upload_content():
     mock = MagicMock()
-    with tempfile.TemporaryDirectory() as tmp_dir:
-        # can't use builtin tmpdir b/c not session scoped
-        with patch.object(IprConnection, 'upload_report', new=mock):
-            args = Namespace(
-                expression_variants=get_test_file('expression.tab'),
-                small_mutations=get_test_file('small_mutations.tab'),
-                copy_variants=get_test_file('copy_variants.tab'),
-                structural_variants=get_test_file('fusions.tab'),
-                username=os.environ['USERNAME'],
-                password=os.environ['PASSWORD'],
-                output_json=os.path.join(tmp_dir, 'output.json'),
-                log_level='info',
-                ipr_url='http://fake.url.ca',
-                kb_disease_match='colorectal cancer',
-            )
-
-            main(args, {'blargh': 'some fake content'})
+    with patch.object(IprConnection, 'upload_report', new=mock):
+        create_report(
+            patient_id='PATIENT001',
+            project='TEST',
+            expression_variants_file=get_test_file('expression.tab'),
+            small_mutations_file=get_test_file('small_mutations.tab'),
+            copy_variants_file=get_test_file('copy_variants.tab'),
+            structural_variants_file=get_test_file('fusions.tab'),
+            username=os.environ['USERNAME'],
+            password=os.environ['PASSWORD'],
+            log_level='info',
+            ipr_url='http://fake.url.ca',
+            kb_disease_match='colorectal cancer',
+            optional_content={'blargh': 'some fake content'},
+        )
 
     assert mock.called
 
