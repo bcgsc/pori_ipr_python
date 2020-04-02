@@ -13,7 +13,7 @@ from .util import hash_key
 
 protein_letters_3to1.setdefault('Ter', '*')
 
-NULLABLE_FLOAT_REGEX = r'^-?((Infinity)|(\d+(\.\d+)?)|)$'
+NULLABLE_FLOAT_REGEX = r'^-?((inf)|(\d+(\.\d+)?)|)$'
 COPY_REQ = ['gene', 'variant']  # 'variant' in INPUT_COPY_CATEGORIES
 COPY_OPTIONAL = [
     'ploidyCorrCpChange',
@@ -214,10 +214,14 @@ def load_expression_variants(filename):
     result = load_variant_file(filename, EXP_REQ, EXP_OPTIONAL, row_key)
 
     patterns = {}
-    for col in EXP_REQ + EXP_OPTIONAL:
-        if (
-            col.endswith('kIQR') or col.endswith('Perc') or col.endswith('FC')
-        ) and col not in patterns:
+
+    float_columns = [
+        col
+        for col in EXP_REQ + EXP_OPTIONAL
+        if col.endswith('kIQR') or col.endswith('Perc') or col.endswith('FC')
+    ]
+    for col in float_columns:
+        if col not in patterns:
             patterns[col] = NULLABLE_FLOAT_REGEX
     validate_row_patterns(result, patterns)
 
@@ -233,6 +237,11 @@ def load_expression_variants(filename):
         else:
             row['expression_class'] = ''
         row['variantType'] = 'exp'
+
+        for col in float_columns:
+            if row[col] in ['inf', '+inf', '-inf']:
+                row[col].replace('inf', 'Infinity')
+
     if errors:
         raise ValueError(f"{len(errors)} Invalid expression variants in file - {filename}")
 
