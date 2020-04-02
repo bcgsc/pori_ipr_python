@@ -13,7 +13,7 @@ from .util import hash_key
 
 protein_letters_3to1.setdefault('Ter', '*')
 
-
+NULLABLE_FLOAT_REGEX = r'^-?((inf)|(\d+(\.\d+)?)|)$'
 COPY_REQ = ['gene', 'variant']  # 'variant' in INPUT_COPY_CATEGORIES
 COPY_OPTIONAL = [
     'ploidyCorrCpChange',
@@ -24,11 +24,11 @@ COPY_OPTIONAL = [
 ]
 
 SMALL_MUT_REQ = ['location', 'refAlt', 'gene', 'proteinChange', 'transcript']
-SMALL_MUT_OPTIONAL = ['zygosity', 'tumourReads', 'RNAReads', 'detectedIn']
+SMALL_MUT_OPTIONAL = ['zygosity', 'tumourReads', 'rnaReads', 'detectedIn']
 
-EXP_REQ = ['gene', 'variant']
+# 'expression_class', is for display
+EXP_REQ = ['gene', 'variant', 'expression_class']
 EXP_OPTIONAL = [
-    'expression_class',  # for display
     'rnaReads',
     'rpkm',
     'foldChange',
@@ -48,7 +48,7 @@ EXP_OPTIONAL = [
     'ptxQC',
     'ptxPercCol',
     'ptxTotSampObs',
-    'ptsPogPerc',
+    'ptxPogPerc',
     'gtexComp',
     'gtexFC',
     'gtexkIQR',
@@ -57,20 +57,28 @@ EXP_OPTIONAL = [
     'gtexAvgkIQR',
 ]
 
-SV_KEY = ['eventType', 'breakpoint']
+SV_KEY = ['eventType', 'breakpoint', 'gene1', 'gene2', 'exon1', 'exon2']
 SV_REQ = [
     'eventType',
     'breakpoint',
     'gene1',  # prev: nterm_hugo
     'gene2',  # prev: cterm_hugo
-    'ctermGene',  # combined hugo ensembl form
-    'ntermGene',  # combined hugo ensembl form
-    'ctermTranscript',
-    'ntermTranscript',
     'exon1',  # n-terminal
     'exon2',  # c-terminal
 ]
-SV_OPTIONAL = ['detectedIn', 'conventionalName', 'svg', 'svgTitle', 'name', 'frame', 'omicSupport']
+SV_OPTIONAL = [
+    'ctermTranscript',
+    'ntermTranscript',
+    'ctermGene',  # combined hugo ensembl form
+    'ntermGene',  # combined hugo ensembl form
+    'detectedIn',
+    'conventionalName',
+    'svg',
+    'svgTitle',
+    'name',
+    'frame',
+    'omicSupport',
+]
 
 
 def load_variant_file(
@@ -134,7 +142,7 @@ def validate_row_patterns(rows: List[Dict], patterns: Dict):
     """
     for row in rows:
         for col, pattern in patterns.items():
-            if not re.match(pattern, row[col]):
+            if not re.match(pattern, '' if row[col] is None else row[col]):
                 raise ValueError(
                     f'row value ({row[col]}) does not match expected column ({col}) pattern of "{pattern}"'
                 )
@@ -204,6 +212,19 @@ def load_expression_variants(filename):
         return ('expression', row['gene'])
 
     result = load_variant_file(filename, EXP_REQ, EXP_OPTIONAL, row_key)
+
+    patterns = {}
+
+    float_columns = [
+        col
+        for col in EXP_REQ + EXP_OPTIONAL
+        if col.endswith('kIQR') or col.endswith('Perc') or col.endswith('FC')
+    ]
+    for col in float_columns:
+        if col not in patterns:
+            patterns[col] = NULLABLE_FLOAT_REGEX
+    validate_row_patterns(result, patterns)
+
     errors = []
     for row in result:
         if row['variant']:
@@ -216,21 +237,26 @@ def load_expression_variants(filename):
         else:
             row['expression_class'] = ''
         row['variantType'] = 'exp'
+
+        for col in float_columns:
+            if row[col] in ['inf', '+inf', '-inf']:
+                row[col].replace('inf', 'Infinity')
+
     if errors:
         raise ValueError(f"{len(errors)} Invalid expression variants in file - {filename}")
 
     return result
 
 
-def load_structural_variants(filename):
+def load_structural_variants(filename: str) -> List[Dict]:
     def row_key(row):
         return ('sv', row['eventType'], row['breakpoint'])
 
     result = load_variant_file(filename, SV_REQ, SV_OPTIONAL, row_key)
-    exon_pattern = r'^(\?|\d+)$'
+    exon_pattern = r'^(\d+)?$'
     patterns = {
-        'gene1': r'(\w|-)+',
-        'gene2': r'(\w|-)+',
+        'gene1': r'^(\w|-)+$',
+        'gene2': r'^(\w|-)+$',
         'breakpoint': r'^\w+:\d+\|\w+:\d+$',
         'exon1': exon_pattern,
         'exon2': exon_pattern,
