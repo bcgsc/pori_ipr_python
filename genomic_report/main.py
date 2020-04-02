@@ -1,5 +1,4 @@
 import argparse
-import json
 import logging
 import os
 import datetime
@@ -222,4 +221,16 @@ def create_report(
         logger.info(f'section {section} has {len(output[section])} {section_content_type}')
 
     logger.info(f'made {graphkb_conn.request_count} requests to graphkb')
-    ipr_conn.upload_report(output)
+
+    output = clean_unsupported_content(output)
+
+    try:
+        ipr_conn.upload_report(output)
+    except Exception as err:
+        if write_to_json:
+            logging.info(f'writing report upload content to file: {write_to_json}')
+            with open(write_to_json, 'w') as fh:
+                import json
+
+                fh.write(json.dumps(output))
+        raise err
