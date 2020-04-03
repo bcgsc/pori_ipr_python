@@ -4,6 +4,7 @@ upload variant and report information to IPR
 from typing import List, Dict, Tuple
 import requests
 import json
+import zlib
 
 from graphkb import GraphKBConnection
 from graphkb.util import IterableNamespace
@@ -221,7 +222,11 @@ class IprConnection:
         self.url = url
         self.username = username
         self.password = password
-        self.headers = {'Accept': 'application/json', 'Content-Type': 'application/json'}
+        self.headers = {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'Content-Encoding': 'deflate',
+        }
         self.cache = {}
         self.request_count = 0
 
@@ -245,8 +250,9 @@ class IprConnection:
 
     def post(self, uri: str, data: Dict = {}, **kwargs) -> Dict:
         """Convenience method for making post requests"""
-        return self.request(uri, method='POST', data=json.dumps(data), **kwargs)
+        return self.request(
+            uri, method='POST', data=zlib.compress(json.dumps(data).encode('utf-8')), **kwargs
+        )
 
     def upload_report(self, content):
-        pass  # TODO: add when IPR endpoint is ready
-        # return self.post('/reports', content)
+        return self.post('/reports', content)
