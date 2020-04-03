@@ -40,7 +40,7 @@ APPROVED_EVIDENCE_LEVELS = {
     ],
 }
 
-DEFAULT_URL = 'http://iprdev-api.bcgsc.ca/api'
+DEFAULT_URL = 'https://iprdev-api.bcgsc.ca/api'
 DEFAULT_LIMIT = 1000
 
 
@@ -245,7 +245,17 @@ class IprConnection:
         resp = requests.request(
             method, url, headers=self.headers, auth=(self.username, self.password), **kwargs
         )
-        resp.raise_for_status()
+        try:
+            resp.raise_for_status()
+        except requests.exceptions.HTTPError as err:
+            # try to get more error details
+            message = str(err)
+            try:
+                message += ' ' + resp.json()['message']
+            except Exception:
+                pass
+
+            raise requests.exceptions.HTTPError(message)
         return resp.json()
 
     def post(self, uri: str, data: Dict = {}, **kwargs) -> Dict:
