@@ -23,3 +23,7 @@ env
 # misc
 .DS_STORE
 
+# docs
+docs/reference
+build-docs
+

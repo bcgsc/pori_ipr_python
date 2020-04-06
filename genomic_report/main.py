@@ -1,5 +1,4 @@
 import argparse
-import json
 import logging
 import os
 import datetime
@@ -59,59 +58,109 @@ def command_interface() -> None:
     )
     parser.add_argument('--ipr_url', default=ipr.DEFAULT_URL)
     parser.add_argument('--log_level', default='info', choices=LOG_LEVELS.keys())
-
-    # TODO: upload JSON to IPR instead of writing output
+    parser.add_argument('--patient_id', required=True, help='The patient ID for this report')
+    parser.add_argument('--project', default='TEST', help='The project to upload this report to')
     parser.add_argument(
-        '-o',
-        '--output_json',
-        default='ipr_input.json',
-        help='file path to write the output json content to',
+        '-w',
+        '--write_to_json',
+        help='path to a JSON to output the report upload body to on failure to upload',
     )
 
     args = parser.parse_args()
 
-    main(args)
+    create_report(
+        username=args.username,
+        password=args.password,
+        patient_id=args.patient_id,
+        project=args.project,
+        kb_disease_match=args.kb_disease_match,
+        ipr_url=args.ipr_url,
+        log_level=args.log_level,
+        expression_variants_file=args.expression_variants,
+        structural_variants_file=args.structural_variants,
+        copy_variants_file=args.copy_variants,
+        small_mutations_file=args.small_mutations,
+        write_to_json=args.write_to_json,
+    )
 
 
-def clean_variant_rows(variants):
-    # IPR cannot take these as input, may add variant later but will always drop type
-    for v in variants:
-        del v['variant']
-        del v['variantType']
-    return variants
+def clean_unsupported_content(upload_content: Dict) -> Dict:
+    # TODO: add support in IPR
+    for gene in upload_content['genes']:
+        if 'knownFusionPartner' in gene:
+            del gene['knownFusionPartner']
+
+    del upload_content['kbUrl']
+    del upload_content['kbDiseaseMatch']
+
+    for variant_section in [
+        'expressionVariants',
+        'smallMutations',
+        'copyVariants',
+        'structuralVariants',
+    ]:
+        for variant in upload_content[variant_section]:
+            if 'variant' in variant:
+                del variant['variant']
+            if 'variantType' in variant:
+                del variant['variantType']
+    return upload_content
 
 
-def main(args, optional_content=None):
+def create_report(
+    username: str,
+    password: str,
+    patient_id: str,
+    kb_disease_match: str,
+    project: str = 'TEST',
+    ipr_url: str = ipr.DEFAULT_URL,
+    log_level: str = 'info',
+    expression_variants_file: str = None,
+    structural_variants_file: str = None,
+    copy_variants_file: str = None,
+    small_mutations_file: str = None,
+    write_to_json: str = None,
+    optional_content: Optional[Dict] = None,
+) -> None:
     """
     Run the matching and create the report JSON for upload to IPR
 
     Args:
-        args (argparse.Namespace): Namespace of arguments with file names for variant inputs etc
-        optional_content (dict): Pass-through content to include in the JSON upload
+        username: the username for connecting to GraphKB and IPR
+        password: the password for connecting to GraphKB and IPR
+        kb_disease_match: disease name to be used in matching to GraphKB
+        ipr_url: base URL to use in connecting to IPR
+        log_level: the logging level
+        expression_variants_file: path to the expression variants input file
+        structural_variants_file: path to the structural variants input file
+        copy_variants_file: path to the copy number variants input file
+        small_mutations_file: path to the small mutations input file
+        write_to_json: path to a JSON file to output the report upload body to if given on failure to upload
+        optional_content: Pass-through content to include in the JSON upload
     """
     # set the default logging configuration
     logging.basicConfig(
-        level=LOG_LEVELS[args.log_level],
+        level=LOG_LEVELS[log_level],
         format='%(asctime)s %(name)s %(levelname)s %(message)s',
         datefmt='%m-%d-%y %H:%M:%S',
     )
-    ipr_conn = ipr.IprConnection(args.username, args.password, args.ipr_url)
+    ipr_conn = ipr.IprConnection(username, password, ipr_url)
     graphkb_conn = GraphKBConnection()
-    graphkb_conn.login(args.username, args.password)
+    graphkb_conn.login(username, password)
 
-    copy_variants = load_copy_variants(args.copy_variants) if args.copy_variants else []
+    copy_variants = load_copy_variants(copy_variants_file) if copy_variants_file else []
     logger.info(f'loaded {len(copy_variants)} copy variants')
 
-    small_mutations = load_small_mutations(args.small_mutations) if args.small_mutations else []
+    small_mutations = load_small_mutations(small_mutations_file) if small_mutations_file else []
     logger.info(f'loaded {len(small_mutations)} small mutations')
 
     expression_variants = (
-        load_expression_variants(args.expression_variants) if args.expression_variants else []
+        load_expression_variants(expression_variants_file) if expression_variants_file else []
     )
     logger.info(f'loaded {len(expression_variants)} expression variants')
 
     structural_variants = (
-        load_structural_variants(args.structural_variants) if args.structural_variants else []
+        load_structural_variants(structural_variants_file) if structural_variants_file else []
     )
     logger.info(f'loaded {len(structural_variants)} structural variants')
 
@@ -120,58 +169,68 @@ def main(args, optional_content=None):
     )
 
     # filter excess variants not required for extra gene information
-    logger.verbose('annotating small mutations')
-    alterations = annotate_positional_variants(graphkb_conn, small_mutations, args.kb_disease_match)
+    logger.info('annotating small mutations')
+    alterations = annotate_positional_variants(graphkb_conn, small_mutations, kb_disease_match)
 
-    logger.verbose('annotating structural variants')
+    logger.info('annotating structural variants')
     alterations.extend(
-        annotate_positional_variants(graphkb_conn, structural_variants, args.kb_disease_match)
+        annotate_positional_variants(graphkb_conn, structural_variants, kb_disease_match)
     )
 
-    logger.verbose('annotating copy variants')
-    alterations.extend(
-        annotate_category_variants(graphkb_conn, copy_variants, args.kb_disease_match)
-    )
+    logger.info('annotating copy variants')
+    alterations.extend(annotate_category_variants(graphkb_conn, copy_variants, kb_disease_match))
 
-    logger.verbose('annotating expression variants')
+    logger.info('annotating expression variants')
     alterations.extend(
-        annotate_category_variants(graphkb_conn, expression_variants, args.kb_disease_match, False)
+        annotate_category_variants(graphkb_conn, expression_variants, kb_disease_match, False)
     )
-    logger.verbose('fetching gene annotations')
+    logger.info('fetching gene annotations')
     gene_information = get_gene_information(graphkb_conn, genes_with_variants)
 
-    logger.info(f'writing: {args.output_json}')
     output = optional_content or dict()
 
     key_alterations, variant_counts = ipr.create_key_alterations(
         alterations, expression_variants, copy_variants, structural_variants, small_mutations
     )
 
-    with open(args.output_json, 'w') as fh:
+    output.update(
+        {
+            'patientId': patient_id,
+            'project': project,
+            'kbMatches': [trim_empty_values(a) for a in alterations],
+            'copyVariants': [
+                trim_empty_values(c) for c in copy_variants if c['gene'] in genes_with_variants
+            ],
+            'smallMutations': [trim_empty_values(s) for s in small_mutations],
+            'expressionVariants': [
+                trim_empty_values(e)
+                for e in expression_variants
+                if e['gene'] in genes_with_variants
+            ],
+            'kbDiseaseMatch': kb_disease_match,
+            'kbUrl': graphkb_conn.url,
+            'kbVersion': timestamp(),
+            'structuralVariants': [trim_empty_values(s) for s in structural_variants],
+            'genes': gene_information,
+            'genomicAlterationsIdentified': key_alterations,
+            'variantCounts': variant_counts,
+        }
+    )
+    for section in output:
+        section_content_type = 'rows' if not isinstance(output[section], str) else 'characters'
+        logger.info(f'section {section} has {len(output[section])} {section_content_type}')
 
-        output.update(
-            {
-                'kbMatches': [trim_empty_values(a) for a in alterations],
-                'copyVariants': [
-                    trim_empty_values(c) for c in copy_variants if c['gene'] in genes_with_variants
-                ],
-                'smallMutations': [trim_empty_values(s) for s in small_mutations],
-                'expressionVariants': [
-                    trim_empty_values(e)
-                    for e in expression_variants
-                    if e['gene'] in genes_with_variants
-                ],
-                'kbDiseaseMatch': args.kb_disease_match,
-                'kbUrl': graphkb_conn.url,
-                'kbVersion': timestamp(),
-                'structuralVariants': [trim_empty_values(s) for s in structural_variants],
-                'genes': gene_information,
-                'genomicAlterationsIdentified': key_alterations,
-                'variantCounts': variant_counts,
-            }
-        )
-        for section in output:
-            logger.info(f'section {section} has {len(output[section])} rows')
-        fh.write(json.dumps(output, indent='  ', sort_keys=True))
     logger.info(f'made {graphkb_conn.request_count} requests to graphkb')
-    ipr_conn.upload_report(output)
+
+    output = clean_unsupported_content(output)
+
+    try:
+        ipr_conn.upload_report(output)
+    except Exception as err:
+        if write_to_json:
+            logging.info(f'writing report upload content to file: {write_to_json}')
+            with open(write_to_json, 'w') as fh:
+                import json
+
+                fh.write(json.dumps(output))
+        raise err
