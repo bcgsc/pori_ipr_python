@@ -210,7 +210,7 @@ def create_key_alterations(
         if variant['variant'] and variant_key not in counted_variants:
             counts['variantsUnknown'].add(variant_key)
 
-    return alterations, {k: len(v) for k, v in counts.items()}
+    return {'geneVariant': alt for alt in set(alterations)}, {k: len(v) for k, v in counts.items()}
 
 
 class IprConnection:
@@ -248,7 +248,9 @@ class IprConnection:
             # try to get more error details
             message = str(err)
             try:
-                message += ' ' + resp.json()['message']
+                content = resp.json()
+                print(content)
+                message += ' ' + resp.json()['error']['message']
             except Exception:
                 pass
 
