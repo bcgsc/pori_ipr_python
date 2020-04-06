@@ -15,7 +15,7 @@ from .util import convert_to_rid_set
 BASE_THERAPEUTIC_TERM = 'therapeutic efficacy'
 BASE_DIAGNOSTIC_TERM = 'diagnostic indicator'
 BASE_PROGNOSTIC_TERM = 'prognostic indicator'
-BASE_BIOLOGICAL_TERM = 'functional effect'
+BASE_BIOLOGICAL_TERMS = ['functional effect', 'tumourigenesis', 'predisposing']
 
 VARIANT_CLASSES = {'Variant', 'CategoryVariant', 'PositionalVariant', 'CatalogueVariant'}
 REPORT_KB_SECTIONS = IterableNamespace(
@@ -104,9 +104,11 @@ def convert_statements_to_alterations(
     prognostic_terms = convert_to_rid_set(
         get_term_tree(graphkb_conn, BASE_PROGNOSTIC_TERM, include_superclasses=False)
     )
-    biological_terms = convert_to_rid_set(
-        get_term_tree(graphkb_conn, BASE_BIOLOGICAL_TERM, include_superclasses=False)
-    )
+    biological_terms = set()
+    for base_term in BASE_BIOLOGICAL_TERMS:
+        biological_terms.update(convert_to_rid_set(
+            get_term_tree(graphkb_conn, base_term, include_superclasses=False)
+        ))
 
     for statement in statements:
         variants = [c for c in statement['conditions'] if c['@class'] in VARIANT_CLASSES]
