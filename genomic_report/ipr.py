@@ -148,9 +148,6 @@ def convert_statements_to_alterations(
                 'matchedCancer': disease_match,
                 'reference': pmid,
                 'relevance': statement['relevance']['displayName'],
-                # TODO: remove, these columns are for debugging but not to output to IPR
-                '_source': statement['source']['displayName'] if statement['source'] else None,
-                '_sourceId': statement['sourceId'],
             }
             rows.append(row)
     return rows
