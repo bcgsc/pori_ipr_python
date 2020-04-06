@@ -212,7 +212,7 @@ def create_key_alterations(
         if variant['variant'] and variant_key not in counted_variants:
             counts['variantsUnknown'].add(variant_key)
 
-    return {'geneVariant': alt for alt in set(alterations)}, {k: len(v) for k, v in counts.items()}
+    return [{'geneVariant': alt} for alt in set(alterations)], {k: len(v) for k, v in counts.items()}
 
 
 class IprConnection:
