@@ -39,7 +39,7 @@ use a tab delimited format. The column names, types and example inputs are shown
 | ptxQC         | float   |                                                                  |
 | ptxPercCol    | string  |                                                                  |
 | ptxTotSampObs | integer |                                                                  |
-| ptsPogPerc    | float   |                                                                  |
+| ptxPogPerc    | float   |                                                                  |
 | gtexComp      | string  |                                                                  |
 | gtexFC        | float   |                                                                  |
 | gtexkIQR      | float   |                                                                  |
