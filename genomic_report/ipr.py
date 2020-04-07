@@ -106,9 +106,9 @@ def convert_statements_to_alterations(
     )
     biological_terms = set()
     for base_term in BASE_BIOLOGICAL_TERMS:
-        biological_terms.update(convert_to_rid_set(
-            get_term_tree(graphkb_conn, base_term, include_superclasses=False)
-        ))
+        biological_terms.update(
+            convert_to_rid_set(get_term_tree(graphkb_conn, base_term, include_superclasses=False))
+        )
 
     for statement in statements:
         variants = [c for c in statement['conditions'] if c['@class'] in VARIANT_CLASSES]
@@ -212,7 +212,10 @@ def create_key_alterations(
         if variant['variant'] and variant_key not in counted_variants:
             counts['variantsUnknown'].add(variant_key)
 
-    return [{'geneVariant': alt} for alt in set(alterations)], {k: len(v) for k, v in counts.items()}
+    return (
+        [{'geneVariant': alt} for alt in set(alterations)],
+        {k: len(v) for k, v in counts.items()},
+    )
 
 
 class IprConnection:
