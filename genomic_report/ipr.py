@@ -250,8 +250,6 @@ class IprConnection:
             # try to get more error details
             message = str(err)
             try:
-                content = resp.json()
-                print(content)
                 message += ' ' + resp.json()['error']['message']
             except Exception:
                 pass
