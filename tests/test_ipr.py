@@ -17,7 +17,7 @@ def graphkb_conn():
         make_rid_list('ther1'),
         make_rid_list('diag1'),
         make_rid_list('prog1'),
-        make_rid_list('bio1', 'bio2'),
+        make_rid_list('bio1', 'bio2'), [], []  # makes 3 calls to get biological terms
     ]
     query_mock = Mock()
     query_mock.side_effect = return_values
