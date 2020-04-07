@@ -240,7 +240,7 @@ def load_expression_variants(filename):
 
         for col in float_columns:
             if row[col] in ['inf', '+inf', '-inf']:
-                row[col].replace('inf', 'Infinity')
+                row[col] = row[col].replace('inf', 'Infinity')
 
     if errors:
         raise ValueError(f"{len(errors)} Invalid expression variants in file - {filename}")

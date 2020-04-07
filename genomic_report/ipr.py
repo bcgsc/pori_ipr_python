@@ -4,6 +4,7 @@ upload variant and report information to IPR
 from typing import List, Dict, Tuple
 import requests
 import json
+import zlib
 
 from graphkb import GraphKBConnection
 from graphkb.util import IterableNamespace
@@ -14,7 +15,7 @@ from .util import convert_to_rid_set
 BASE_THERAPEUTIC_TERM = 'therapeutic efficacy'
 BASE_DIAGNOSTIC_TERM = 'diagnostic indicator'
 BASE_PROGNOSTIC_TERM = 'prognostic indicator'
-BASE_BIOLOGICAL_TERM = 'functional effect'
+BASE_BIOLOGICAL_TERMS = ['functional effect', 'tumourigenesis', 'predisposing']
 
 VARIANT_CLASSES = {'Variant', 'CategoryVariant', 'PositionalVariant', 'CatalogueVariant'}
 REPORT_KB_SECTIONS = IterableNamespace(
@@ -39,7 +40,7 @@ APPROVED_EVIDENCE_LEVELS = {
     ],
 }
 
-DEFAULT_URL = 'http://iprdev-api.bcgsc.ca/api'
+DEFAULT_URL = 'https://iprdev-api.bcgsc.ca/api'
 DEFAULT_LIMIT = 1000
 
 
@@ -103,9 +104,11 @@ def convert_statements_to_alterations(
     prognostic_terms = convert_to_rid_set(
         get_term_tree(graphkb_conn, BASE_PROGNOSTIC_TERM, include_superclasses=False)
     )
-    biological_terms = convert_to_rid_set(
-        get_term_tree(graphkb_conn, BASE_BIOLOGICAL_TERM, include_superclasses=False)
-    )
+    biological_terms = set()
+    for base_term in BASE_BIOLOGICAL_TERMS:
+        biological_terms.update(
+            convert_to_rid_set(get_term_tree(graphkb_conn, base_term, include_superclasses=False))
+        )
 
     for statement in statements:
         variants = [c for c in statement['conditions'] if c['@class'] in VARIANT_CLASSES]
@@ -147,9 +150,6 @@ def convert_statements_to_alterations(
                 'matchedCancer': disease_match,
                 'reference': pmid,
                 'relevance': statement['relevance']['displayName'],
-                # TODO: remove, these columns are for debugging but not to output to IPR
-                '_source': statement['source']['displayName'] if statement['source'] else None,
-                '_sourceId': statement['sourceId'],
             }
             rows.append(row)
     return rows
@@ -212,7 +212,10 @@ def create_key_alterations(
         if variant['variant'] and variant_key not in counted_variants:
             counts['variantsUnknown'].add(variant_key)
 
-    return alterations, {k: len(v) for k, v in counts.items()}
+    return (
+        [{'geneVariant': alt} for alt in set(alterations)],
+        {k: len(v) for k, v in counts.items()},
+    )
 
 
 class IprConnection:
@@ -221,7 +224,11 @@ class IprConnection:
         self.url = url
         self.username = username
         self.password = password
-        self.headers = {'Accept': 'application/json', 'Content-Type': 'application/json'}
+        self.headers = {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'Content-Encoding': 'deflate',
+        }
         self.cache = {}
         self.request_count = 0
 
@@ -240,13 +247,24 @@ class IprConnection:
         resp = requests.request(
             method, url, headers=self.headers, auth=(self.username, self.password), **kwargs
         )
-        resp.raise_for_status()
+        try:
+            resp.raise_for_status()
+        except requests.exceptions.HTTPError as err:
+            # try to get more error details
+            message = str(err)
+            try:
+                message += ' ' + resp.json()['error']['message']
+            except Exception:
+                pass
+
+            raise requests.exceptions.HTTPError(message)
         return resp.json()
 
     def post(self, uri: str, data: Dict = {}, **kwargs) -> Dict:
         """Convenience method for making post requests"""
-        return self.request(uri, method='POST', data=json.dumps(data), **kwargs)
+        return self.request(
+            uri, method='POST', data=zlib.compress(json.dumps(data).encode('utf-8')), **kwargs
+        )
 
     def upload_report(self, content):
-        pass  # TODO: add when IPR endpoint is ready
-        # return self.post('/reports', content)
+        return self.post('/reports', content)

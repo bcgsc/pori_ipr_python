@@ -225,7 +225,8 @@ def create_report(
     output = clean_unsupported_content(output)
 
     try:
-        ipr_conn.upload_report(output)
+        result = ipr_conn.upload_report(output)
+        logger.info(result)
     except Exception as err:
         if write_to_json:
             logging.info(f'writing report upload content to file: {write_to_json}')
