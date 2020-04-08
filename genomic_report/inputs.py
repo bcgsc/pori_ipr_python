@@ -260,6 +260,7 @@ def load_structural_variants(filename: str) -> List[Dict]:
         'breakpoint': r'^\w+:\d+\|\w+:\d+$',
         'exon1': exon_pattern,
         'exon2': exon_pattern,
+        'svg': r'^(<.*>)?$'
     }
     validate_row_patterns(result, patterns)
 
