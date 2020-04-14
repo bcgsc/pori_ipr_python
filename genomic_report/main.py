@@ -149,38 +149,42 @@ def create_report(
     graphkb_conn.login(username, password)
 
     copy_variants = load_copy_variants(copy_variants_file) if copy_variants_file else []
-    logger.info(f'loaded {len(copy_variants)} copy variants')
+    logger.info(f'loaded {len(copy_variants)} copy variants from: {copy_variants_file}')
 
     small_mutations = load_small_mutations(small_mutations_file) if small_mutations_file else []
-    logger.info(f'loaded {len(small_mutations)} small mutations')
+    logger.info(f'loaded {len(small_mutations)} small mutations from: {small_mutations_file}')
 
     expression_variants = (
         load_expression_variants(expression_variants_file) if expression_variants_file else []
     )
-    logger.info(f'loaded {len(expression_variants)} expression variants')
+    logger.info(
+        f'loaded {len(expression_variants)} expression variants from: {expression_variants_file}'
+    )
 
     structural_variants = (
         load_structural_variants(structural_variants_file) if structural_variants_file else []
     )
-    logger.info(f'loaded {len(structural_variants)} structural variants')
+    logger.info(
+        f'loaded {len(structural_variants)} structural variants from: {structural_variants_file}'
+    )
 
     genes_with_variants = check_variant_links(
         small_mutations, expression_variants, copy_variants, structural_variants
     )
 
     # filter excess variants not required for extra gene information
-    logger.info('annotating small mutations')
+    logger.info('annotating small mutations from: {small_mutations_file}')
     alterations = annotate_positional_variants(graphkb_conn, small_mutations, kb_disease_match)
 
-    logger.info('annotating structural variants')
+    logger.info('annotating structural variants from: {structural_variants_file}')
     alterations.extend(
         annotate_positional_variants(graphkb_conn, structural_variants, kb_disease_match)
     )
 
-    logger.info('annotating copy variants')
+    logger.info('annotating copy variants from {copy_variants_file}')
     alterations.extend(annotate_category_variants(graphkb_conn, copy_variants, kb_disease_match))
 
-    logger.info('annotating expression variants')
+    logger.info('annotating expression variants from: {expression_variants_file}')
     alterations.extend(
         annotate_category_variants(graphkb_conn, expression_variants, kb_disease_match, False)
     )
