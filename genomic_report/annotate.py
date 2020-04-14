@@ -162,7 +162,9 @@ def annotate_category_variants(
             logger.debug(f'failed to match variants ({gene} {variant}): {err}')
 
     logger.info(f'skipped matching {skipped} non variant information rows')
-    logger.info(f'matched {len(variants)} variants to {len(alterations)} graphkb annotations')
+    logger.info(
+        f'matched {len(variants)} category variants to {len(alterations)} graphkb annotations'
+    )
     return alterations
 
 
@@ -197,13 +199,13 @@ def annotate_positional_variants(
                     new_row = {'variant': row['key'], 'variantType': row['variantType']}
                     new_row.update(ipr_row)
                     alterations.append(new_row)
-        except ValueError as err:
-            logger.debug(f'failed to match positional variants ({variant}): {err}')
         except Exception as err:
             errors += 1
             logger.error(f'failed to match positional variants ({variant}): {err}')
 
     logger.info(f'skipped {errors} positional variants due to errors')
-    logger.info(f'matched {len(variants)} variants to {len(alterations)} graphkb annotations')
+    logger.info(
+        f'matched {len(variants)} positional variants to {len(alterations)} graphkb annotations'
+    )
 
     return alterations
