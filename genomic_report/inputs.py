@@ -312,7 +312,9 @@ def check_variant_links(
 
     for variant in copy_variants:
         gene = variant['gene']
-        if variant['variant']:
+        if not gene:
+            logging.error("copy_variant data cannot be applied to an empty genename")
+        elif variant['variant']:
             genes_with_variants.add(gene)
 
             if expression_variant_genes and gene not in expression_variant_genes:
@@ -323,7 +325,9 @@ def check_variant_links(
 
     for variant in expression_variants:
         gene = variant['gene']
-        if variant['variant']:
+        if not gene:
+            logging.error("expression_variant data cannot be applied to an empty genename")
+        elif variant['variant']:
             genes_with_variants.add(gene)
 
             if copy_variant_genes and gene not in copy_variant_genes:
@@ -334,6 +338,10 @@ def check_variant_links(
 
     for variant in small_mutations:
         gene = variant['gene']
+        if not gene:
+            logging.error("small_mutation data cannot be applied to an empty genename")
+            continue
+
         if copy_variant_genes and gene not in copy_variant_genes:
             missing_information_genes.add(gene)
             missing_information_errors.add(
