@@ -116,11 +116,15 @@ def load_variant_file(
             if not header_validated:
                 for req_col in required:
                     if req_col not in row:
-                        raise ValueError(f'header missing required column ({req_col})')
+                        raise ValueError(
+                            f'header missing required column ({req_col}) in {filename}'
+                        )
                 header_validated = True
             row_key = hash_key(row_to_key(row))
             if row_key in keys:
-                raise ValueError(f'duplicate row key ({row_key})')
+                raise ValueError(
+                    f'duplicate row key ({row_key}) from ({row_to_key(row)}) in {filename}'
+                )
             row['key'] = row_key
             keys.add(row_key)
 
