@@ -205,6 +205,7 @@ def annotate_positional_variants(
     """
     errors = 0
     alterations = []
+    problem_genes = set()
 
     for row in variants:
         variant = row['variant']
@@ -222,10 +223,19 @@ def annotate_positional_variants(
                     alterations.append(new_row)
         except Exception as err:
             errors += 1
-            logger.error(f'failed to match positional variants ({variant}): {err}')
+            if str(err).startswith('unable to find the gene '):
+                'unable to find the gene () or any equivalent representations'
+                gene = str(err).split('unable to find the gene (')[-1]
+                gene = gene.split(') or any equivalent representations')[0]
+                problem_genes.add(gene)
+            else:
+                logger.debug(f'failed to match positional variants ({variant}): {err}')
 
+    if problem_genes:
+        logger.warning(f'gene finding failures for {sorted(problem_genes)}')
+        logger.warning(f'gene finding falure for {len(problem_genes)} genes')
     if errors:
-        logger.info(f'skipped {errors} positional variants due to errors')
+        logger.warning(f'skipped {errors} positional variants due to errors')
     logger.info(
         f'matched {len(variants)} positional variants to {len(alterations)} graphkb annotations'
     )
