@@ -57,7 +57,7 @@ EXP_OPTIONAL = [
     'gtexAvgkIQR',
 ]
 
-SV_KEY = ['eventType', 'breakpoint', 'gene1', 'gene2', 'exon1', 'exon2']
+SV_KEY = ['eventType', 'breakpoint']
 SV_REQ = [
     'eventType',
     'breakpoint',
@@ -254,7 +254,7 @@ def load_expression_variants(filename):
 
 def load_structural_variants(filename: str) -> List[Dict]:
     def row_key(row):
-        return ('sv', row['eventType'], row['breakpoint'])
+        return tuple(['sv'] + [row[key] for key in SV_KEY])
 
     result = load_variant_file(filename, SV_REQ, SV_OPTIONAL, row_key)
     # genes are optional for structural variants
