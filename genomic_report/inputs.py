@@ -5,6 +5,7 @@ from typing import List, Dict, Tuple, Set
 from csv import DictReader
 import logging
 import re
+import os
 
 from graphkb.match import INPUT_COPY_CATEGORIES, INPUT_EXPRESSION_CATEGORIES
 from Bio.Data.IUPACData import protein_letters_3to1
@@ -264,7 +265,6 @@ def load_structural_variants(filename: str) -> List[Dict]:
         'breakpoint': r'^\w+:\d+\|\w+:\d+$',
         'exon1': exon_pattern,
         'exon2': exon_pattern,
-        'svg': r'^(<.*>)?$',
     }
     validate_row_patterns(result, patterns)
 
@@ -273,6 +273,13 @@ def load_structural_variants(filename: str) -> List[Dict]:
             'variant'
         ] = f'({row["gene1"]},{row["gene2"]}):fusion(e.{row["exon1"]},e.{row["exon2"]})'
         row['variantType'] = 'sv'
+
+        # check and load the svg file where applicable
+        if row['svg']:
+            if not os.path.exists(row['svg']):
+                raise FileNotFoundError(row['svg'])
+            with open(row['svg'], 'r') as fh:
+                row['svg'] = fh.read()
 
     return result
 
