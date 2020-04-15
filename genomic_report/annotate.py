@@ -136,7 +136,15 @@ def annotate_category_variants(
     """
     skipped = 0
     alterations = []
-    for row in variants:
+    problem_genes = set()
+
+    logger.info(f"Starting annotation of {len(variants)} category_variants")
+    progress_ten_perc = max(300, int(len(variants) / 10))
+    for i, row in enumerate(variants, 1):
+        if not i % progress_ten_perc:
+            # With tens of thousands of genes this can look stalled.
+            # indicate something to the user.
+            logger.info(f"\t{i} of {len(variants)}  complete")
         gene = row['gene']
         variant = row['variant']
 
@@ -159,9 +167,22 @@ def annotate_category_variants(
                     new_row.update(ipr_row)
                     alterations.append(new_row)
         except ValueError as err:
-            logger.debug(f'failed to match variants ({gene} {variant}): {err}')
+            # Two common errors
+            if str(err) == 'not a valid copy variant input category (Neutral)':
+                # 'Neutral' is being given a special status
+                # TODO: Is there a ticket?
+                pass
+            elif str(err).startswith("unable to find the gene"):
+                # copy number and expression are measured on a large number of genes
+                problem_genes.add(gene)
+            else:
+                logger.error(f'failed to match variants ({gene} {variant}): {err}')
 
-    logger.info(f'skipped matching {skipped} non variant information rows')
+    if skipped:
+        logger.info(f'skipped matching {skipped} non variant information rows')
+    if problem_genes:
+        logger.debug(f'gene finding failures for {sorted(problem_genes)}')
+        logger.warning(f'gene finding falure for {len(problem_genes)} genes')
     logger.info(
         f'matched {len(variants)} category variants to {len(alterations)} graphkb annotations'
     )
@@ -203,7 +224,8 @@ def annotate_positional_variants(
             errors += 1
             logger.error(f'failed to match positional variants ({variant}): {err}')
 
-    logger.info(f'skipped {errors} positional variants due to errors')
+    if errors:
+        logger.info(f'skipped {errors} positional variants due to errors')
     logger.info(
         f'matched {len(variants)} positional variants to {len(alterations)} graphkb annotations'
     )
