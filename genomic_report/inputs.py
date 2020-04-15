@@ -309,7 +309,7 @@ def check_variant_links(
             genes_with_variants.add(gene)
 
             if expression_variant_genes and gene not in expression_variant_genes:
-                raise KeyError(
+                logging.warn(
                     f'gene ({gene}) has a copy variant but is missing expression information'
                 )
 
@@ -319,18 +319,18 @@ def check_variant_links(
             genes_with_variants.add(gene)
 
             if copy_variant_genes and gene not in copy_variant_genes:
-                raise KeyError(
+                logging.warn(
                     f'gene ({gene}) has an expression variant but is missing copy number information'
                 )
 
     for variant in small_mutations:
         gene = variant['gene']
         if copy_variant_genes and gene not in copy_variant_genes:
-            raise KeyError(
+            logging.warn(
                 f'gene ({gene}) has a small mutation but is missing copy number information'
             )
         if expression_variant_genes and gene not in expression_variant_genes:
-            raise KeyError(
+            logging.warn(
                 f'gene ({gene}) has a small mutation but is missing expression information'
             )
         genes_with_variants.add(gene)
@@ -339,11 +339,11 @@ def check_variant_links(
         for gene in [variant['gene1'], variant['gene2']]:
             if gene:  # genes are optional for structural variants
                 if gene not in copy_variant_genes:
-                    raise KeyError(
+                    logging.warn(
                         f'gene ({gene}) has a structural variant but is missing copy number information'
                     )
                 if gene not in expression_variant_genes:
-                    raise KeyError(
+                    logging.warn(
                         f'gene ({gene}) has a structural variant but is missing expression information'
                     )
                 genes_with_variants.add(gene)
