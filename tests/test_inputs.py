@@ -1,4 +1,6 @@
 import os
+import logging
+from unittest import mock
 
 import pytest
 
@@ -58,31 +60,33 @@ class TestCheckVariantLinks:
         assert genes == {'KRAS'}
 
     def test_sm_missing_copy(self):
-        with pytest.raises(KeyError):
+        with mock.patch.object(logging.getLogger(), 'warning') as mock_debug:
             check_variant_links(
                 small_mutations=[{'gene': 'KRAS'}],
-                copy_variants=[{'gene': 'CDK'}],
+                copy_variants=[{'gene': 'CDK', 'variant': ''}],
                 expression_variants=[{'gene': 'KRAS', 'variant': ''}],
                 structural_variants=[],
             )
+            assert mock_debug.called
 
     def test_sm_missing_exp(self):
-        with pytest.raises(KeyError):
+        with mock.patch.object(logging.getLogger(), 'warning') as mock_debug:
             check_variant_links(
                 small_mutations=[{'gene': 'KRAS'}],
                 copy_variants=[{'gene': 'KRAS', 'variant': ''}],
-                expression_variants=[{'gene': 'CDK'}],
+                expression_variants=[{'gene': 'CDK', 'variant': ''}],
                 structural_variants=[],
             )
+            assert mock_debug.called
 
     @pytest.mark.skip('TODO')
     def test_sv_missing_copy(self):
-        with pytest.raises(KeyError):
+        with mock.patch.object(logging.getLogger(), 'warning') as mock_debug:
             pass
 
     @pytest.mark.skip('TODO')
     def test_sv_missing_exp(self):
-        with pytest.raises(KeyError):
+        with mock.patch.object(logging.getLogger(), 'warning') as mock_debug:
             pass
 
     def test_with_valid_inputs(self):
@@ -95,7 +99,7 @@ class TestCheckVariantLinks:
         assert genes == {'KRAS'}
 
     def test_copy_missing_exp(self):
-        with pytest.raises(KeyError):
+        with mock.patch.object(logging.getLogger(), 'warning') as mock_debug:
             check_variant_links(
                 small_mutations=[],
                 copy_variants=[
@@ -105,12 +109,14 @@ class TestCheckVariantLinks:
                 expression_variants=[{'gene': 'KRAS', 'variant': ''}],
                 structural_variants=[],
             )
+            assert mock_debug.called
 
     def test_exp_missing_copy(self):
-        with pytest.raises(KeyError):
+        with mock.patch.object(logging.getLogger(), 'warning') as mock_debug:
             check_variant_links(
                 small_mutations=[],
                 copy_variants=[{'gene': 'KRAS', 'variant': ''}],
                 expression_variants=[{'gene': 'BRAF', 'variant': 'increased expression'}],
                 structural_variants=[],
             )
+            assert mock_debug.called
