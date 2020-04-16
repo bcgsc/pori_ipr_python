@@ -253,7 +253,7 @@ def load_expression_variants(filename):
     return result
 
 
-def create_gkb_sv_notation(row: Dict) -> str:
+def create_graphkb_sv_notation(row: Dict) -> str:
     """
     Generate GKB style structural variant notation from a structural variant input row
     """
@@ -287,7 +287,7 @@ def load_structural_variants(filename: str) -> List[Dict]:
     validate_row_patterns(result, patterns)
 
     for row in result:
-        row['variant'] = create_gkb_sv_notation(row)
+        row['variant'] = create_graphkb_sv_notation(row)
         row['variantType'] = 'sv'
 
         # check and load the svg file where applicable
