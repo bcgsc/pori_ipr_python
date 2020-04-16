@@ -8,6 +8,7 @@ from genomic_report.inputs import (
     check_variant_links,
     load_expression_variants,
     load_structural_variants,
+    create_graphkb_sv_notation,
 )
 
 
@@ -113,4 +114,28 @@ class TestCheckVariantLinks:
                 copy_variants=[{'gene': 'KRAS', 'variant': ''}],
                 expression_variants=[{'gene': 'BRAF', 'variant': 'increased expression'}],
                 structural_variants=[],
+            )
+
+
+class TestCreateGraphkbSvNotation:
+    def test_both_genes_and_exons(self):
+        notation = create_graphkb_sv_notation({'gene1': 'A', 'gene2': 'B', 'exon1': 1, 'exon2': 2})
+        assert notation == '(A,B):fusion(e.1,e.2)'
+
+    def test_one_exon_missing(self):
+        notation = create_graphkb_sv_notation({'gene1': 'A', 'gene2': 'B', 'exon1': '', 'exon2': 2})
+        assert notation == '(A,B):fusion(e.?,e.2)'
+
+    def test_one_gene_missing(self):
+        notation = create_graphkb_sv_notation({'gene1': 'A', 'gene2': '', 'exon1': 1, 'exon2': 2})
+        assert notation == '(A,?):fusion(e.1,e.2)'
+
+    def test_first_gene_missing(self):
+        notation = create_graphkb_sv_notation({'gene1': '', 'gene2': 'B', 'exon1': 1, 'exon2': 2})
+        assert notation == '(B,?):fusion(e.2,e.1)'
+
+    def test_no_genes_error(self):
+        with pytest.raises(ValueError):
+            create_graphkb_sv_notation(
+                {'gene1': '', 'gene2': '', 'exon1': 1, 'exon2': 2, 'key': 'x'}
             )
