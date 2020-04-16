@@ -291,20 +291,16 @@ def check_variant_links(
     expression_variants: List[Dict],
     copy_variants: List[Dict],
     structural_variants: List[Dict],
-    exclude_partial_variants: bool = False,
 ) -> Set[str]:
     """
-    Check that there is matching expression and copy variant information for any genes with variants
+    Check matching information for any genes with variants.
+    Warn about genes with only one experimental measure.
 
     Args:
         small_mutations: list of small mutations
         expression_variants: list of expression variants
         copy_variants: list of copy variants
         structural_variants: list of structural variants
-        exclude_partial_variants: remove genes with only some information
-
-    Raises:
-        KeyError: A variant is called on a gene without expression or without copy number information
 
     Returns:
         set of gene names with variants (used for filtering before upload to IPR)
@@ -381,8 +377,4 @@ def check_variant_links(
             logging.error(err_msg)
         keyerr_msg = f"Missing information KeyErrors on {len(missing_information_genes)} genes: {sorted(missing_information_genes)}"
         logging.error(keyerr_msg)
-        if exclude_partial_variants:
-            genes_with_variants = genes_with_variants.difference(missing_information_genes)
-        else:
-            raise KeyError(keyerr_msg)
     return genes_with_variants
