@@ -1,4 +1,6 @@
 import os
+import logging
+from unittest import mock
 
 import pytest
 
@@ -95,7 +97,7 @@ class TestCheckVariantLinks:
         assert genes == {'KRAS'}
 
     def test_copy_missing_exp(self):
-        with pytest.raises(KeyError):
+        with mock.patch.object(logging.getLogger(), 'warning') as mock_debug:
             check_variant_links(
                 small_mutations=[],
                 copy_variants=[
@@ -107,7 +109,7 @@ class TestCheckVariantLinks:
             )
 
     def test_exp_missing_copy(self):
-        with pytest.raises(KeyError):
+        with mock.patch.object(logging.getLogger(), 'warning') as mock_debug:
             check_variant_links(
                 small_mutations=[],
                 copy_variants=[{'gene': 'KRAS', 'variant': ''}],
