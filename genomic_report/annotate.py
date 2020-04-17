@@ -163,13 +163,8 @@ def annotate_category_variants(
                     new_row.update(ipr_row)
                     alterations.append(new_row)
         except ValueError as err:
-            # Two common errors
-            if str(err) == 'not a valid copy variant input category (Neutral)':
-                # 'Neutral' is being given a special status
-                # TODO: Is there a ticket?
-                pass
-            elif str(err).startswith("unable to find the gene"):
-                # copy number and expression are measured on a large number of genes
+            if str(err).startswith("unable to find the gene"):
+                logger.debug(f'failed to match variants ({gene} {variant}): {err}')
                 problem_genes.add(gene)
             else:
                 logger.error(f'failed to match variants ({gene} {variant}): {err}')
@@ -224,12 +219,11 @@ def annotate_positional_variants(
                 gene = str(err).split('unable to find the gene (')[-1]
                 gene = gene.split(') or any equivalent representations')[0]
                 problem_genes.add(gene)
-            else:
-                logger.debug(f'failed to match positional variants ({variant}): {err}')
+            logger.debug(f'failed to match positional variants ({variant}): {err}')
 
     if problem_genes:
-        logger.warning(f'gene finding failures for {sorted(problem_genes)}')
-        logger.warning(f'gene finding falure for {len(problem_genes)} genes')
+        logger.error(f'gene finding failures for {sorted(problem_genes)}')
+        logger.error(f'{len(problem_genes)} gene finding failures for positional variants')
     if errors:
         logger.warning(f'skipped {errors} positional variants due to errors')
     logger.info(

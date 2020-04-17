@@ -10,7 +10,7 @@ import os
 from graphkb.match import INPUT_COPY_CATEGORIES, INPUT_EXPRESSION_CATEGORIES
 from Bio.Data.IUPACData import protein_letters_3to1
 
-from .util import hash_key
+from .util import hash_key, logger
 
 protein_letters_3to1.setdefault('Ter', '*')
 
@@ -175,9 +175,19 @@ def load_copy_variants(filename: str) -> List[Dict]:
     for row in result:
         if row['variant'] in COPY_VARIANT2CNVSTATE:
             row['cnvState'] = COPY_VARIANT2CNVSTATE[row['variant']]
-        # any non-blank measurement, without another category, is Neutral.
-        else:
+        elif row['variant'] == "Neutral":
+            # Neutral is not a valid graphkb copy number category
+            # - for display only
+            row['cnvState'] = row['variant']
+            row['variant'] = ''
+        elif not row['variant']:
             row['cnvState'] = ''  # no measurement
+        else:
+            logger.error(
+                f"ignoring unmatchable copy_number variant ({row['gene']}:{row['variant']})"
+            )
+            row['variant'] = ''
+            row['cnvState'] = ''
 
         row['variantType'] = 'cnv'
 
