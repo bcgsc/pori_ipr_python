@@ -1,6 +1,7 @@
 """
 handles annotating variants with annotation information from graphkb
 """
+from progressbar import progressbar
 from typing import Tuple, Set, List, Dict
 
 from graphkb import GraphKBConnection
@@ -139,12 +140,7 @@ def annotate_category_variants(
     problem_genes = set()
 
     logger.info(f"Starting annotation of {len(variants)} category_variants")
-    progress_ten_perc = max(300, int(len(variants) / 10))
-    for i, row in enumerate(variants, 1):
-        if not i % progress_ten_perc:
-            # With tens of thousands of genes this can look stalled.
-            # indicate something to the user.
-            logger.info(f"\t{i} of {len(variants)}  complete")
+    for row in progressbar(variants):
         gene = row['gene']
         variant = row['variant']
 
@@ -207,7 +203,7 @@ def annotate_positional_variants(
     alterations = []
     problem_genes = set()
 
-    for row in variants:
+    for row in progressbar(variants):
         variant = row['variant']
         try:
             matches = match_positional_variant(graphkb_conn, variant)
