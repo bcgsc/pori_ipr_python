@@ -169,14 +169,13 @@ def load_copy_variants(filename: str) -> List[Dict]:
     patterns = {'variant': f'({"|".join(INPUT_COPY_CATEGORIES.values())}|)'}
     validate_row_patterns(result, patterns)
 
-    # Create a 'cnvState' displayed variant label
     for row in result:
-        if row['variant'] in COPY_VARIANT2CNVSTATE:
-            row['cnvState'] = COPY_VARIANT2CNVSTATE[row['variant']]
-        # any non-blank measurement, without another category, is Neutral.
-        else:
-            row['cnvState'] = ''  # no measurement
-
+        if row['variant'] and row['variant'] not in COPY_VARIANT2CNVSTATE:
+            raise ValueError(
+                f'invalid copy variant value ({row["variant"]}) in filename {filename}'
+            )
+        # Create a 'cnvState' displayed variant label
+        row['cnvState'] = COPY_VARIANT2CNVSTATE.get(row['variant'], '')
         row['variantType'] = 'cnv'
 
     return result
