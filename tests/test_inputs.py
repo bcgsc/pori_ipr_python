@@ -1,5 +1,4 @@
 import os
-import logging
 from unittest import mock
 
 import pytest
@@ -11,6 +10,7 @@ from genomic_report.inputs import (
     load_expression_variants,
     load_structural_variants,
 )
+from genomic_report.util import logger
 
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'test_data')
@@ -60,7 +60,7 @@ class TestCheckVariantLinks:
         assert genes == {'KRAS'}
 
     def test_sm_missing_copy(self):
-        with mock.patch.object(logging.getLogger(), 'warning') as mock_debug:
+        with mock.patch.object(logger, 'warning') as mock_debug:
             check_variant_links(
                 small_mutations=[{'gene': 'KRAS'}],
                 copy_variants=[{'gene': 'CDK', 'variant': ''}],
@@ -70,7 +70,7 @@ class TestCheckVariantLinks:
             assert mock_debug.called
 
     def test_sm_missing_exp(self):
-        with mock.patch.object(logging.getLogger(), 'warning') as mock_debug:
+        with mock.patch.object(logger, 'warning') as mock_debug:
             check_variant_links(
                 small_mutations=[{'gene': 'KRAS'}],
                 copy_variants=[{'gene': 'KRAS', 'variant': ''}],
@@ -81,12 +81,12 @@ class TestCheckVariantLinks:
 
     @pytest.mark.skip('TODO')
     def test_sv_missing_copy(self):
-        with mock.patch.object(logging.getLogger(), 'warning') as mock_debug:
+        with mock.patch.object(logger, 'warning') as mock_debug:
             pass
 
     @pytest.mark.skip('TODO')
     def test_sv_missing_exp(self):
-        with mock.patch.object(logging.getLogger(), 'warning') as mock_debug:
+        with mock.patch.object(logger, 'warning') as mock_debug:
             pass
 
     def test_with_valid_inputs(self):
@@ -99,7 +99,7 @@ class TestCheckVariantLinks:
         assert genes == {'KRAS'}
 
     def test_copy_missing_exp(self):
-        with mock.patch.object(logging.getLogger(), 'warning') as mock_debug:
+        with mock.patch.object(logger, 'warning') as mock_debug:
             check_variant_links(
                 small_mutations=[],
                 copy_variants=[
@@ -112,7 +112,7 @@ class TestCheckVariantLinks:
             assert mock_debug.called
 
     def test_exp_missing_copy(self):
-        with mock.patch.object(logging.getLogger(), 'warning') as mock_debug:
+        with mock.patch.object(logger, 'warning') as mock_debug:
             check_variant_links(
                 small_mutations=[],
                 copy_variants=[{'gene': 'KRAS', 'variant': ''}],
