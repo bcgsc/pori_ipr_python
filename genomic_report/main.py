@@ -6,6 +6,7 @@ from typing import Dict, Optional
 
 from argparse_env import ArgumentParser, Action
 from graphkb import GraphKBConnection
+from graphkb.match import cache_gene_names
 
 from .inputs import (
     load_copy_variants,
@@ -159,6 +160,8 @@ def create_report(
     genes_with_variants = check_variant_links(
         small_mutations, expression_variants, copy_variants, structural_variants
     )
+    logger.info('caching genes to improve matching speed')
+    cache_gene_names(graphkb_conn)
 
     # filter excess variants not required for extra gene information
     logger.info('annotating small mutations')

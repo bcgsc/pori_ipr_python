@@ -68,7 +68,10 @@ def get_approved_evidence_levels(graphkb_conn: GraphKBConnection) -> List[Dict]:
 
 
 def convert_statements_to_alterations(
-    graphkb_conn: GraphKBConnection, statements: List[Dict], disease_name: str
+    graphkb_conn: GraphKBConnection,
+    statements: List[Dict],
+    disease_name: str,
+    variant_matches: List[Dict],
 ) -> List[Dict]:
     """
     Given a set of statements matched from graphkb, convert these into their IPR equivalent representations
@@ -77,6 +80,7 @@ def convert_statements_to_alterations(
         graphkb_conn: the graphkb connection object
         statements: list of statement records from graphkb
         disease_name: name of the cancer type for the patient being reported on
+        variant_matches: the list of RIDs the variant matched for these statements
 
     Raises:
         ValueError: could not find the disease type in GraphKB
@@ -138,6 +142,8 @@ def convert_statements_to_alterations(
         disease_match = len(diseases) == 1 and diseases[0]['@rid'] in disease_matches
 
         for variant in variants:
+            if variant['@rid'] not in variant_matches:
+                continue
             row = {
                 'approvedTherapy': approved_therapy,
                 'category': ipr_section,

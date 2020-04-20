@@ -153,7 +153,7 @@ def annotate_category_variants(
             if matches:
                 statements = get_statements_from_variants(graphkb_conn, matches)
                 for ipr_row in convert_statements_to_alterations(
-                    graphkb_conn, statements, disease_name
+                    graphkb_conn, statements, disease_name, convert_to_rid_set(matches)
                 ):
                     new_row = {'variant': row['key'], 'variantType': row['variantType']}
                     new_row.update(ipr_row)
@@ -192,7 +192,7 @@ def annotate_positional_variants(
                 statements = get_statements_from_variants(graphkb_conn, matches)
 
                 for ipr_row in convert_statements_to_alterations(
-                    graphkb_conn, statements, disease_name
+                    graphkb_conn, statements, disease_name, convert_to_rid_set(matches)
                 ):
                     new_row = {'variant': row['key'], 'variantType': row['variantType']}
                     new_row.update(ipr_row)

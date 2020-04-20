@@ -3,14 +3,13 @@ Read/Validate the variant input files
 """
 from typing import List, Dict, Tuple, Set
 from csv import DictReader
-import logging
 import re
 import os
 
 from graphkb.match import INPUT_COPY_CATEGORIES, INPUT_EXPRESSION_CATEGORIES
 from Bio.Data.IUPACData import protein_letters_3to1
 
-from .util import hash_key
+from .util import hash_key, logger
 
 protein_letters_3to1.setdefault('Ter', '*')
 
@@ -171,14 +170,13 @@ def load_copy_variants(filename: str) -> List[Dict]:
     patterns = {'variant': f'({"|".join(INPUT_COPY_CATEGORIES.values())}|)'}
     validate_row_patterns(result, patterns)
 
-    # Create a 'cnvState' displayed variant label
     for row in result:
-        if row['variant'] in COPY_VARIANT2CNVSTATE:
-            row['cnvState'] = COPY_VARIANT2CNVSTATE[row['variant']]
-        # any non-blank measurement, without another category, is Neutral.
-        else:
-            row['cnvState'] = ''  # no measurement
-
+        if row['variant'] and row['variant'] not in COPY_VARIANT2CNVSTATE:
+            raise ValueError(
+                f'invalid copy variant value ({row["variant"]}) in filename {filename}'
+            )
+        # Create a 'cnvState' displayed variant label
+        row['cnvState'] = COPY_VARIANT2CNVSTATE.get(row['variant'], '')
         row['variantType'] = 'cnv'
 
     return result
@@ -238,7 +236,7 @@ def load_expression_variants(filename):
                     f"{row['gene']} variant '{row['variant']}' not in {INPUT_EXPRESSION_CATEGORIES}"
                 )
                 errors.append(err_msg)
-                logging.error(err_msg)
+                logger.error(err_msg)
         else:
             row['expression_class'] = ''
         row['variantType'] = 'exp'
@@ -332,7 +330,7 @@ def check_variant_links(
             genes_with_variants.add(gene)
 
             if expression_variant_genes and gene not in expression_variant_genes:
-                raise KeyError(
+                logger.warning(
                     f'gene ({gene}) has a copy variant but is missing expression information'
                 )
 
@@ -342,18 +340,18 @@ def check_variant_links(
             genes_with_variants.add(gene)
 
             if copy_variant_genes and gene not in copy_variant_genes:
-                raise KeyError(
+                logger.warning(
                     f'gene ({gene}) has an expression variant but is missing copy number information'
                 )
 
     for variant in small_mutations:
         gene = variant['gene']
         if copy_variant_genes and gene not in copy_variant_genes:
-            raise KeyError(
+            logger.warning(
                 f'gene ({gene}) has a small mutation but is missing copy number information'
             )
         if expression_variant_genes and gene not in expression_variant_genes:
-            raise KeyError(
+            logger.warning(
                 f'gene ({gene}) has a small mutation but is missing expression information'
             )
         genes_with_variants.add(gene)
@@ -362,11 +360,11 @@ def check_variant_links(
         for gene in [variant['gene1'], variant['gene2']]:
             if gene:  # genes are optional for structural variants
                 if gene not in copy_variant_genes:
-                    raise KeyError(
+                    logger.warning(
                         f'gene ({gene}) has a structural variant but is missing copy number information'
                     )
                 if gene not in expression_variant_genes:
-                    raise KeyError(
+                    logger.warning(
                         f'gene ({gene}) has a structural variant but is missing expression information'
                     )
                 genes_with_variants.add(gene)

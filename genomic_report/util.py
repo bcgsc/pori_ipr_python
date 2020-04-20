@@ -30,9 +30,10 @@ def convert_to_rid_set(records: List[str]) -> Set[str]:
 
 
 def trim_empty_values(obj, empty_values: List = ['', None]) -> Dict:
+    blacklist = ['gene1', 'gene2']  # allow null for sv genes
     keys = list(obj.keys())
 
     for key in keys:
-        if obj[key] in empty_values:
+        if obj[key] in empty_values and key not in blacklist:
             del obj[key]
     return obj
