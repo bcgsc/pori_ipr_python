@@ -4,6 +4,7 @@ Read/Validate the variant input files
 from typing import List, Dict, Tuple, Set
 from csv import DictReader
 import re
+import os
 
 from graphkb.match import INPUT_COPY_CATEGORIES, INPUT_EXPRESSION_CATEGORIES
 from Bio.Data.IUPACData import protein_letters_3to1
@@ -250,6 +251,24 @@ def load_expression_variants(filename):
     return result
 
 
+def create_graphkb_sv_notation(row: Dict) -> str:
+    """
+    Generate GKB style structural variant notation from a structural variant input row
+    """
+    gene1 = row['gene1'] if row['gene1'] else '?'
+    gene2 = row['gene2'] if row['gene2'] else '?'
+    exon1 = row['exon1'] if row['exon1'] else '?'
+    exon2 = row['exon2'] if row['exon2'] else '?'
+    if not row['gene1']:
+        gene1, gene2 = gene2, gene1
+        exon1, exon2 = exon2, exon1
+    if gene1 == '?':
+        raise ValueError(
+            f'both genes cannot be blank for a structural variant {row["key"]}. At least 1 gene must be entered'
+        )
+    return f'({gene1},{gene2}):fusion(e.{exon1},e.{exon2})'
+
+
 def load_structural_variants(filename: str) -> List[Dict]:
     def row_key(row):
         return ('sv', row['eventType'], row['breakpoint'])
@@ -257,20 +276,24 @@ def load_structural_variants(filename: str) -> List[Dict]:
     result = load_variant_file(filename, SV_REQ, SV_OPTIONAL, row_key)
     exon_pattern = r'^(\d+)?$'
     patterns = {
-        'gene1': r'^(\w|-)+$',
-        'gene2': r'^(\w|-)+$',
+        'gene1': r'^((\w|-)+)?$',
+        'gene2': r'^((\w|-)+)?$',
         'breakpoint': r'^\w+:\d+\|\w+:\d+$',
         'exon1': exon_pattern,
         'exon2': exon_pattern,
-        'svg': r'^(<.*>)?$',
     }
     validate_row_patterns(result, patterns)
 
     for row in result:
-        row[
-            'variant'
-        ] = f'({row["gene1"]},{row["gene2"]}):fusion(e.{row["exon1"]},e.{row["exon2"]})'
+        row['variant'] = create_graphkb_sv_notation(row)
         row['variantType'] = 'sv'
+
+        # check and load the svg file where applicable
+        if row['svg']:
+            if not os.path.exists(row['svg']):
+                raise FileNotFoundError(row['svg'])
+            with open(row['svg'], 'r') as fh:
+                row['svg'] = fh.read()
 
     return result
 

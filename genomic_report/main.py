@@ -85,14 +85,6 @@ def command_interface() -> None:
 
 
 def clean_unsupported_content(upload_content: Dict) -> Dict:
-    # TODO: add support in IPR
-    for gene in upload_content['genes']:
-        if 'knownFusionPartner' in gene:
-            del gene['knownFusionPartner']
-
-    del upload_content['kbUrl']
-    del upload_content['kbDiseaseMatch']
-
     for variant_section in [
         'expressionVariants',
         'smallMutations',
