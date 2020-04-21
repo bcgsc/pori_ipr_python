@@ -51,7 +51,9 @@ def base_graphkb_statement(disease_id='disease'):
 class TestConvertStatementsToAlterations:
     def test_disease_match(self, graphkb_conn):
         statement = base_graphkb_statement('disease')
-        result = convert_statements_to_alterations(graphkb_conn, [statement], 'disease')
+        result = convert_statements_to_alterations(
+            graphkb_conn, [statement], 'disease', {'variant_rid'}
+        )
 
         assert len(result) == 1
         row = result[0]
@@ -63,7 +65,9 @@ class TestConvertStatementsToAlterations:
 
     def test_no_disease_match(self, graphkb_conn):
         statement = base_graphkb_statement('other')
-        result = convert_statements_to_alterations(graphkb_conn, [statement], 'disease')
+        result = convert_statements_to_alterations(
+            graphkb_conn, [statement], 'disease', {'variant_rid'}
+        )
 
         assert len(result) == 1
         row = result[0]
@@ -74,7 +78,9 @@ class TestConvertStatementsToAlterations:
         statement['conditions'].append(
             {'@class': 'Disease', '@rid': 'other', 'displayName': 'disease_display_name'}
         )
-        result = convert_statements_to_alterations(graphkb_conn, [statement], 'disease')
+        result = convert_statements_to_alterations(
+            graphkb_conn, [statement], 'disease', {'variant_rid'}
+        )
 
         assert len(result) == 1
         row = result[0]
@@ -84,7 +90,9 @@ class TestConvertStatementsToAlterations:
         statement = base_graphkb_statement()
         statement['relevance']['@rid'] = 'bio1'
 
-        result = convert_statements_to_alterations(graphkb_conn, [statement], 'disease')
+        result = convert_statements_to_alterations(
+            graphkb_conn, [statement], 'disease', {'variant_rid'}
+        )
         assert len(result) == 1
         row = result[0]
         assert row['category'] == 'biological'
@@ -93,7 +101,9 @@ class TestConvertStatementsToAlterations:
         statement = base_graphkb_statement()
         statement['relevance']['@rid'] = 'prog1'
 
-        result = convert_statements_to_alterations(graphkb_conn, [statement], 'disease')
+        result = convert_statements_to_alterations(
+            graphkb_conn, [statement], 'disease', {'variant_rid'}
+        )
         assert len(result) == 1
         row = result[0]
         assert row['category'] == 'prognostic'
@@ -102,7 +112,9 @@ class TestConvertStatementsToAlterations:
         statement = base_graphkb_statement()
         statement['relevance']['@rid'] = 'diag1'
 
-        result = convert_statements_to_alterations(graphkb_conn, [statement], 'disease')
+        result = convert_statements_to_alterations(
+            graphkb_conn, [statement], 'disease', {'variant_rid'}
+        )
         assert len(result) == 1
         row = result[0]
         assert row['category'] == 'diagnostic'
@@ -112,7 +124,9 @@ class TestConvertStatementsToAlterations:
         statement['relevance']['@rid'] = 'ther1'
         statement['evidenceLevel'] = [{'@rid': 'other', 'displayName': 'level'}]
 
-        result = convert_statements_to_alterations(graphkb_conn, [statement], 'disease')
+        result = convert_statements_to_alterations(
+            graphkb_conn, [statement], 'disease', {'variant_rid'}
+        )
         assert len(result) == 1
         row = result[0]
         assert row['category'] == 'therapeutic'
@@ -122,7 +136,9 @@ class TestConvertStatementsToAlterations:
         statement['relevance']['@rid'] = 'ther1'
         statement['evidenceLevel'] = [{'@rid': 'approved1', 'displayName': 'level'}]
 
-        result = convert_statements_to_alterations(graphkb_conn, [statement], 'disease')
+        result = convert_statements_to_alterations(
+            graphkb_conn, [statement], 'disease', {'variant_rid'}
+        )
         assert len(result) == 1
         row = result[0]
         assert row['category'] == 'therapeutic'

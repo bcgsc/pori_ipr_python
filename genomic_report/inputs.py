@@ -3,7 +3,6 @@ Read/Validate the variant input files
 """
 from typing import List, Dict, Tuple, Set
 from csv import DictReader
-import logging
 import re
 import os
 
@@ -171,24 +170,13 @@ def load_copy_variants(filename: str) -> List[Dict]:
     patterns = {'variant': f'({"|".join(INPUT_COPY_CATEGORIES.values())}|)'}
     validate_row_patterns(result, patterns)
 
-    # Create a 'cnvState' displayed variant label
     for row in result:
-        if row['variant'] in COPY_VARIANT2CNVSTATE:
-            row['cnvState'] = COPY_VARIANT2CNVSTATE[row['variant']]
-        elif row['variant'] == "Neutral":
-            # Neutral is not a valid graphkb copy number category
-            # - for display only
-            row['cnvState'] = row['variant']
-            row['variant'] = ''
-        elif not row['variant']:
-            row['cnvState'] = ''  # no measurement
-        else:
-            logger.error(
-                f"ignoring unmatchable copy_number variant ({row['gene']}:{row['variant']})"
+        if row['variant'] and row['variant'] not in COPY_VARIANT2CNVSTATE:
+            raise ValueError(
+                f'invalid copy variant value ({row["variant"]}) in filename {filename}'
             )
-            row['variant'] = ''
-            row['cnvState'] = ''
-
+        # Create a 'cnvState' displayed variant label
+        row['cnvState'] = COPY_VARIANT2CNVSTATE.get(row['variant'], '')
         row['variantType'] = 'cnv'
 
     return result
@@ -248,7 +236,7 @@ def load_expression_variants(filename):
                     f"{row['gene']} variant '{row['variant']}' not in {INPUT_EXPRESSION_CATEGORIES}"
                 )
                 errors.append(err_msg)
-                logging.error(err_msg)
+                logger.error(err_msg)
         else:
             row['expression_class'] = ''
         row['variantType'] = 'exp'
@@ -399,7 +387,7 @@ def check_variant_links(
 
     if missing_information_genes:
         for err_msg in sorted(missing_information_errors):
-            logging.error(err_msg)
+            logging.warning(err_msg)
         keyerr_msg = f"Missing information KeyErrors on {len(missing_information_genes)} genes: {sorted(missing_information_genes)}"
         logging.error(keyerr_msg)
     return genes_with_variants
