@@ -1,7 +1,8 @@
 import argparse
+import datetime
+import json
 import logging
 import os
-import datetime
 from typing import Dict, Optional
 
 from argparse_env import ArgumentParser, Action
@@ -130,6 +131,8 @@ def create_report(
         small_mutations_file: path to the small mutations input file
         write_to_json: path to a JSON file to output the report upload body to if given on failure to upload
         optional_content: Pass-through content to include in the JSON upload
+    Returns:
+        ipr_conn.upload_report return dictionary
     """
     # set the default logging configuration
     logging.basicConfig(
@@ -226,11 +229,11 @@ def create_report(
     try:
         result = ipr_conn.upload_report(output)
         logger.info(result)
+        return result
     except Exception as err:
         if write_to_json:
-            logging.info(f'writing report upload content to file: {write_to_json}')
+            logger.error("ipr_conn.upload_report failed")
+            logger.info(f'Writing failed report upload content to file: {write_to_json}')
             with open(write_to_json, 'w') as fh:
-                import json
-
                 fh.write(json.dumps(output))
         raise err
