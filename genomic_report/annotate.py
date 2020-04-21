@@ -163,6 +163,8 @@ def annotate_category_variants(
                     new_row.update(ipr_row)
                     alterations.append(new_row)
         except ValueError as err:
+            # TODO: GERO-60 - create graphkb gene finding error type
+            #  to replace the string match and bare exception capture
             if str(err).startswith("unable to find the gene"):
                 logger.debug(f'failed to match variants ({gene} {variant}): {err}')
                 problem_genes.add(gene)
@@ -214,6 +216,8 @@ def annotate_positional_variants(
                     alterations.append(new_row)
         except Exception as err:
             errors += 1
+            # TODO: GERO-60 - create graphkb gene finding error type
+            #  to replace the string match and bare exception capture
             if str(err).startswith('unable to find the gene '):
                 'unable to find the gene () or any equivalent representations'
                 gene = str(err).split('unable to find the gene (')[-1]
