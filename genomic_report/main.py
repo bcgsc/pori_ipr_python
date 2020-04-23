@@ -160,8 +160,13 @@ def create_report(
     genes_with_variants = check_variant_links(
         small_mutations, expression_variants, copy_variants, structural_variants
     )
-    logger.info('caching genes to improve matching speed')
-    cache_gene_names(graphkb_conn)
+    # cache of the graphkb gene names speeds up calculation for large
+    # numbers of genes, but has significant overhead and slows down
+    # calculations on small numbers of genes.
+    CACHE_GENE_MINIMUM = 5000
+    if len(genes_with_variants) > CACHE_GENE_MINIMUM:
+        logger.info('caching genes to improve matching speed')
+        cache_gene_names(graphkb_conn)
 
     # filter excess variants not required for extra gene information
     logger.info('annotating small mutations')
