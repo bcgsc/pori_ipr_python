@@ -11,7 +11,7 @@ from graphkb.match import (
     get_equivalent_features,
 )
 from graphkb.genes import get_oncokb_oncogenes, get_oncokb_tumour_supressors
-from graphkb.util import convert_to_rid_list, FeatureNotFounError
+from graphkb.util import convert_to_rid_list, FeatureNotFoundError
 from graphkb.constants import BASE_RETURN_PROPERTIES, GENERIC_RETURN_PROPERTIES
 
 from .ipr import convert_statements_to_alterations
@@ -158,7 +158,7 @@ def annotate_category_variants(
                     new_row = {'variant': row['key'], 'variantType': row['variantType']}
                     new_row.update(ipr_row)
                     alterations.append(new_row)
-        except FeatureNotFounError as err:
+        except FeatureNotFoundError as err:
             logger.debug(f'failed to match variants ({gene} {variant}): {err}')
         except ValueError as err:
             logger.error(f'failed to match variants ({gene} {variant}): {err}')
@@ -199,7 +199,7 @@ def annotate_positional_variants(
                     new_row = {'variant': row['key'], 'variantType': row['variantType']}
                     new_row.update(ipr_row)
                     alterations.append(new_row)
-        except FeatureNotFounError as err:
+        except FeatureNotFoundError as err:
             logger.debug(f'failed to match positional variants ({variant}): {err}')
         except Exception as err:
             errors += 1
