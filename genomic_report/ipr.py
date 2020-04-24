@@ -161,6 +161,28 @@ def convert_statements_to_alterations(
     return rows
 
 
+def select_expression_plots(kb_matches: List[Dict], expression_variants: List[Dict]) -> List[Dict]:
+    """
+    Given the list of expression variants, determine which expression
+    historgram plots should be included in the IPR upload. This filters them
+    based on the graphkb annotations to avoid loading more images than are required
+
+    Args:
+        kb_matches: the IPR graphkb annoations for all variants
+        expression_variants: the list of expression variants loaded
+
+    Returns:
+        list of expression images to be loaded by IPR
+    """
+    annotated_variants = {match['variant'] for match in kb_matches}
+    plots = []
+    for variant in expression_variants:
+        if variant['key'] in annotated_variants:
+            gene = variant['gene']
+            plots.append({'key': f'expDensity.{gene}', 'path': variant['histogramImage']})
+    return plots
+
+
 def create_key_alterations(
     kb_matches: List[Dict],
     expression_variants: List[Dict],
