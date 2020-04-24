@@ -55,6 +55,7 @@ EXP_OPTIONAL = [
     'gtexAvgPerc',
     'gtexAvgFC',
     'gtexAvgkIQR',
+    'histogramImage',
 ]
 
 SV_KEY = ['eventType', 'breakpoint', 'gene1', 'gene2', 'exon1', 'exon2']
@@ -244,6 +245,12 @@ def load_expression_variants(filename):
         for col in float_columns:
             if row[col] in ['inf', '+inf', '-inf']:
                 row[col] = row[col].replace('inf', 'Infinity')
+
+        # check images exist
+        if row['histogramImage'] and not os.path.exists(row['histogramImage']):
+            raise FileNotFoundError(
+                f'missing image ({row["histogramImage"]}) from file - {filename}'
+            )
 
     if errors:
         raise ValueError(f"{len(errors)} Invalid expression variants in file - {filename}")
