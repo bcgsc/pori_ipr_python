@@ -12,7 +12,7 @@ from graphkb.match import (
     get_equivalent_features,
 )
 from graphkb.genes import get_oncokb_oncogenes, get_oncokb_tumour_supressors
-from graphkb.util import convert_to_rid_list
+from graphkb.util import FeatureNotFoundError, convert_to_rid_list
 from graphkb.constants import BASE_RETURN_PROPERTIES, GENERIC_RETURN_PROPERTIES
 
 from .ipr import convert_statements_to_alterations
@@ -162,20 +162,17 @@ def annotate_category_variants(
                     new_row = {'variant': row['key'], 'variantType': row['variantType']}
                     new_row.update(ipr_row)
                     alterations.append(new_row)
+        except FeatureNotFoundError as err:
+            problem_genes.add(gene)
+            logger.debug(f'Unrecognized gene ({gene} {variant}): {err}')
         except ValueError as err:
-            # TODO: GERO-60 - create graphkb gene finding error type
-            #  to replace the string match and bare exception capture
-            if str(err).startswith("unable to find the gene"):
-                logger.debug(f'failed to match variants ({gene} {variant}): {err}')
-                problem_genes.add(gene)
-            else:
-                logger.error(f'failed to match variants ({gene} {variant}): {err}')
+            logger.error(f'failed to match variants ({gene} {variant}): {err}')
 
     if skipped:
         logger.info(f'skipped matching {skipped} non variant information rows')
     if problem_genes:
         logger.debug(f'gene finding failures for {sorted(problem_genes)}')
-        logger.warning(f'gene finding falure for {len(problem_genes)} genes')
+        logger.error(f'gene finding falure for {len(problem_genes)} genes')
     logger.info(
         f'matched {len(variants)} category variants to {len(alterations)} graphkb annotations'
     )
@@ -214,22 +211,24 @@ def annotate_positional_variants(
                     new_row = {'variant': row['key'], 'variantType': row['variantType']}
                     new_row.update(ipr_row)
                     alterations.append(new_row)
-        except Exception as err:
+        except FeatureNotFoundError as err:
             errors += 1
-            # TODO: GERO-60 - create graphkb gene finding error type
-            #  to replace the string match and bare exception capture
-            if str(err).startswith('unable to find the gene '):
-                'unable to find the gene () or any equivalent representations'
-                gene = str(err).split('unable to find the gene (')[-1]
-                gene = gene.split(') or any equivalent representations')[0]
-                problem_genes.add(gene)
-            logger.debug(f'failed to match positional variants ({variant}): {err}')
+            if f"({row['gene1']})" in str(err):
+                problem_genes.add(row['gene1'])
+            elif f"({row['gene2']})" in str(err):
+                problem_genes.add(row['gene2'])
+            else:
+                problem_genes.add(row['gene1'])
+                problem_genes.add(row['gene2'])
+        except ValueError as err:
+            errors += 1
+            logger.warning(f'failed to match positional variants ({variant}): {err}')
 
     if problem_genes:
         logger.error(f'gene finding failures for {sorted(problem_genes)}')
         logger.error(f'{len(problem_genes)} gene finding failures for positional variants')
     if errors:
-        logger.warning(f'skipped {errors} positional variants due to errors')
+        logger.error(f'skipped {errors} positional variants due to errors')
     logger.info(
         f'matched {len(variants)} positional variants to {len(alterations)} graphkb annotations'
     )
