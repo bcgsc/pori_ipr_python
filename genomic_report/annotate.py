@@ -3,6 +3,7 @@ handles annotating variants with annotation information from graphkb
 """
 from progressbar import progressbar
 from typing import Tuple, Set, List, Dict
+from requests.exceptions import HTTPError
 
 from graphkb import GraphKBConnection
 from graphkb.match import (
@@ -53,11 +54,11 @@ def get_gene_information(graphkb_conn: GraphKBConnection, gene_names: List[str])
         graphkb_conn ([type]): [description]
         gene_names ([type]): [description]
     """
-    logger.verbose('fetching oncogenes list')
+    logger.info('fetching oncogenes list')
     oncogenes = convert_to_rid_set(get_oncokb_oncogenes(graphkb_conn))
-    logger.verbose('fetching tumour supressors list')
+    logger.info('fetching tumour supressors list')
     tumour_suppressors = convert_to_rid_set(get_oncokb_tumour_supressors(graphkb_conn))
-    logger.verbose('fetching cancer related genes list')
+    logger.info('fetching cancer related genes list')
     cancer_related, known_fusion_partners = get_variant_related_genes(graphkb_conn)
 
     result = []
@@ -212,6 +213,7 @@ def annotate_positional_variants(
                     new_row.update(ipr_row)
                     alterations.append(new_row)
         except FeatureNotFoundError as err:
+            logger.debug(f'failed to match positional variants ({variant}): {err}')
             errors += 1
             if 'gene' in row:
                 problem_genes.add(row['gene'])
@@ -224,9 +226,9 @@ def annotate_positional_variants(
                 problem_genes.add(row['gene2'])
             else:
                 raise err
-        except ValueError as err:
+        except HTTPError as err:
             errors += 1
-            logger.warning(f'failed to match positional variants ({variant}): {err}')
+            logger.error(f'failed to match positional variants ({variant}): {err}')
 
     if problem_genes:
         logger.error(f'gene finding failures for {sorted(problem_genes)}')
