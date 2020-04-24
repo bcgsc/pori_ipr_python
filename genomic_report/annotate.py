@@ -213,13 +213,17 @@ def annotate_positional_variants(
                     alterations.append(new_row)
         except FeatureNotFoundError as err:
             errors += 1
-            if f"({row['gene1']})" in str(err):
+            if 'gene' in row:
+                problem_genes.add(row['gene'])
+            elif 'gene1' in row and f"({row['gene1']})" in str(err):
                 problem_genes.add(row['gene1'])
-            elif f"({row['gene2']})" in str(err):
+            elif 'gene2' in row and f"({row['gene2']})" in str(err):
+                problem_genes.add(row['gene2'])
+            elif 'gene1' in row and 'gene2' in row:
+                problem_genes.add(row['gene1'])
                 problem_genes.add(row['gene2'])
             else:
-                problem_genes.add(row['gene1'])
-                problem_genes.add(row['gene2'])
+                raise err
         except ValueError as err:
             errors += 1
             logger.warning(f'failed to match positional variants ({variant}): {err}')
