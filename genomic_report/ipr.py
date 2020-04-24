@@ -269,7 +269,10 @@ class IprConnection:
     def post(self, uri: str, data: Dict = {}, **kwargs) -> Dict:
         """Convenience method for making post requests"""
         return self.request(
-            uri, method='POST', data=zlib.compress(json.dumps(data).encode('utf-8')), **kwargs
+            uri,
+            method='POST',
+            data=zlib.compress(json.dumps(data, allow_nan=False).encode('utf-8')),
+            **kwargs,
         )
 
     def upload_report(self, content):
