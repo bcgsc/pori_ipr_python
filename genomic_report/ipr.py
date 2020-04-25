@@ -177,7 +177,7 @@ def select_expression_plots(kb_matches: List[Dict], expression_variants: List[Di
     annotated_variants = {match['variant'] for match in kb_matches}
     plots = []
     for variant in expression_variants:
-        if variant['key'] in annotated_variants:
+        if variant['key'] in annotated_variants and variant.get('histogramImage', ''):
             gene = variant['gene']
             plots.append({'key': f'expDensity.{gene}', 'path': variant['histogramImage']})
     return plots
