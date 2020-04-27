@@ -161,7 +161,17 @@ def convert_statements_to_alterations(
     return rows
 
 
-def select_expression_plots(kb_matches: List[Dict], expression_variants: List[Dict]) -> List[Dict]:
+def find_variant(all_variants: List[Dict], variant_type: str, variant_key: str) -> List[Dict]:
+    """
+    Find a variant in a list of variants by its key and type
+    """
+    for variant in all_variants:
+        if variant['key'] == variant_key and variant['variantType'] == variant_type:
+            return variant
+    raise KeyError(f'expected variant ({variant_key}, {variant_type}) does not exist')
+
+
+def select_expression_plots(kb_matches: List[Dict], all_variants: List[Dict]) -> List[Dict]:
     """
     Given the list of expression variants, determine which expression
     historgram plots should be included in the IPR upload. This filters them
@@ -174,40 +184,32 @@ def select_expression_plots(kb_matches: List[Dict], expression_variants: List[Di
     Returns:
         list of expression images to be loaded by IPR
     """
-    annotated_variants = {match['variant'] for match in kb_matches}
-    plots = []
-    for variant in expression_variants:
-        if variant['key'] in annotated_variants and variant.get('histogramImage', ''):
+
+    selected_variants = {
+        (match['variantType'], match['variant'])
+        for match in kb_matches
+        if match['category'] == 'therapeutic'
+    }
+    images_by_gene = {}
+    selected_genes = set()
+    for variant in all_variants:
+        if (variant['variantType'], variant['key']) in selected_variants:
+            for key in ['gene', 'gene1', 'gene2']:
+                if key in variant and variant[key]:
+                    selected_genes.add(variant[key])
+        if variant.get('histogramImage', ''):
             gene = variant['gene']
-            plots.append({'key': f'expDensity.{gene}', 'path': variant['histogramImage']})
-    return plots
+            images_by_gene[gene] = {'key': f'expDensity.{gene}', 'path': variant['histogramImage']}
+    return [images_by_gene[gene] for gene in selected_genes]
 
 
 def create_key_alterations(
-    kb_matches: List[Dict],
-    expression_variants: List[Dict],
-    copy_variants: List[Dict],
-    structural_variants: List[Dict],
-    small_mutations: List[Dict],
+    kb_matches: List[Dict], all_variants: List[Dict],
 ) -> Tuple[List[Dict], Dict]:
     """
     Creates the list of genomic key alterations which summarizes all the variants matched by the KB
     This list of matches is also used to create the variant counts
     """
-
-    def find_variant(kb_match: Dict, variant_type: str, variant_key: str) -> List[Dict]:
-        variant_list = None
-
-        if variant_type == 'exp':
-            variant_list = expression_variants
-        elif variant_type == 'cnv':
-            variant_list = copy_variants
-        elif variant_type == 'sv':
-            variant_list = structural_variants
-        else:
-            variant_list = small_mutations
-
-        return [v for v in variant_list if v['key'] == variant_key][0]
 
     alterations = []
     type_mapping = {
@@ -221,7 +223,7 @@ def create_key_alterations(
     for kb_match in kb_matches:
         variant_type = kb_match['variantType']
         variant_key = kb_match['variant']
-        variant = find_variant(kb_match, variant_type, variant_key)
+        variant = find_variant(all_variants, variant_type, variant_key)
         counts[type_mapping[variant_type]].add(variant_key)
 
         if variant_type == 'exp':
@@ -237,7 +239,7 @@ def create_key_alterations(
     counts['variantsUnknown'] = set()
 
     # count the un-matched variants
-    for variant in expression_variants + structural_variants + copy_variants + small_mutations:
+    for variant in all_variants:
         variant_key = variant['key']
 
         if variant['variant'] and variant_key not in counted_variants:
