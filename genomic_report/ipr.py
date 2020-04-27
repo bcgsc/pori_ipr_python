@@ -200,7 +200,7 @@ def select_expression_plots(kb_matches: List[Dict], all_variants: List[Dict]) ->
         if variant.get('histogramImage', ''):
             gene = variant['gene']
             images_by_gene[gene] = {'key': f'expDensity.{gene}', 'path': variant['histogramImage']}
-    return [images_by_gene[gene] for gene in selected_genes]
+    return [images_by_gene[gene] for gene in selected_genes if gene in images_by_gene]
 
 
 def create_key_alterations(
