@@ -224,9 +224,12 @@ def create_key_alterations(
         variant = find_variant(kb_match, variant_type, variant_key)
         counts[type_mapping[variant_type]].add(variant_key)
 
-        if variant_type in ['exp', 'cnv']:
+        if variant_type == 'exp':
             gene = variant['gene']
-            alterations.append(f'{gene} ({variant["variant"]})')
+            alterations.append(f'{gene} ({variant["expression_class"]})')
+        elif variant_type == 'cnv':
+            gene = variant['gene']
+            alterations.append(f'{gene} ({variant["cnvState"]})')
         else:
             alterations.append(variant['variant'])
 
