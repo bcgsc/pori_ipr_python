@@ -101,6 +101,8 @@ def clean_unsupported_content(upload_content: Dict) -> Dict:
                 del variant['variant']
             if 'variantType' in variant:
                 del variant['variantType']
+            if 'histogramImage' in variant:
+                del variant['histogramImage']
     return upload_content
 
 
@@ -200,7 +202,7 @@ def create_report(
     output = optional_content or dict()
 
     key_alterations, variant_counts = ipr.create_key_alterations(
-        alterations, expression_variants, copy_variants, structural_variants, small_mutations
+        alterations, expression_variants + copy_variants + structural_variants + small_mutations
     )
 
     output.update(
@@ -225,6 +227,11 @@ def create_report(
             'genomicAlterationsIdentified': key_alterations,
             'variantCounts': variant_counts,
         }
+    )
+    output.setdefault('images', []).extend(
+        ipr.select_expression_plots(
+            alterations, expression_variants + copy_variants + structural_variants + small_mutations
+        )
     )
     for section in output:
         section_content_type = 'rows' if not isinstance(output[section], str) else 'characters'
