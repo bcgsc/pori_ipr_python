@@ -1,7 +1,9 @@
 """
 handles annotating variants with annotation information from graphkb
 """
+from progressbar import progressbar
 from typing import Tuple, Set, List, Dict
+from requests.exceptions import HTTPError
 
 from graphkb import GraphKBConnection
 from graphkb.match import (
@@ -11,7 +13,7 @@ from graphkb.match import (
     get_equivalent_features,
 )
 from graphkb.genes import get_oncokb_oncogenes, get_oncokb_tumour_supressors
-from graphkb.util import convert_to_rid_list, FeatureNotFoundError
+from graphkb.util import FeatureNotFoundError, convert_to_rid_list
 from graphkb.constants import BASE_RETURN_PROPERTIES, GENERIC_RETURN_PROPERTIES
 
 from .ipr import convert_statements_to_alterations
@@ -52,11 +54,11 @@ def get_gene_information(graphkb_conn: GraphKBConnection, gene_names: List[str])
         graphkb_conn ([type]): [description]
         gene_names ([type]): [description]
     """
-    logger.verbose('fetching oncogenes list')
+    logger.info('fetching oncogenes list')
     oncogenes = convert_to_rid_set(get_oncokb_oncogenes(graphkb_conn))
-    logger.verbose('fetching tumour supressors list')
+    logger.info('fetching tumour supressors list')
     tumour_suppressors = convert_to_rid_set(get_oncokb_tumour_supressors(graphkb_conn))
-    logger.verbose('fetching cancer related genes list')
+    logger.info('fetching cancer related genes list')
     cancer_related, known_fusion_partners = get_variant_related_genes(graphkb_conn)
 
     result = []
@@ -136,7 +138,10 @@ def annotate_category_variants(
     """
     skipped = 0
     alterations = []
-    for row in variants:
+    problem_genes = set()
+
+    logger.info(f"Starting annotation of {len(variants)} category_variants")
+    for row in progressbar(variants):
         gene = row['gene']
         variant = row['variant']
 
@@ -159,12 +164,19 @@ def annotate_category_variants(
                     new_row.update(ipr_row)
                     alterations.append(new_row)
         except FeatureNotFoundError as err:
-            logger.debug(f'failed to match variants ({gene} {variant}): {err}')
+            problem_genes.add(gene)
+            logger.debug(f'Unrecognized gene ({gene} {variant}): {err}')
         except ValueError as err:
             logger.error(f'failed to match variants ({gene} {variant}): {err}')
 
-    logger.info(f'skipped matching {skipped} non variant information rows')
-    logger.info(f'matched {len(variants)} variants to {len(alterations)} graphkb annotations')
+    if skipped:
+        logger.info(f'skipped matching {skipped} non variant information rows')
+    if problem_genes:
+        logger.debug(f'gene finding failures for {sorted(problem_genes)}')
+        logger.error(f'gene finding falure for {len(problem_genes)} genes')
+    logger.info(
+        f'matched {len(variants)} category variants to {len(alterations)} graphkb annotations'
+    )
     return alterations
 
 
@@ -184,8 +196,9 @@ def annotate_positional_variants(
     """
     errors = 0
     alterations = []
+    problem_genes = set()
 
-    for row in variants:
+    for row in progressbar(variants):
         variant = row['variant']
         try:
             matches = match_positional_variant(graphkb_conn, variant)
@@ -201,11 +214,29 @@ def annotate_positional_variants(
                     alterations.append(new_row)
         except FeatureNotFoundError as err:
             logger.debug(f'failed to match positional variants ({variant}): {err}')
-        except Exception as err:
+            errors += 1
+            if 'gene' in row:
+                problem_genes.add(row['gene'])
+            elif 'gene1' in row and f"({row['gene1']})" in str(err):
+                problem_genes.add(row['gene1'])
+            elif 'gene2' in row and f"({row['gene2']})" in str(err):
+                problem_genes.add(row['gene2'])
+            elif 'gene1' in row and 'gene2' in row:
+                problem_genes.add(row['gene1'])
+                problem_genes.add(row['gene2'])
+            else:
+                raise err
+        except HTTPError as err:
             errors += 1
             logger.error(f'failed to match positional variants ({variant}): {err}')
 
-    logger.info(f'skipped {errors} positional variants due to errors')
-    logger.info(f'matched {len(variants)} variants to {len(alterations)} graphkb annotations')
+    if problem_genes:
+        logger.error(f'gene finding failures for {sorted(problem_genes)}')
+        logger.error(f'{len(problem_genes)} gene finding failures for positional variants')
+    if errors:
+        logger.error(f'skipped {errors} positional variants due to errors')
+    logger.info(
+        f'matched {len(variants)} positional variants to {len(alterations)} graphkb annotations'
+    )
 
     return alterations

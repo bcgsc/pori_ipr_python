@@ -1,7 +1,8 @@
 import argparse
+import datetime
+import json
 import logging
 import os
-import datetime
 from typing import Dict, Optional
 
 from argparse_env import ArgumentParser, Action
@@ -18,6 +19,9 @@ from .inputs import (
 from .annotate import annotate_category_variants, annotate_positional_variants, get_gene_information
 from .util import logger, LOG_LEVELS, trim_empty_values
 from . import ipr
+
+
+CACHE_GENE_MINIMUM = 5000
 
 
 def file_path(path: str) -> str:
@@ -132,6 +136,8 @@ def create_report(
         small_mutations_file: path to the small mutations input file
         write_to_json: path to a JSON file to output the report upload body to if given on failure to upload
         optional_content: Pass-through content to include in the JSON upload
+    Returns:
+        ipr_conn.upload_report return dictionary
     """
     # set the default logging configuration
     logging.basicConfig(
@@ -144,40 +150,49 @@ def create_report(
     graphkb_conn.login(username, password)
 
     copy_variants = load_copy_variants(copy_variants_file) if copy_variants_file else []
-    logger.info(f'loaded {len(copy_variants)} copy variants')
+    logger.info(f'loaded {len(copy_variants)} copy variants from: {copy_variants_file}')
 
     small_mutations = load_small_mutations(small_mutations_file) if small_mutations_file else []
-    logger.info(f'loaded {len(small_mutations)} small mutations')
+    logger.info(f'loaded {len(small_mutations)} small mutations from: {small_mutations_file}')
 
     expression_variants = (
         load_expression_variants(expression_variants_file) if expression_variants_file else []
     )
-    logger.info(f'loaded {len(expression_variants)} expression variants')
+    logger.info(
+        f'loaded {len(expression_variants)} expression variants from: {expression_variants_file}'
+    )
 
     structural_variants = (
         load_structural_variants(structural_variants_file) if structural_variants_file else []
     )
-    logger.info(f'loaded {len(structural_variants)} structural variants')
+    logger.info(
+        f'loaded {len(structural_variants)} structural variants from: {structural_variants_file}'
+    )
 
     genes_with_variants = check_variant_links(
         small_mutations, expression_variants, copy_variants, structural_variants
     )
-    logger.info('caching genes to improve matching speed')
-    cache_gene_names(graphkb_conn)
+
+    # cache of the graphkb gene names speeds up calculation for large
+    # numbers of genes, but has significant overhead and slows down
+    # calculations on small numbers of genes.
+    if len(genes_with_variants) > CACHE_GENE_MINIMUM:
+        logger.info('caching genes to improve matching speed')
+        cache_gene_names(graphkb_conn)
 
     # filter excess variants not required for extra gene information
-    logger.info('annotating small mutations')
+    logger.info(f'annotating small mutations from: {small_mutations_file}')
     alterations = annotate_positional_variants(graphkb_conn, small_mutations, kb_disease_match)
 
-    logger.info('annotating structural variants')
+    logger.info(f'annotating structural variants from: {structural_variants_file}')
     alterations.extend(
         annotate_positional_variants(graphkb_conn, structural_variants, kb_disease_match)
     )
 
-    logger.info('annotating copy variants')
+    logger.info(f'annotating copy variants from {copy_variants_file}')
     alterations.extend(annotate_category_variants(graphkb_conn, copy_variants, kb_disease_match))
 
-    logger.info('annotating expression variants')
+    logger.info(f'annotating expression variants from: {expression_variants_file}')
     alterations.extend(
         annotate_category_variants(graphkb_conn, expression_variants, kb_disease_match, False)
     )
@@ -227,11 +242,11 @@ def create_report(
     try:
         result = ipr_conn.upload_report(output)
         logger.info(result)
+        return result
     except Exception as err:
         if write_to_json:
-            logging.info(f'writing report upload content to file: {write_to_json}')
+            logger.error("ipr_conn.upload_report failed")
+            logger.info(f'Writing failed report upload content to file: {write_to_json}')
             with open(write_to_json, 'w') as fh:
-                import json
-
                 fh.write(json.dumps(output))
         raise err

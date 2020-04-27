@@ -58,7 +58,7 @@ EXP_OPTIONAL = [
     'histogramImage',
 ]
 
-SV_KEY = ['eventType', 'breakpoint', 'gene1', 'gene2', 'exon1', 'exon2']
+SV_KEY = ['eventType', 'breakpoint']
 SV_REQ = [
     'eventType',
     'breakpoint',
@@ -278,16 +278,17 @@ def create_graphkb_sv_notation(row: Dict) -> str:
 
 def load_structural_variants(filename: str) -> List[Dict]:
     def row_key(row):
-        return ('sv', row['eventType'], row['breakpoint'])
+        return tuple(['sv'] + [row[key] for key in SV_KEY])
 
     result = load_variant_file(filename, SV_REQ, SV_OPTIONAL, row_key)
-    exon_pattern = r'^(\d+)?$'
+    # genes are optional for structural variants
+    EXON_PATTERN = r'^(\d+)?$'
     patterns = {
         'gene1': r'^((\w|-)+)?$',
         'gene2': r'^((\w|-)+)?$',
         'breakpoint': r'^\w+:\d+\|\w+:\d+$',
-        'exon1': exon_pattern,
-        'exon2': exon_pattern,
+        'exon1': EXON_PATTERN,
+        'exon2': EXON_PATTERN,
     }
     validate_row_patterns(result, patterns)
 
@@ -312,7 +313,8 @@ def check_variant_links(
     structural_variants: List[Dict],
 ) -> Set[str]:
     """
-    Check that there is matching expression and copy variant information for any genes with variants
+    Check matching information for any genes with variants.
+    Warn about genes with only one experimental measure.
 
     Args:
         small_mutations: list of small mutations
@@ -320,45 +322,57 @@ def check_variant_links(
         copy_variants: list of copy variants
         structural_variants: list of structural variants
 
-    Raises:
-        KeyError: A variant is called on a gene without expression or without copy number information
-
     Returns:
         set of gene names with variants (used for filtering before upload to IPR)
     """
     # filter excess variants not required for extra gene information
+    missing_information_genes = set()
+    missing_information_errors = set()
+
     copy_variant_genes = {variant['gene'] for variant in copy_variants}
     expression_variant_genes = {variant['gene'] for variant in expression_variants}
     genes_with_variants = set()  # filter excess copy variants
 
     for variant in copy_variants:
         gene = variant['gene']
-        if variant['variant']:
+        if not gene:
+            logger.error("copy_variant data cannot be applied to an empty genename")
+        elif variant['variant']:
             genes_with_variants.add(gene)
 
             if expression_variant_genes and gene not in expression_variant_genes:
-                logger.warning(
+                missing_information_genes.add(gene)
+                missing_information_errors.add(
                     f'gene ({gene}) has a copy variant but is missing expression information'
                 )
 
     for variant in expression_variants:
         gene = variant['gene']
-        if variant['variant']:
+        if not gene:
+            logger.error("expression_variant data cannot be applied to an empty genename")
+        elif variant['variant']:
             genes_with_variants.add(gene)
 
             if copy_variant_genes and gene not in copy_variant_genes:
-                logger.warning(
+                missing_information_genes.add(gene)
+                missing_information_errors.add(
                     f'gene ({gene}) has an expression variant but is missing copy number information'
                 )
 
     for variant in small_mutations:
         gene = variant['gene']
+        if not gene:
+            logger.error("small_mutation data cannot be applied to an empty genename")
+            continue
+
         if copy_variant_genes and gene not in copy_variant_genes:
-            logger.warning(
+            missing_information_genes.add(gene)
+            missing_information_errors.add(
                 f'gene ({gene}) has a small mutation but is missing copy number information'
             )
         if expression_variant_genes and gene not in expression_variant_genes:
-            logger.warning(
+            missing_information_genes.add(gene)
+            missing_information_errors.add(
                 f'gene ({gene}) has a small mutation but is missing expression information'
             )
         genes_with_variants.add(gene)
@@ -367,13 +381,20 @@ def check_variant_links(
         for gene in [variant['gene1'], variant['gene2']]:
             if gene:  # genes are optional for structural variants
                 if gene not in copy_variant_genes:
-                    logger.warning(
+                    missing_information_genes.add(gene)
+                    missing_information_errors.add(
                         f'gene ({gene}) has a structural variant but is missing copy number information'
                     )
                 if gene not in expression_variant_genes:
-                    logger.warning(
+                    missing_information_genes.add(gene)
+                    missing_information_errors.add(
                         f'gene ({gene}) has a structural variant but is missing expression information'
                     )
                 genes_with_variants.add(gene)
 
+    if missing_information_genes:
+        for err_msg in sorted(missing_information_errors):
+            logger.warning(err_msg)
+        keyerr_msg = f"Missing information KeyErrors on {len(missing_information_genes)} genes: {sorted(missing_information_genes)}"
+        logger.error(keyerr_msg)
     return genes_with_variants
