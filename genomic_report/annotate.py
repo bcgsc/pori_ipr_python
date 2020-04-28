@@ -1,6 +1,7 @@
 """
 handles annotating variants with annotation information from graphkb
 """
+from requests.exceptions import HTTPError
 from typing import Dict, List, Set, Tuple
 
 from graphkb import GraphKBConnection
@@ -14,7 +15,6 @@ from graphkb.match import (
 )
 from graphkb.util import FeatureNotFoundError, convert_to_rid_list
 from progressbar import progressbar
-from requests.exceptions import HTTPError
 
 from .ipr import convert_statements_to_alterations
 from .util import convert_to_rid_set, logger

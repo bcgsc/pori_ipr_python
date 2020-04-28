@@ -2,10 +2,10 @@
 upload variant and report information to IPR
 """
 import json
+import requests
 import zlib
 from typing import Dict, List, Tuple
 
-import requests
 from graphkb import GraphKBConnection
 from graphkb.util import IterableNamespace
 from graphkb.vocab import get_term_tree
