@@ -4,15 +4,14 @@ from unittest import mock
 import pytest
 
 from genomic_report.inputs import (
-    load_small_mutations,
-    load_copy_variants,
     check_variant_links,
-    load_expression_variants,
-    load_structural_variants,
     create_graphkb_sv_notation,
+    load_copy_variants,
+    load_expression_variants,
+    load_small_mutations,
+    load_structural_variants,
 )
 from genomic_report.util import logger
-
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'test_data')
 

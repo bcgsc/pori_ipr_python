@@ -1,23 +1,23 @@
 """
 handles annotating variants with annotation information from graphkb
 """
-from progressbar import progressbar
-from typing import Tuple, Set, List, Dict
-from requests.exceptions import HTTPError
+from typing import Dict, List, Set, Tuple
 
 from graphkb import GraphKBConnection
-from graphkb.match import (
-    match_copy_variant,
-    match_positional_variant,
-    match_expression_variant,
-    get_equivalent_features,
-)
-from graphkb.genes import get_oncokb_oncogenes, get_oncokb_tumour_supressors
-from graphkb.util import FeatureNotFoundError, convert_to_rid_list
 from graphkb.constants import BASE_RETURN_PROPERTIES, GENERIC_RETURN_PROPERTIES
+from graphkb.genes import get_oncokb_oncogenes, get_oncokb_tumour_supressors
+from graphkb.match import (
+    get_equivalent_features,
+    match_copy_variant,
+    match_expression_variant,
+    match_positional_variant,
+)
+from graphkb.util import FeatureNotFoundError, convert_to_rid_list
+from progressbar import progressbar
+from requests.exceptions import HTTPError
 
 from .ipr import convert_statements_to_alterations
-from .util import logger, convert_to_rid_set
+from .util import convert_to_rid_set, logger
 
 
 def get_variant_related_genes(graphkb_conn: GraphKBConnection) -> Tuple[Set[str], Set[str]]:

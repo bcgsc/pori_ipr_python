@@ -5,21 +5,20 @@ import logging
 import os
 from typing import Dict, Optional
 
-from argparse_env import ArgumentParser, Action
+from argparse_env import Action, ArgumentParser
 from graphkb import GraphKBConnection
 from graphkb.match import cache_gene_names
 
-from .inputs import (
-    load_copy_variants,
-    load_small_mutations,
-    load_expression_variants,
-    load_structural_variants,
-    check_variant_links,
-)
-from .annotate import annotate_category_variants, annotate_positional_variants, get_gene_information
-from .util import logger, LOG_LEVELS, trim_empty_values
 from . import ipr
-
+from .annotate import annotate_category_variants, annotate_positional_variants, get_gene_information
+from .inputs import (
+    check_variant_links,
+    load_copy_variants,
+    load_expression_variants,
+    load_small_mutations,
+    load_structural_variants,
+)
+from .util import LOG_LEVELS, logger, trim_empty_values
 
 CACHE_GENE_MINIMUM = 5000
 
