@@ -87,6 +87,9 @@ def convert_statements_to_alterations(
 
     Returns:
         IPR graphkb row representations
+
+    Notes:
+        - only report disease matched prognostic markers https://www.bcgsc.ca/jira/browse/GERO-72
     """
     disease_matches = {
         r['@rid'] for r in get_term_tree(graphkb_conn, disease_name, ontology_class='Disease')
@@ -124,6 +127,8 @@ def convert_statements_to_alterations(
 
         approved_therapy = False
 
+        disease_match = len(diseases) == 1 and diseases[0]['@rid'] in disease_matches
+
         if relevance_id in therapeutic_terms:
             ipr_section = REPORT_KB_SECTIONS.therapeutic
 
@@ -136,10 +141,10 @@ def convert_statements_to_alterations(
             ipr_section = REPORT_KB_SECTIONS.diagnostic
         elif relevance_id in prognostic_terms:
             ipr_section = REPORT_KB_SECTIONS.prognostic
+            if not disease_match:
+                continue  # GERO-72
         elif relevance_id in biological_terms:
             ipr_section = REPORT_KB_SECTIONS.biological
-
-        disease_match = len(diseases) == 1 and diseases[0]['@rid'] in disease_matches
 
         for variant in variants:
             if variant['@rid'] not in variant_matches:
