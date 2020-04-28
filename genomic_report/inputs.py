@@ -1,13 +1,13 @@
 """
 Read/Validate the variant input files
 """
-from typing import List, Dict, Tuple, Set
-from csv import DictReader
-import re
 import os
+import re
+from csv import DictReader
+from typing import Dict, List, Set, Tuple
 
-from graphkb.match import INPUT_COPY_CATEGORIES, INPUT_EXPRESSION_CATEGORIES
 from Bio.Data.IUPACData import protein_letters_3to1
+from graphkb.match import INPUT_COPY_CATEGORIES, INPUT_EXPRESSION_CATEGORIES
 
 from .util import hash_key, logger
 

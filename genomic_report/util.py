@@ -1,7 +1,7 @@
 import hashlib
 import json
 import logging
-from typing import List, Set, Dict
+from typing import Dict, List, Set
 
 # name the logger after the package to make it simple to disable for packages using this one as a dependency
 # https://stackoverflow.com/questions/11029717/how-do-i-disable-log-messages-from-the-requests-library
