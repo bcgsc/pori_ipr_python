@@ -2,10 +2,10 @@
 upload variant and report information to IPR
 """
 import json
-import requests
 import zlib
 from typing import Dict, List, Tuple
 
+import requests
 from graphkb import GraphKBConnection
 from graphkb.util import IterableNamespace
 from graphkb.vocab import get_term_tree
@@ -230,6 +230,9 @@ def create_key_alterations(
         variant_key = kb_match['variant']
         variant = find_variant(all_variants, variant_type, variant_key)
         counts[type_mapping[variant_type]].add(variant_key)
+
+        if kb_match['category'] == 'unknown':
+            continue
 
         if variant_type == 'exp':
             gene = variant['gene']
