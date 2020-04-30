@@ -12,7 +12,7 @@ from graphkb.vocab import get_term_tree
 
 from .util import convert_to_rid_set
 
-BASE_THERAPEUTIC_TERM = 'therapeutic efficacy'
+BASE_THERAPEUTIC_TERMS = ['therapeutic efficacy', 'eligibility']
 BASE_DIAGNOSTIC_TERM = 'diagnostic indicator'
 BASE_PROGNOSTIC_TERM = 'prognostic indicator'
 BASE_BIOLOGICAL_TERMS = ['functional effect', 'tumourigenesis', 'predisposing']
@@ -102,9 +102,11 @@ def convert_statements_to_alterations(
 
     approved = convert_to_rid_set(get_approved_evidence_levels(graphkb_conn))
 
-    therapeutic_terms = convert_to_rid_set(
-        get_term_tree(graphkb_conn, BASE_THERAPEUTIC_TERM, include_superclasses=False)
-    )
+    therapeutic_terms = set()
+    for base_term in BASE_THERAPEUTIC_TERMS:
+        therapeutic_terms.update(
+            convert_to_rid_set(get_term_tree(graphkb_conn, base_term, include_superclasses=False))
+        )
     diagnostic_terms = convert_to_rid_set(
         get_term_tree(graphkb_conn, BASE_DIAGNOSTIC_TERM, include_superclasses=False)
     )
