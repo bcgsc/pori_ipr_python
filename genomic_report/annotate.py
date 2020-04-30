@@ -200,6 +200,12 @@ def annotate_positional_variants(
 
     for row in progressbar(variants):
         variant = row['variant']
+
+        if not row.get('gene', '') and (not row.get('gene1', '') or not row.get('gene2')):
+            # https://www.bcgsc.ca/jira/browse/GERO-56?focusedCommentId=1234791&page=com.atlassian.jira.plugin.system.issuetabpanels:comment-tabpanel#comment-1234791
+            # should not match single gene SVs
+            continue
+
         try:
             matches = match_positional_variant(graphkb_conn, variant)
 
