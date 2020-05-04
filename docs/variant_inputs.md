@@ -41,6 +41,7 @@ use a tab delimited format. The column names, types and example inputs are shown
 | ptxTotSampObs | integer |                                                                  |
 | ptxPogPerc    | float   |                                                                  |
 | gtexComp      | string  |                                                                  |
+| gtexPerc      | float   |                                                                  |
 | gtexFC        | float   |                                                                  |
 | gtexkIQR      | float   |                                                                  |
 | gtexAvgPerc   | float   |                                                                  |
