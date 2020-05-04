@@ -50,6 +50,7 @@ EXP_OPTIONAL = [
     'ptxTotSampObs',
     'ptxPogPerc',
     'gtexComp',
+    'gtexPerc',
     'gtexFC',
     'gtexkIQR',
     'gtexAvgPerc',
