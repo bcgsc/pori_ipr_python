@@ -1,16 +1,18 @@
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
 # Dependencies required to use your package
-INSTALL_REQS = ['graphkb>=1.0.0', 'biopython==1.76']
+INSTALL_REQS = ['graphkb>=1.2.0', 'argparse-env==0.1.0', 'biopython==1.76', 'progressbar2==3.51.0']
 
 # Dependencies required for development
-DEV_REQS = ['flake8', 'black']
+DEV_REQS = ['flake8', 'black', 'flake8-annotations', 'isort']
 
 # Dependencies required only for running tests
 TEST_REQS = ['pytest', 'pytest-cov']
 
 # Dependencies required for deploying to an index server
 DEPLOYMENT_REQS = ['twine', 'wheel', 'm2r']
+
+DOC_REQS = ['mkdocs', 'mkdocs-material', 'markdown-refdocs']
 
 long_description = ''
 long_description_content_type = 'text/markdown'
@@ -31,13 +33,14 @@ except ImportError:
 
 setup(
     name='genomic_report',
-    version='0.2.0',
+    version='1.0.0',
     packages=find_packages(),
     install_requires=INSTALL_REQS,
     extras_require={
-        'dev': TEST_REQS + DEPLOYMENT_REQS + DEV_REQS,
+        'dev': TEST_REQS + DEPLOYMENT_REQS + DEV_REQS + DOC_REQS,
         'deploy': DEPLOYMENT_REQS,
         'test': TEST_REQS,
+        'doc': DOC_REQS,
     },
     long_description=long_description,
     long_description_content_type=long_description_content_type,
@@ -49,5 +52,5 @@ setup(
     dependency_links=[],
     test_suite='tests',
     tests_require=TEST_REQS,
-    entry_points={'console_scripts': []},
+    entry_points={'console_scripts': ['genomic_report = genomic_report.main:command_interface']},
 )

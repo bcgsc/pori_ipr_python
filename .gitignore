@@ -8,6 +8,7 @@ bin
 dist
 build
 .pytest_cache
+.coverage
 
 # common virtual environment names
 venv
@@ -17,7 +18,12 @@ env
 .idea
 .vscode
 .vs
+.~lock*
 
 # misc
 .DS_STORE
+
+# docs
+docs/reference
+build-docs
 

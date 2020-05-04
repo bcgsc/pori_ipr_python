@@ -1,7 +1,9 @@
 
 # Genomic Report
 
-
+This python tool takes in variant inputs as tab-delimited files and annotates them using GraphKB.
+The resulting output is uploaded to IPR as a report. Additional report content such as images and
+metadata can be passed to be included in the report upload.
 
 
 ## Getting Started
@@ -74,3 +76,27 @@ buildout
 ```
 
 This will create a directory `bin` with the executable scripts
+
+## Generating the Documentation
+
+This documentation is generated using [mkdocs](https://www.mkdocs.org), [mkdocs-material](https://pypi.org/project/mkdocs-material), and [markdown_refdocs](https://pypi.org/project/markdown-refdocs).
+
+First install the documentation dependencies
+
+```bash
+pip install .[doc]
+```
+
+Then generate the user manual files
+
+```bash
+markdown_refdocs genomic_report -o docs/reference
+mkdocs build
+```
+
+There should now be static html files under `build-docs`. To view the files, serve the folder using
+the built-in python http server
+
+```bash
+python3 -m http.server -d build-docs
+```
