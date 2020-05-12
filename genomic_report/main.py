@@ -119,6 +119,8 @@ def create_report(
     small_mutations_file: str = None,
     write_to_json: str = None,
     optional_content: Optional[Dict] = None,
+    interactive: bool = True,
+    cache_gene_minimum: int = CACHE_GENE_MINIMUM,
 ) -> None:
     """
     Run the matching and create the report JSON for upload to IPR
@@ -134,7 +136,9 @@ def create_report(
         copy_variants_file: path to the copy number variants input file
         small_mutations_file: path to the small mutations input file
         write_to_json: path to a JSON file to output the report upload body to if given on failure to upload
-        optional_content: Pass-through content to include in the JSON upload
+        optional_content: pass-through content to include in the JSON upload
+        interactive: progressbars for interactive users
+        cache_gene_minimum: minimum number of genes required for gene name caching optimization
     Returns:
         ipr_conn.upload_report return dictionary
     """
@@ -175,25 +179,39 @@ def create_report(
     # cache of the graphkb gene names speeds up calculation for large
     # numbers of genes, but has significant overhead and slows down
     # calculations on small numbers of genes.
-    if len(genes_with_variants) > CACHE_GENE_MINIMUM:
+    if len(genes_with_variants) > cache_gene_minimum:
         logger.info('caching genes to improve matching speed')
         cache_gene_names(graphkb_conn)
 
     # filter excess variants not required for extra gene information
     logger.info(f'annotating small mutations from: {small_mutations_file}')
-    alterations = annotate_positional_variants(graphkb_conn, small_mutations, kb_disease_match)
+    alterations = annotate_positional_variants(
+        graphkb_conn, small_mutations, kb_disease_match, show_progress=interactive
+    )
 
     logger.info(f'annotating structural variants from: {structural_variants_file}')
     alterations.extend(
-        annotate_positional_variants(graphkb_conn, structural_variants, kb_disease_match)
+        annotate_positional_variants(
+            graphkb_conn, structural_variants, kb_disease_match, show_progress=interactive
+        )
     )
 
     logger.info(f'annotating copy variants from {copy_variants_file}')
-    alterations.extend(annotate_category_variants(graphkb_conn, copy_variants, kb_disease_match))
+    alterations.extend(
+        annotate_category_variants(
+            graphkb_conn, copy_variants, kb_disease_match, show_progress=interactive
+        )
+    )
 
     logger.info(f'annotating expression variants from: {expression_variants_file}')
     alterations.extend(
-        annotate_category_variants(graphkb_conn, expression_variants, kb_disease_match, False)
+        annotate_category_variants(
+            graphkb_conn,
+            expression_variants,
+            kb_disease_match,
+            copy_variant=False,
+            show_progress=interactive,
+        )
     )
     logger.info('fetching gene annotations')
     gene_information = get_gene_information(graphkb_conn, genes_with_variants)
