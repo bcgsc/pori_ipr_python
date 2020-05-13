@@ -153,25 +153,41 @@ def create_report(
     graphkb_conn = GraphKBConnection()
     graphkb_conn.login(username, password)
 
-    copy_variants = load_copy_variants(copy_variants_file) if copy_variants_file else []
-    logger.info(f'loaded {len(copy_variants)} copy variants from: {copy_variants_file}')
+    if copy_variants_file:
+        logger.info(f'loading copy variants from: {copy_variants_file}')
+        copy_variants = load_copy_variants(copy_variants_file)
+        logger.info(f'loaded {len(copy_variants)}')
+    else:
+        logger.info("no copy variants given")
+        copy_variants = []
 
-    small_mutations = load_small_mutations(small_mutations_file) if small_mutations_file else []
-    logger.info(f'loaded {len(small_mutations)} small mutations from: {small_mutations_file}')
+    if small_mutations_file:
+        logger.info(f'loading small mutations from: {small_mutations_file}')
+        small_mutations = load_small_mutations(small_mutations_file)
+        logger.info(f'loaded {len(small_mutations)} small mutations from: {small_mutations_file}')
+    else:
+        logger.info("no small mutations given")
+        small_mutations = []
 
-    expression_variants = (
-        load_expression_variants(expression_variants_file) if expression_variants_file else []
-    )
-    logger.info(
-        f'loaded {len(expression_variants)} expression variants from: {expression_variants_file}'
-    )
+    if expression_variants_file:
+        logger.info(f'loading expression variants from: {expression_variants_file}')
+        expression_variants = load_expression_variants(expression_variants_file)
+        logger.info(
+            f'loaded {len(expression_variants)} expression variants from: {expression_variants_file}'
+        )
+    else:
+        logger.info("no expression given")
+        expression_variants = []
 
-    structural_variants = (
-        load_structural_variants(structural_variants_file) if structural_variants_file else []
-    )
-    logger.info(
-        f'loaded {len(structural_variants)} structural variants from: {structural_variants_file}'
-    )
+    if structural_variants_file:
+        f'loading structural variants from: {structural_variants_file}'
+        structural_variants = load_structural_variants(structural_variants_file)
+        logger.info(
+            f'loaded {len(structural_variants)} structural variants from: {structural_variants_file}'
+        )
+    else:
+        logger.info("no structural variants given")
+        structural_variants = []
 
     genes_with_variants = check_variant_links(
         small_mutations, expression_variants, copy_variants, structural_variants
