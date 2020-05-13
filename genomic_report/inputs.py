@@ -4,7 +4,7 @@ Read/Validate the variant input files
 import os
 import re
 from csv import DictReader
-from typing import Dict, List, Set, Tuple
+from typing import Callable, Dict, List, Set, Tuple
 
 from Bio.Data.IUPACData import protein_letters_3to1
 from graphkb.match import INPUT_COPY_CATEGORIES, INPUT_EXPRESSION_CATEGORIES
@@ -15,8 +15,10 @@ protein_letters_3to1.setdefault('Ter', '*')
 
 NULLABLE_FLOAT_REGEX = r'^-?((inf)|(\d+(\.\d+)?)|)$'
 # 'cnvState' is for display
-COPY_REQ = ['gene', 'kbCategory', 'cnvState']
+COPY_REQ = ['gene', 'kbCategory']
+COPY_KEY = ['gene']
 COPY_OPTIONAL = [
+    'cnvState',
     'ploidyCorrCpChange',
     'lohState',  # Loss of Heterzygosity state - informative detail to analyst
     'chromosomeBand',
@@ -24,12 +26,14 @@ COPY_OPTIONAL = [
     'end',
 ]
 
-SMALL_MUT_REQ = ['location', 'refAlt', 'gene', 'proteinChange', 'transcript']
+SMALL_MUT_REQ = ['gene', 'proteinChange', 'location', 'transcript', 'refAlt']
+SMALL_MUT_KEY = SMALL_MUT_REQ
 SMALL_MUT_OPTIONAL = ['zygosity', 'tumourReads', 'rnaReads', 'detectedIn']
 
-# 'expressionState' is for display
-EXP_REQ = ['gene', 'kbCategory', 'expressionState']
+EXP_REQ = ['gene', 'kbCategory']
+EXP_KEY = ['gene']
 EXP_OPTIONAL = [
+    'expressionState',
     'rnaReads',
     'rpkm',
     'foldChange',
@@ -86,7 +90,7 @@ SV_OPTIONAL = [
 
 
 def load_variant_file(
-    filename: str, required: List[str], optional: List[str], row_to_key
+    filename: str, required: List[str], optional: List[str], row_to_key: Callable
 ) -> List[Dict]:
     """
     Load a tab delimited file and
@@ -137,7 +141,7 @@ def load_variant_file(
     return result
 
 
-def validate_row_patterns(rows: List[Dict], patterns: Dict):
+def validate_row_patterns(rows: List[Dict], patterns: Dict) -> None:
     """
     Validate rows against a regex for some set of columns
 
@@ -151,22 +155,37 @@ def validate_row_patterns(rows: List[Dict], patterns: Dict):
     for row in rows:
         for col, pattern in patterns.items():
             if not re.match(pattern, '' if row[col] is None else row[col]):
+                row_repr_keys = [
+                    key for key in row.keys() if key in COPY_KEY + EXP_KEY + SMALL_MUT_KEY + SV_KEY
+                ]
+                row_repr_dict = dict((key, row[key]) for key in row_repr_keys)
                 raise ValueError(
-                    f'row value ({row[col]}) does not match expected column ({col}) pattern of "{pattern}"'
+                    f'{row_repr_dict} column {col}: "{row[col]}" re pattern failure: "{pattern}"'
                 )
 
 
 def load_copy_variants(filename: str) -> List[Dict]:
-    def row_key(row):
-        return ('cnv', row['gene'])
+    # default map for display - concise names
+    KBCAT2CNVSTATE = {
+        INPUT_COPY_CATEGORIES.DEEP: "Deep Loss",
+        INPUT_COPY_CATEGORIES.AMP: "Amplification",
+        INPUT_COPY_CATEGORIES.GAIN: "Gain",
+        INPUT_COPY_CATEGORIES.LOSS: "Loss",
+    }
+
+    def row_key(row: Dict) -> Tuple[str]:
+        return tuple(['cnv'] + [row[key] for key in COPY_KEY])
 
     result = load_variant_file(filename, COPY_REQ, COPY_OPTIONAL, row_key)
 
     for row in result:
-        if row['kbCategory'] and row['kbCategory'] not in INPUT_COPY_CATEGORIES.values():
-            raise ValueError(
-                f'invalid copy variant kbCategory value ({row["kbCategory"]}) in filename {filename}'
-            )
+        if row['kbCategory']:
+            if row['kbCategory'] not in INPUT_COPY_CATEGORIES.values():
+                raise ValueError(
+                    f'invalid copy variant kbCategory value ({row["kbCategory"]}) in filename {filename}'
+                )
+            if not row['cnvState']:  # apply default short display name
+                row['cnvState'] = KBCAT2CNVSTATE[row['kbCategory']]
         row['variant'] = row['kbCategory']
         row['variantType'] = 'cnv'
 
@@ -175,20 +194,13 @@ def load_copy_variants(filename: str) -> List[Dict]:
 
 def load_small_mutations(filename: str) -> List[Dict]:
     def row_key(row: Dict) -> Tuple[str]:
-        return (
-            'small mutation',
-            row['location'],
-            row['refAlt'],
-            row['gene'],
-            row['proteinChange'],
-            row['transcript'],
-        )
+        return tuple(['small mutation'] + [row[key] for key in SMALL_MUT_KEY])
 
-    result = load_variant_file(filename, SMALL_MUT_REQ, SMALL_MUT_OPTIONAL, row_key,)
+    result = load_variant_file(filename, SMALL_MUT_REQ, SMALL_MUT_OPTIONAL, row_key)
 
-    patterns = {'location': r'^\w+:\d+$', 'refAlt': r'^[A-Z]+>[A-Z]+$'}
-
-    validate_row_patterns(result, patterns)
+    # patterns = {'location': r'^\w+:\d+$', 'refAlt': r'^[A-Z]+>[A-Z]+$'}
+    #
+    # validate_row_patterns(result, patterns)
 
     # change 3 letter AA to 1 letter AA notation
     for row in result:
@@ -201,9 +213,9 @@ def load_small_mutations(filename: str) -> List[Dict]:
     return result
 
 
-def load_expression_variants(filename):
-    def row_key(row):
-        return ('expression', row['gene'])
+def load_expression_variants(filename: str) -> List[Dict]:
+    def row_key(row: Dict) -> Tuple[str]:
+        return tuple(['expression'] + [row[key] for key in EXP_KEY])
 
     result = load_variant_file(filename, EXP_REQ, EXP_OPTIONAL, row_key)
 
@@ -222,6 +234,8 @@ def load_expression_variants(filename):
     errors = []
     for row in result:
         row['variant'] = row['kbCategory']
+        if not row['expressionState'] and row['kbCategory']:
+            row['expressionState'] = row['kbCategory']
 
         if row['variant']:
             if row['variant'] not in INPUT_EXPRESSION_CATEGORIES.values():
@@ -265,7 +279,7 @@ def create_graphkb_sv_notation(row: Dict) -> str:
 
 
 def load_structural_variants(filename: str) -> List[Dict]:
-    def row_key(row: Dict) -> Tuple:
+    def row_key(row: Dict) -> Tuple[str]:
         return tuple(['sv'] + [row[key] for key in SV_KEY])
 
     result = load_variant_file(filename, SV_REQ, SV_OPTIONAL, row_key)
