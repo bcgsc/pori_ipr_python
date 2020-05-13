@@ -131,7 +131,7 @@ def annotate_category_variants(
 
     Args:
         graphkb_conn: the graphkb api connection object
-        variants: list of copy number variants
+        variants: list of variants
 
     Returns:
         list of kbMatches records for IPR
@@ -189,7 +189,7 @@ def annotate_positional_variants(
 
     Args:
         graphkb_conn (GraphKBConnection): the graphkb api connection object
-        small_mutations (list.<dict>): list of small mutations. Defaults to [].
+        variants (list.<dict>): list of variants. Defaults to [].
 
     Returns:
         list of kbMatches records for IPR

@@ -33,7 +33,7 @@ except ImportError:
 
 setup(
     name='genomic_report',
-    version='0.2.0',
+    version='1.0.0',
     packages=find_packages(),
     install_requires=INSTALL_REQS,
     extras_require={
