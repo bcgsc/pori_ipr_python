@@ -80,6 +80,7 @@ SV_OPTIONAL = [
     'name',
     'frame',
     'omicSupport',
+    'lowQuality',
 ]
 
 
@@ -303,6 +304,11 @@ def load_structural_variants(filename: str) -> List[Dict]:
                 raise FileNotFoundError(row['svg'])
             with open(row['svg'], 'r') as fh:
                 row['svg'] = fh.read()
+
+        if row['lowQuality']:
+            if row['lowQuality'].lower() not in ['true', 'false']:
+                raise ValueError('lowQuality flag must be true or false if given')
+            row['lowQuality'] = bool(row['lowQuality'].lower() == 'true')
 
     return result
 

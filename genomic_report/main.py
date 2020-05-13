@@ -203,6 +203,7 @@ def create_report(
     key_alterations, variant_counts = ipr.create_key_alterations(
         alterations, expression_variants + copy_variants + structural_variants + small_mutations
     )
+    matched_structural_variants = {a['variant'] for a in alterations if a['variantType'] == 'sv'}
 
     output.update(
         {
@@ -221,7 +222,11 @@ def create_report(
             'kbDiseaseMatch': kb_disease_match,
             'kbUrl': graphkb_conn.url,
             'kbVersion': timestamp(),
-            'structuralVariants': [trim_empty_values(s) for s in structural_variants],
+            'structuralVariants': [
+                trim_empty_values(s)
+                for s in structural_variants
+                if s['key'] in matched_structural_variants or not s['lowQuality']
+            ],
             'genes': gene_information,
             'genomicAlterationsIdentified': key_alterations,
             'variantCounts': variant_counts,
