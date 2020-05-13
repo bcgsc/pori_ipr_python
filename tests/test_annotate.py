@@ -43,3 +43,13 @@ class TestGetGeneInformation:
         assert genes
         names = [g['name'] for g in genes if g.get('knownFusionPartner')]
         assert 'ewsr1' in names
+
+    def test_fetches_small_mutation_genes(self, genes):
+        assert genes
+        names = [g['name'] for g in genes if g.get('knownSmallMutation')]
+        assert 'kras' in names
+
+    def test_fetches_therapeutic_genes(self, genes):
+        assert genes
+        names = [g['name'] for g in genes if g.get('therapeuticAssociated')]
+        assert 'cdkn2a' in names

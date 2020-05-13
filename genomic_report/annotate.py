@@ -1,7 +1,7 @@
 """
 handles annotating variants with annotation information from graphkb
 """
-from typing import Dict, List, Set, Tuple
+from typing import Dict, List, Set
 
 from graphkb import GraphKBConnection
 from graphkb.constants import BASE_RETURN_PROPERTIES, GENERIC_RETURN_PROPERTIES
@@ -16,34 +16,40 @@ from graphkb.util import FeatureNotFoundError, convert_to_rid_list
 from progressbar import progressbar
 from requests.exceptions import HTTPError
 
-from .ipr import convert_statements_to_alterations
+from .ipr import BASE_THERAPEUTIC_TERMS, convert_statements_to_alterations, get_terms_set
 from .util import convert_to_rid_set, logger
 
 
-def get_variant_related_genes(graphkb_conn: GraphKBConnection) -> Tuple[Set[str], Set[str]]:
-    """
-    Get the list of genes on any variant in GKB
-
-    Args:
-        graphkb_conn (GraphKBConnection): graphkb connection object
-
-    Returns:
-        tuple: sets of records IDs for all and fusion variants
-    """
-    # cancer related means any gene that has a variant in GKB
-    variants = graphkb_conn.query(
-        {'target': 'Variant', 'returnProperties': ['reference1', 'reference2']}
+def get_therapeutic_associated_genes(graphkb_conn: GraphKBConnection) -> Set[str]:
+    therapeutic_relevance = get_terms_set(graphkb_conn, BASE_THERAPEUTIC_TERMS)
+    print(therapeutic_relevance)
+    statements = graphkb_conn.query(
+        {
+            'target': 'Statement',
+            'filters': {'relevance': list(therapeutic_relevance)},
+            'returnProperties': [
+                'conditions.@rid',
+                'conditions.@class',
+                'conditions.reference1.@class',
+                'conditions.reference1.@rid',
+                'conditions.reference2.@class',
+                'conditions.reference2.@rid',
+            ],
+        }
     )
-
     genes = set()
-    fusion_genes = set()
-    for variant in variants:
-        genes.add(variant['reference1'])
-        if variant['reference2']:
-            genes.add(variant['reference2'])
-            fusion_genes.add(variant['reference1'])
-            fusion_genes.add(variant['reference2'])
-    return genes, fusion_genes
+
+    for statement in statements:
+        for condition in statement['conditions']:
+            if condition['@class'] == 'Feature':
+                genes.add(condition['@rid'])
+            elif condition['@class'].endswith('Variant'):
+                print('condition', condition)
+                if condition['reference1'] and condition['reference1']['@class'] == 'Feature':
+                    genes.add(condition['reference1']['@rid'])
+                if condition['reference2'] and condition['reference2']['@class'] == 'Feature':
+                    genes.add(condition['reference2']['@rid'])
+    return genes
 
 
 def get_gene_information(graphkb_conn: GraphKBConnection, gene_names: List[str]) -> List[Dict]:
@@ -54,25 +60,43 @@ def get_gene_information(graphkb_conn: GraphKBConnection, gene_names: List[str])
         graphkb_conn ([type]): [description]
         gene_names ([type]): [description]
     """
+    logger.info('fetching variant related genes list')
+    variants = graphkb_conn.query(
+        {'target': 'Variant', 'returnProperties': ['@class', 'reference1', 'reference2']}
+    )
+
+    gene_flags = {
+        'cancerRelated': set(),
+        'knownFusionPartner': set(),
+        'knownSmallMutation': set(),
+    }
+
+    for variant in variants:
+        gene_flags['cancerRelated'].add(variant['reference1'])
+        if variant['reference2']:
+            gene_flags['cancerRelated'].add(variant['reference2'])
+            gene_flags['knownFusionPartner'].add(variant['reference1'])
+            gene_flags['knownFusionPartner'].add(variant['reference2'])
+        elif variant['@class'] == 'PositionalVariant':
+            gene_flags['knownSmallMutation'].add(variant['reference1'])
+
     logger.info('fetching oncogenes list')
-    oncogenes = convert_to_rid_set(get_oncokb_oncogenes(graphkb_conn))
+    gene_flags['oncogene'] = convert_to_rid_set(get_oncokb_oncogenes(graphkb_conn))
     logger.info('fetching tumour supressors list')
-    tumour_suppressors = convert_to_rid_set(get_oncokb_tumour_supressors(graphkb_conn))
-    logger.info('fetching cancer related genes list')
-    cancer_related, known_fusion_partners = get_variant_related_genes(graphkb_conn)
+    gene_flags['tumourSuppressor'] = convert_to_rid_set(get_oncokb_tumour_supressors(graphkb_conn))
+    logger.info('fetching therapeutic associated genes lists')
+    gene_flags['therapeuticAssociated'] = get_therapeutic_associated_genes(graphkb_conn)
 
     result = []
 
     for gene_name in gene_names:
         equivalent = convert_to_rid_set(get_equivalent_features(graphkb_conn, gene_name))
 
-        row = {
-            'name': gene_name,
-            'oncogene': bool(equivalent & oncogenes),
-            'tumourSuppressor': bool(equivalent & tumour_suppressors),
-            'cancerRelated': bool(equivalent & cancer_related),
-            'knownFusionPartner': bool(equivalent & known_fusion_partners),
-        }
+        row = {'name': gene_name}
+
+        for flag in gene_flags:
+            row[flag] = bool(equivalent & gene_flags[flag])
+
         flags = [c for c in row.keys() if c != 'name']
 
         if any(row[c] for c in flags):

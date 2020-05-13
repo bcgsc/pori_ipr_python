@@ -3,7 +3,7 @@ upload variant and report information to IPR
 """
 import json
 import zlib
-from typing import Dict, List, Tuple
+from typing import Dict, List, Set, Tuple
 
 import requests
 from graphkb import GraphKBConnection
@@ -42,6 +42,15 @@ APPROVED_EVIDENCE_LEVELS = {
 
 DEFAULT_URL = 'https://iprdev-api.bcgsc.ca/api'
 DEFAULT_LIMIT = 1000
+
+
+def get_terms_set(graphkb_conn: GraphKBConnection, base_terms: List[str]) -> Set[str]:
+    terms = set()
+    for base_term in base_terms:
+        terms.update(
+            convert_to_rid_set(get_term_tree(graphkb_conn, base_term, include_superclasses=False))
+        )
+    return terms
 
 
 def display_evidence_levels(statement: Dict) -> str:
@@ -102,22 +111,10 @@ def convert_statements_to_alterations(
 
     approved = convert_to_rid_set(get_approved_evidence_levels(graphkb_conn))
 
-    therapeutic_terms = set()
-    for base_term in BASE_THERAPEUTIC_TERMS:
-        therapeutic_terms.update(
-            convert_to_rid_set(get_term_tree(graphkb_conn, base_term, include_superclasses=False))
-        )
-    diagnostic_terms = convert_to_rid_set(
-        get_term_tree(graphkb_conn, BASE_DIAGNOSTIC_TERM, include_superclasses=False)
-    )
-    prognostic_terms = convert_to_rid_set(
-        get_term_tree(graphkb_conn, BASE_PROGNOSTIC_TERM, include_superclasses=False)
-    )
-    biological_terms = set()
-    for base_term in BASE_BIOLOGICAL_TERMS:
-        biological_terms.update(
-            convert_to_rid_set(get_term_tree(graphkb_conn, base_term, include_superclasses=False))
-        )
+    therapeutic_terms = get_terms_set(graphkb_conn, BASE_THERAPEUTIC_TERMS)
+    diagnostic_terms = get_terms_set(graphkb_conn, [BASE_DIAGNOSTIC_TERM])
+    prognostic_terms = get_terms_set(graphkb_conn, [BASE_PROGNOSTIC_TERM])
+    biological_terms = get_terms_set(graphkb_conn, BASE_BIOLOGICAL_TERMS)
 
     for statement in statements:
         variants = [c for c in statement['conditions'] if c['@class'] in VARIANT_CLASSES]
