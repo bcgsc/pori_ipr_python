@@ -22,7 +22,6 @@ from .util import convert_to_rid_set, logger
 
 def get_therapeutic_associated_genes(graphkb_conn: GraphKBConnection) -> Set[str]:
     therapeutic_relevance = get_terms_set(graphkb_conn, BASE_THERAPEUTIC_TERMS)
-    print(therapeutic_relevance)
     statements = graphkb_conn.query(
         {
             'target': 'Statement',
@@ -44,7 +43,6 @@ def get_therapeutic_associated_genes(graphkb_conn: GraphKBConnection) -> Set[str
             if condition['@class'] == 'Feature':
                 genes.add(condition['@rid'])
             elif condition['@class'].endswith('Variant'):
-                print('condition', condition)
                 if condition['reference1'] and condition['reference1']['@class'] == 'Feature':
                     genes.add(condition['reference1']['@rid'])
                 if condition['reference2'] and condition['reference2']['@class'] == 'Feature':
