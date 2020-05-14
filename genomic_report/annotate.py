@@ -1,7 +1,6 @@
 """
 handles annotating variants with annotation information from graphkb
 """
-from requests.exceptions import HTTPError
 from typing import Dict, List, Set, Tuple
 
 from graphkb import GraphKBConnection
@@ -15,6 +14,7 @@ from graphkb.match import (
 )
 from graphkb.util import FeatureNotFoundError, convert_to_rid_list
 from progressbar import progressbar
+from requests.exceptions import HTTPError
 
 from .ipr import convert_statements_to_alterations
 from .util import convert_to_rid_set, logger
@@ -132,7 +132,7 @@ def annotate_category_variants(
 
     Args:
         graphkb_conn: the graphkb api connection object
-        variants: list of copy number variants
+        variants: list of variants
 
     Returns:
         list of kbMatches records for IPR
@@ -194,7 +194,7 @@ def annotate_positional_variants(
 
     Args:
         graphkb_conn (GraphKBConnection): the graphkb api connection object
-        small_mutations (list.<dict>): list of small mutations. Defaults to [].
+        variants (list.<dict>): list of variants. Defaults to [].
 
     Returns:
         list of kbMatches records for IPR
@@ -206,6 +206,12 @@ def annotate_positional_variants(
     iterfunc = progressbar if show_progress else iter
     for row in iterfunc(variants):
         variant = row['variant']
+
+        if not row.get('gene', '') and (not row.get('gene1', '') or not row.get('gene2', '')):
+            # https://www.bcgsc.ca/jira/browse/GERO-56?focusedCommentId=1234791&page=com.atlassian.jira.plugin.system.issuetabpanels:comment-tabpanel#comment-1234791
+            # should not match single gene SVs
+            continue
+
         try:
             matches = match_positional_variant(graphkb_conn, variant)
 

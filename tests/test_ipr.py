@@ -15,6 +15,7 @@ def graphkb_conn():
         [],  # disease call 2
         make_rid_list('approved1', 'approved2'),
         make_rid_list('ther1'),
+        [],  # makes 2 calls to get therapeutic terms
         make_rid_list('diag1'),
         make_rid_list('prog1'),
         make_rid_list('bio1', 'bio2'),
