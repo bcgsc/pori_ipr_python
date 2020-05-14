@@ -80,7 +80,7 @@ SV_OPTIONAL = [
     'name',
     'frame',
     'omicSupport',
-    'lowQuality',
+    'highQuality',
 ]
 
 
@@ -305,10 +305,10 @@ def load_structural_variants(filename: str) -> List[Dict]:
             with open(row['svg'], 'r') as fh:
                 row['svg'] = fh.read()
 
-        if row['lowQuality']:
-            if row['lowQuality'].lower() not in ['true', 'false']:
-                raise ValueError('lowQuality flag must be true or false if given')
-            row['lowQuality'] = bool(row['lowQuality'].lower() == 'true')
+        if row['highQuality']:
+            if row['highQuality'].lower() not in ['true', 'false']:
+                raise ValueError('highQuality flag must be true or false if given')
+            row['highQuality'] = bool(row['highQuality'].lower() == 'true')
 
     return result
 
