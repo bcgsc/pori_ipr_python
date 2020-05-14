@@ -225,7 +225,7 @@ def create_report(
             'structuralVariants': [
                 trim_empty_values(s)
                 for s in structural_variants
-                if s['key'] in matched_structural_variants or s['highQuality']
+                if s['key'] in matched_structural_variants or s['highQuality'] is not False
             ],
             'genes': gene_information,
             'genomicAlterationsIdentified': key_alterations,
