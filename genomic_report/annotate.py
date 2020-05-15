@@ -8,6 +8,7 @@ from graphkb.constants import BASE_RETURN_PROPERTIES, GENERIC_RETURN_PROPERTIES
 from graphkb.genes import get_oncokb_oncogenes, get_oncokb_tumour_supressors
 from graphkb.match import (
     get_equivalent_features,
+    match_category_variant,
     match_copy_variant,
     match_expression_variant,
     match_positional_variant,
@@ -141,6 +142,74 @@ def get_statements_from_variants(
     return statements
 
 
+def get_statements_from_statements(
+    graphkb_conn: GraphKBConnection, statements: List[Dict]
+) -> List[Dict]:
+    """
+    Given a list of matched statements, created variants from their subject + relevance and
+    then match these against the database as well. Exclude re-matching any statements which matched
+    from the original input statements
+
+    Args:
+        statements: statement records to pull
+
+    Returns:
+        list of statements which matched the inferred variants from the original statements
+    """
+
+
+def get_ipr_statements_from_variants(
+    graphkb_conn: GraphKBConnection, matches: List[str], disease_name: str
+) -> List[Dict]:
+    """
+    Matches to GraphKB statements from the list of input variants. From these results matches
+    again with the inferred variants. Then returns the results formatted for upload to IPR
+    """
+    if not matches:
+        return []
+    rows = []
+
+    statements = get_statements_from_variants(graphkb_conn, matches)
+    existing_statements = {s['@rid'] for s in statements}
+
+    for ipr_row in convert_statements_to_alterations(
+        graphkb_conn, statements, disease_name, convert_to_rid_set(matches)
+    ):
+        rows.append(ipr_row)
+
+    # second-pass matching
+    inferred_matches = {}
+    inferred_variants = {
+        (s['subject']['@rid'], s['relevance']['name'])
+        for s in statements
+        if s['subject'] and s['subject']['@class'] in ('Feature', 'Signature')
+    }
+
+    for (reference1, variantType) in inferred_variants:
+        variants = match_category_variant(
+            graphkb_conn, reference1, variantType, gene_is_record_id=True
+        )
+
+        for variant in variants:
+            inferred_matches[variant['@rid']] = variant
+    inferred_matches = list(inferred_matches.values())
+
+    inferred_statements = [
+        s
+        for s in get_statements_from_variants(graphkb_conn, inferred_matches)
+        if s['@rid'] not in existing_statements  # do not duplicate if non-inferred match
+    ]
+
+    for ipr_row in convert_statements_to_alterations(
+        graphkb_conn, inferred_statements, disease_name, convert_to_rid_set(inferred_matches),
+    ):
+        new_row = {'kbData': {'inferred': True}}
+        new_row.update(ipr_row)
+        rows.append(new_row)
+
+    return rows
+
+
 def annotate_category_variants(
     graphkb_conn: GraphKBConnection,
     variants: List[Dict],
@@ -179,14 +248,11 @@ def annotate_category_variants(
             else:
                 matches = match_expression_variant(graphkb_conn, gene, variant)
 
-            if matches:
-                statements = get_statements_from_variants(graphkb_conn, matches)
-                for ipr_row in convert_statements_to_alterations(
-                    graphkb_conn, statements, disease_name, convert_to_rid_set(matches)
-                ):
-                    new_row = {'variant': row['key'], 'variantType': row['variantType']}
-                    new_row.update(ipr_row)
-                    alterations.append(new_row)
+            for ipr_row in get_ipr_statements_from_variants(graphkb_conn, matches, disease_name):
+                new_row = {'variant': row['key'], 'variantType': row['variantType']}
+                new_row.update(ipr_row)
+                alterations.append(new_row)
+
         except FeatureNotFoundError as err:
             problem_genes.add(gene)
             logger.debug(f'Unrecognized gene ({gene} {variant}): {err}')
@@ -237,15 +303,11 @@ def annotate_positional_variants(
         try:
             matches = match_positional_variant(graphkb_conn, variant)
 
-            if matches:
-                statements = get_statements_from_variants(graphkb_conn, matches)
+            for ipr_row in get_ipr_statements_from_variants(graphkb_conn, matches, disease_name):
+                new_row = {'variant': row['key'], 'variantType': row['variantType']}
+                new_row.update(ipr_row)
+                alterations.append(new_row)
 
-                for ipr_row in convert_statements_to_alterations(
-                    graphkb_conn, statements, disease_name, convert_to_rid_set(matches)
-                ):
-                    new_row = {'variant': row['key'], 'variantType': row['variantType']}
-                    new_row.update(ipr_row)
-                    alterations.append(new_row)
         except FeatureNotFoundError as err:
             logger.debug(f'failed to match positional variants ({variant}): {err}')
             errors += 1

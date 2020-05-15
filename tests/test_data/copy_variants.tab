@@ -1282,7 +1282,7 @@ q12	GAS2L2	Neutral		0	20507869	36352368	HET
 p25.3	SLC6A11	Neutral		0	60001	129860130	HET	
 p11.32	EMILIN2	Neutral		0	10624	14357330	HET	
 p15.4	RRP8	Neutral		0	122769	134945293	HET	
-q37.3	IQCA1	Homozygous Loss	shallow deletion	deep deletion	-1	236319282	241260662	DLOH	deep deletion
+q37.3	IQCA1	Homozygous Loss	deep deletion	-1	236319282	241260662	DLOH	deep deletion
 q37.3	SCLY	Loss	shallow deletion	-1	236319282	241260662	DLOH	shallow deletion
 q26.2	PTPRE	Neutral		0	89658148	135524059	HET	
 p13.3	RAP1GAP2	Neutral		0	4	16578446	HET	
