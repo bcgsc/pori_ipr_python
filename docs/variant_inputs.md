@@ -8,11 +8,11 @@ use a tab delimited format. The column names, types and example inputs are shown
 
 ### Required Columns
 
-| Column           | Type   | Description                                                            |
-| ---------------- | ------ | ---------------------------------------------------------------------- |
-| gene             | string | the gene name (or source identifier)                                   |
-| variant          | string | the graphkb expression variant vocabulary term this variant belongs to |
-| expression_class | string | the variant used for display in the report                             |
+| Column          | Type   | Description                                                            |
+| --------------- | ------ | ---------------------------------------------------------------------- |
+| gene            | string | the gene name (or source identifier)                                   |
+| kbCategory      | string | the graphkb expression variant vocabulary term this variant belongs to |
+| expressionState | string | the variant used for display in the report                             |
 
 
 ### Optional Columns
@@ -77,10 +77,10 @@ Small mutations are composed of indels and single nucleotide variants.
 
 ### Required Columns
 
-| Column  | Type   | Example | Description                                                      |
-| ------- | ------ | ------- | ---------------------------------------------------------------- |
-| gene    | string | KRAS    | the gene name                                                    |
-| variant | string |         | the graphkb copy variant vocabulary term this variant belongs to |
+| Column     | Type   | Example | Description                                                      |
+| ---------- | ------ | ------- | ---------------------------------------------------------------- |
+| gene       | string | KRAS    | the gene name                                                    |
+| kbCategory | string |         | the graphkb copy variant vocabulary term this variant belongs to |
 
 
 ### Optional Columns
@@ -120,4 +120,3 @@ Small mutations are composed of indels and single nucleotide variants.
 | svg              | string  |         | svg image file for this SV                                              |
 | svgTitle         | string  |         | title for the svg                                                       |
 | omicSupport      | boolean |         | flag to indicate this SV has support from both genome and transcriptome |
-

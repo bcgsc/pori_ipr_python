@@ -14,7 +14,8 @@ from .util import hash_key, logger
 protein_letters_3to1.setdefault('Ter', '*')
 
 NULLABLE_FLOAT_REGEX = r'^-?((inf)|(\d+(\.\d+)?)|)$'
-COPY_REQ = ['gene', 'variant']  # 'variant' in INPUT_COPY_CATEGORIES
+# 'cnvState' is for display
+COPY_REQ = ['gene', 'kbCategory', 'cnvState']
 COPY_OPTIONAL = [
     'ploidyCorrCpChange',
     'lohState',  # Loss of Heterzygosity state - informative detail to analyst
@@ -26,8 +27,8 @@ COPY_OPTIONAL = [
 SMALL_MUT_REQ = ['location', 'refAlt', 'gene', 'proteinChange', 'transcript']
 SMALL_MUT_OPTIONAL = ['zygosity', 'tumourReads', 'rnaReads', 'detectedIn']
 
-# 'expression_class', is for display
-EXP_REQ = ['gene', 'variant', 'expression_class']
+# 'expressionState' is for display
+EXP_REQ = ['gene', 'kbCategory', 'expressionState']
 EXP_OPTIONAL = [
     'rnaReads',
     'rpkm',
@@ -156,30 +157,17 @@ def validate_row_patterns(rows: List[Dict], patterns: Dict):
 
 
 def load_copy_variants(filename: str) -> List[Dict]:
-    # default map for display - concise names
-    COPY_VARIANT2CNVSTATE = {
-        INPUT_COPY_CATEGORIES.DEEP: "Deep Loss",
-        INPUT_COPY_CATEGORIES.AMP: "Amplification",
-        INPUT_COPY_CATEGORIES.GAIN: "Gain",
-        INPUT_COPY_CATEGORIES.LOSS: "Loss",
-    }
-
     def row_key(row):
         return ('cnv', row['gene'])
 
     result = load_variant_file(filename, COPY_REQ, COPY_OPTIONAL, row_key)
 
-    # verify the copy number category is valid or blank
-    patterns = {'variant': f'({"|".join(INPUT_COPY_CATEGORIES.values())}|)'}
-    validate_row_patterns(result, patterns)
-
     for row in result:
-        if row['variant'] and row['variant'] not in COPY_VARIANT2CNVSTATE:
+        if row['kbCategory'] and row['kbCategory'] not in INPUT_COPY_CATEGORIES.values():
             raise ValueError(
-                f'invalid copy variant value ({row["variant"]}) in filename {filename}'
+                f'invalid copy variant kbCategory value ({row["kbCategory"]}) in filename {filename}'
             )
-        # Create a 'cnvState' displayed variant label
-        row['cnvState'] = COPY_VARIANT2CNVSTATE.get(row['variant'], '')
+        row['variant'] = row['kbCategory']
         row['variantType'] = 'cnv'
 
     return result
@@ -233,15 +221,13 @@ def load_expression_variants(filename):
 
     errors = []
     for row in result:
+        row['variant'] = row['kbCategory']
+
         if row['variant']:
             if row['variant'] not in INPUT_EXPRESSION_CATEGORIES.values():
-                err_msg = (
-                    f"{row['gene']} variant '{row['variant']}' not in {INPUT_EXPRESSION_CATEGORIES}"
-                )
+                err_msg = f"{row['gene']} variant '{row['variant']}' not in {INPUT_EXPRESSION_CATEGORIES.values()}"
                 errors.append(err_msg)
                 logger.error(err_msg)
-        else:
-            row['expression_class'] = ''
         row['variantType'] = 'exp'
 
         for col in float_columns:
@@ -279,7 +265,7 @@ def create_graphkb_sv_notation(row: Dict) -> str:
 
 
 def load_structural_variants(filename: str) -> List[Dict]:
-    def row_key(row):
+    def row_key(row: Dict) -> Tuple:
         return tuple(['sv'] + [row[key] for key in SV_KEY])
 
     result = load_variant_file(filename, SV_REQ, SV_OPTIONAL, row_key)
