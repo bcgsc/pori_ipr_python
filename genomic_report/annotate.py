@@ -146,6 +146,7 @@ def annotate_category_variants(
     variants: List[Dict],
     disease_name: str,
     copy_variant: bool = True,
+    show_progress: bool = False,
 ) -> List[Dict]:
     """
     Annotate variant calls with information from GraphKB and return these annotations in the IPR
@@ -163,7 +164,8 @@ def annotate_category_variants(
     problem_genes = set()
 
     logger.info(f"Starting annotation of {len(variants)} category_variants")
-    for row in progressbar(variants):
+    iterfunc = progressbar if show_progress else iter
+    for row in iterfunc(variants):
         gene = row['gene']
         variant = row['variant']
 
@@ -203,7 +205,10 @@ def annotate_category_variants(
 
 
 def annotate_positional_variants(
-    graphkb_conn: GraphKBConnection, variants: List[Dict], disease_name: str
+    graphkb_conn: GraphKBConnection,
+    variants: List[Dict],
+    disease_name: str,
+    show_progress: bool = False,
 ) -> List[Dict]:
     """
     Annotate variant calls with information from GraphKB and return these annotations in the IPR
@@ -220,7 +225,8 @@ def annotate_positional_variants(
     alterations = []
     problem_genes = set()
 
-    for row in progressbar(variants):
+    iterfunc = progressbar if show_progress else iter
+    for row in iterfunc(variants):
         variant = row['variant']
 
         if not row.get('gene', '') and (not row.get('gene1', '') or not row.get('gene2', '')):
