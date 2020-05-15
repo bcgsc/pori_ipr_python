@@ -235,7 +235,7 @@ def create_key_alterations(
 
         if variant_type == 'exp':
             gene = variant['gene']
-            alterations.append(f'{gene} ({variant["expression_class"]})')
+            alterations.append(f'{gene} ({variant["expressionState"]})')
         elif variant_type == 'cnv':
             gene = variant['gene']
             alterations.append(f'{gene} ({variant["cnvState"]})')
