@@ -15,7 +15,7 @@ protein_letters_3to1.setdefault('Ter', '*')
 
 NULLABLE_FLOAT_REGEX = r'^-?((inf)|(\d+(\.\d+)?)|)$'
 # 'cnvState' is for display
-COPY_REQ = ['gene', 'kbCategory', 'cnvState']  # 'variant' in INPUT_COPY_CATEGORIES
+COPY_REQ = ['gene', 'kbCategory', 'cnvState']
 COPY_OPTIONAL = [
     'ploidyCorrCpChange',
     'lohState',  # Loss of Heterzygosity state - informative detail to analyst
