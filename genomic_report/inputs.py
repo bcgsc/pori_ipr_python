@@ -167,10 +167,10 @@ def validate_row_patterns(rows: List[Dict], patterns: Dict) -> None:
 def load_copy_variants(filename: str) -> List[Dict]:
     # default map for display - concise names
     KBCAT2CNVSTATE = {
-        INPUT_COPY_CATEGORIES.DEEP: "Deep Loss",
-        INPUT_COPY_CATEGORIES.AMP: "Amplification",
-        INPUT_COPY_CATEGORIES.GAIN: "Gain",
-        INPUT_COPY_CATEGORIES.LOSS: "Loss",
+        INPUT_COPY_CATEGORIES.DEEP: "deep deletion",
+        INPUT_COPY_CATEGORIES.AMP: "amplification",
+        INPUT_COPY_CATEGORIES.GAIN: "copy gain",
+        INPUT_COPY_CATEGORIES.LOSS: "copy loss",
     }
 
     def row_key(row: Dict) -> Tuple[str]:
