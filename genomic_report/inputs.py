@@ -198,9 +198,9 @@ def load_small_mutations(filename: str) -> List[Dict]:
 
     result = load_variant_file(filename, SMALL_MUT_REQ, SMALL_MUT_OPTIONAL, row_key)
 
-    # patterns = {'location': r'^\w+:\d+$', 'refAlt': r'^[A-Z]+>[A-Z]+$'}
-    #
-    # validate_row_patterns(result, patterns)
+    patterns = {'location': r'^\w+:\d+$', 'refAlt': r'^[A-Z]+>[A-Z]+$'}
+
+    validate_row_patterns(result, patterns)
 
     # change 3 letter AA to 1 letter AA notation
     for row in result:
