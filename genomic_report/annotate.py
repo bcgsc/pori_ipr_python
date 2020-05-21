@@ -7,6 +7,7 @@ from graphkb import GraphKBConnection
 from graphkb.constants import BASE_RETURN_PROPERTIES, GENERIC_RETURN_PROPERTIES
 from graphkb.genes import get_oncokb_oncogenes, get_oncokb_tumour_supressors
 from graphkb.match import (
+    INPUT_COPY_CATEGORIES,
     get_equivalent_features,
     match_category_variant,
     match_copy_variant,
@@ -239,6 +240,11 @@ def annotate_category_variants(
         variant = row['variant']
 
         if not variant:
+            skipped += 1
+            continue
+
+        if copy_variant and variant not in [INPUT_COPY_CATEGORIES.AMP, INPUT_COPY_CATEGORIES.DEEP]:
+            # https://www.bcgsc.ca/jira/browse/GERO-77
             skipped += 1
             continue
 
