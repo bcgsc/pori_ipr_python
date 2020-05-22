@@ -141,7 +141,7 @@ def load_variant_file(
     return result
 
 
-def validate_row_patterns(rows: List[Dict], patterns: Dict) -> None:
+def validate_row_patterns(rows: List[Dict], patterns: Dict, row_key_columns: List[str]) -> None:
     """
     Validate rows against a regex for some set of columns
 
@@ -155,10 +155,7 @@ def validate_row_patterns(rows: List[Dict], patterns: Dict) -> None:
     for row in rows:
         for col, pattern in patterns.items():
             if not re.match(pattern, '' if row[col] is None else row[col]):
-                row_repr_keys = [
-                    key for key in row.keys() if key in COPY_KEY + EXP_KEY + SMALL_MUT_KEY + SV_KEY
-                ]
-                row_repr_dict = dict((key, row[key]) for key in row_repr_keys)
+                row_repr_dict = dict((key, row[key]) for key in row_key_columns)
                 raise ValueError(
                     f'{row_repr_dict} column {col}: "{row[col]}" re pattern failure: "{pattern}"'
                 )
@@ -200,7 +197,7 @@ def load_small_mutations(filename: str) -> List[Dict]:
 
     patterns = {'location': r'^\w+:\d+$', 'refAlt': r'^[A-Z]+>[A-Z]+$'}
 
-    validate_row_patterns(result, patterns)
+    validate_row_patterns(result, patterns, SMALL_MUT_KEY)
 
     # change 3 letter AA to 1 letter AA notation
     for row in result:
@@ -229,7 +226,7 @@ def load_expression_variants(filename: str) -> List[Dict]:
     for col in float_columns:
         if col not in patterns:
             patterns[col] = NULLABLE_FLOAT_REGEX
-    validate_row_patterns(result, patterns)
+    validate_row_patterns(result, patterns, EXP_KEY)
 
     errors = []
     for row in result:
@@ -292,7 +289,7 @@ def load_structural_variants(filename: str) -> List[Dict]:
         'exon1': EXON_PATTERN,
         'exon2': EXON_PATTERN,
     }
-    validate_row_patterns(result, patterns)
+    validate_row_patterns(result, patterns, SV_KEY)
 
     for row in result:
         row['variant'] = create_graphkb_sv_notation(row)
