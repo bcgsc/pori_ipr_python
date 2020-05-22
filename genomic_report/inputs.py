@@ -166,7 +166,7 @@ def validate_row_patterns(rows: List[Dict], patterns: Dict) -> None:
 
 def load_copy_variants(filename: str) -> List[Dict]:
     # default map for display - concise names
-    KBCAT2CNVSTATE = {
+    display_name_mapping = {
         INPUT_COPY_CATEGORIES.DEEP: "deep deletion",
         INPUT_COPY_CATEGORIES.AMP: "amplification",
         INPUT_COPY_CATEGORIES.GAIN: "copy gain",
@@ -185,7 +185,7 @@ def load_copy_variants(filename: str) -> List[Dict]:
                     f'invalid copy variant kbCategory value ({row["kbCategory"]}) in filename {filename}'
                 )
             if not row['cnvState']:  # apply default short display name
-                row['cnvState'] = KBCAT2CNVSTATE[row['kbCategory']]
+                row['cnvState'] = display_name_mapping[row['kbCategory']]
         row['variant'] = row['kbCategory']
         row['variantType'] = 'cnv'
 
