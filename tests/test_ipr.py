@@ -1,3 +1,4 @@
+from typing import Dict
 from unittest.mock import Mock
 
 import pytest
@@ -29,7 +30,7 @@ def graphkb_conn():
     return conn
 
 
-def base_graphkb_statement(disease_id='disease'):
+def base_graphkb_statement(disease_id: str = 'disease') -> Dict:
     statement = {
         'conditions': [
             {'@class': 'Disease', '@rid': disease_id, 'displayName': 'disease_display_name'},
@@ -50,7 +51,7 @@ def base_graphkb_statement(disease_id='disease'):
 
 
 class TestConvertStatementsToAlterations:
-    def test_disease_match(self, graphkb_conn):
+    def test_disease_match(self, graphkb_conn) -> None:
         statement = base_graphkb_statement('disease')
         result = convert_statements_to_alterations(
             graphkb_conn, [statement], 'disease', {'variant_rid'}
@@ -64,7 +65,7 @@ class TestConvertStatementsToAlterations:
         assert row['kbVariant'] == 'KRAS increased expression'
         assert row['relevance'] == 'relevance_display_name'
 
-    def test_no_disease_match(self, graphkb_conn):
+    def test_no_disease_match(self, graphkb_conn) -> None:
         statement = base_graphkb_statement('other')
         result = convert_statements_to_alterations(
             graphkb_conn, [statement], 'disease', {'variant_rid'}
@@ -74,7 +75,7 @@ class TestConvertStatementsToAlterations:
         row = result[0]
         assert not row['matchedCancer']
 
-    def test_multiple_disease_not_match(self, graphkb_conn):
+    def test_multiple_disease_not_match(self, graphkb_conn) -> None:
         statement = base_graphkb_statement('disease')
         statement['conditions'].append(
             {'@class': 'Disease', '@rid': 'other', 'displayName': 'disease_display_name'}
@@ -87,7 +88,7 @@ class TestConvertStatementsToAlterations:
         row = result[0]
         assert not row['matchedCancer']
 
-    def test_biological_statement(self, graphkb_conn):
+    def test_biological_statement(self, graphkb_conn) -> None:
         statement = base_graphkb_statement()
         statement['relevance']['@rid'] = 'bio1'
 
@@ -98,7 +99,7 @@ class TestConvertStatementsToAlterations:
         row = result[0]
         assert row['category'] == 'biological'
 
-    def test_prognostic_statement(self, graphkb_conn):
+    def test_prognostic_statement(self, graphkb_conn) -> None:
         statement = base_graphkb_statement()
         statement['relevance']['@rid'] = 'prog1'
 
@@ -109,7 +110,7 @@ class TestConvertStatementsToAlterations:
         row = result[0]
         assert row['category'] == 'prognostic'
 
-    def test_diagnostic_statement(self, graphkb_conn):
+    def test_diagnostic_statement(self, graphkb_conn) -> None:
         statement = base_graphkb_statement()
         statement['relevance']['@rid'] = 'diag1'
 
@@ -120,7 +121,7 @@ class TestConvertStatementsToAlterations:
         row = result[0]
         assert row['category'] == 'diagnostic'
 
-    def test_unapproved_therapeutic_statement(self, graphkb_conn):
+    def test_unapproved_therapeutic_statement(self, graphkb_conn) -> None:
         statement = base_graphkb_statement()
         statement['relevance']['@rid'] = 'ther1'
         statement['evidenceLevel'] = [{'@rid': 'other', 'displayName': 'level'}]
@@ -132,7 +133,7 @@ class TestConvertStatementsToAlterations:
         row = result[0]
         assert row['category'] == 'therapeutic'
 
-    def test_approved_therapeutic_statement(self, graphkb_conn):
+    def test_approved_therapeutic_statement(self, graphkb_conn) -> None:
         statement = base_graphkb_statement()
         statement['relevance']['@rid'] = 'ther1'
         statement['evidenceLevel'] = [{'@rid': 'approved1', 'displayName': 'level'}]
