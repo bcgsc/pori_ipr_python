@@ -27,9 +27,17 @@ COPY_OPTIONAL = [
     'end',
 ]
 
-SMALL_MUT_REQ = ['gene', 'proteinChange', 'location', 'transcript', 'refAlt']
-SMALL_MUT_KEY = SMALL_MUT_REQ
-SMALL_MUT_OPTIONAL = ['zygosity', 'tumourReads', 'rnaReads', 'detectedIn']
+SMALL_MUT_REQ = ['gene', 'proteinChange']
+SMALL_MUT_KEY = ['gene', 'proteinChange']
+SMALL_MUT_OPTIONAL = [
+    'location',
+    'transcript',
+    'refAlt',
+    'zygosity',
+    'tumourReads',
+    'rnaReads',
+    'detectedIn',
+]
 
 EXP_REQ = ['gene', 'kbCategory']
 EXP_KEY = ['gene']
@@ -197,10 +205,6 @@ def load_small_mutations(filename: str) -> List[IprGeneVariant]:
         return tuple(['small mutation'] + [row[key] for key in SMALL_MUT_KEY])
 
     result = load_variant_file(filename, SMALL_MUT_REQ, SMALL_MUT_OPTIONAL, row_key)
-
-    patterns = {'location': r'^\w+:\d+$', 'refAlt': r'^[A-Z]+>[A-Z]+$'}
-
-    validate_row_patterns(result, patterns, SMALL_MUT_KEY)
 
     # change 3 letter AA to 1 letter AA notation
     for row in result:
