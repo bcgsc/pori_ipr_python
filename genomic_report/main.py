@@ -3,7 +3,7 @@ import datetime
 import json
 import logging
 import os
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 from argparse_env import Action, ArgumentParser
 from graphkb import GraphKBConnection
@@ -18,6 +18,7 @@ from .inputs import (
     load_small_mutations,
     load_structural_variants,
 )
+from .types import KbMatch
 from .util import LOG_LEVELS, logger, trim_empty_values
 
 CACHE_GENE_MINIMUM = 5000
@@ -121,7 +122,7 @@ def create_report(
     optional_content: Optional[Dict] = None,
     interactive: bool = True,
     cache_gene_minimum: int = CACHE_GENE_MINIMUM,
-) -> None:
+) -> Optional[Dict]:
     """
     Run the matching and create the report JSON for upload to IPR
 
@@ -185,7 +186,7 @@ def create_report(
 
     # filter excess variants not required for extra gene information
     logger.info(f'annotating small mutations from: {small_mutations_file}')
-    alterations = annotate_positional_variants(
+    alterations: List[KbMatch] = annotate_positional_variants(
         graphkb_conn, small_mutations, kb_disease_match, show_progress=interactive
     )
 
