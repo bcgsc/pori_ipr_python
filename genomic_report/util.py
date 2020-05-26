@@ -1,7 +1,9 @@
 import hashlib
 import json
 import logging
-from typing import Dict, List, Mapping, Set, Tuple
+from typing import Dict, List, Set, Tuple
+
+from graphkb.types import Record
 
 # name the logger after the package to make it simple to disable for packages using this one as a dependency
 # https://stackoverflow.com/questions/11029717/how-do-i-disable-log-messages-from-the-requests-library
@@ -25,11 +27,11 @@ def hash_key(key: Tuple[str]) -> str:
     return hash_code
 
 
-def convert_to_rid_set(records: List[str]) -> Set[str]:
+def convert_to_rid_set(records: List[Record]) -> Set[str]:
     return {r['@rid'] for r in records}
 
 
-def trim_empty_values(obj: Mapping, empty_values: List = ['', None]) -> Dict:
+def trim_empty_values(obj: Dict, empty_values: List = ['', None]) -> Dict:
     blacklist = ['gene1', 'gene2']  # allow null for sv genes
     keys = list(obj.keys())
 

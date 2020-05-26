@@ -1,7 +1,7 @@
 """
 handles annotating variants with annotation information from graphkb
 """
-from typing import Dict, List, Set
+from typing import Dict, Iterable, List, Set
 
 from graphkb import GraphKBConnection
 from graphkb.constants import BASE_RETURN_PROPERTIES, GENERIC_RETURN_PROPERTIES
@@ -14,11 +14,13 @@ from graphkb.match import (
     match_expression_variant,
     match_positional_variant,
 )
+from graphkb.types import Record, Statement
 from graphkb.util import FeatureNotFoundError, convert_to_rid_list
 from progressbar import progressbar
 from requests.exceptions import HTTPError
 
 from .ipr import BASE_THERAPEUTIC_TERMS, convert_statements_to_alterations, get_terms_set
+from .types import IprGene, IprGeneVariant, IprVariant, KbMatch
 from .util import convert_to_rid_set, logger
 
 
@@ -52,7 +54,9 @@ def get_therapeutic_associated_genes(graphkb_conn: GraphKBConnection) -> Set[str
     return genes
 
 
-def get_gene_information(graphkb_conn: GraphKBConnection, gene_names: List[str]) -> List[Dict]:
+def get_gene_information(
+    graphkb_conn: GraphKBConnection, gene_names: Iterable[str]
+) -> List[IprGene]:
     """
     Create the Gene Info object for upload to IPR with the other report information
 
@@ -65,7 +69,7 @@ def get_gene_information(graphkb_conn: GraphKBConnection, gene_names: List[str])
         {'target': 'Variant', 'returnProperties': ['@class', 'reference1', 'reference2']}
     )
 
-    gene_flags = {
+    gene_flags: Dict[str, Set[str]] = {
         'cancerRelated': set(),
         'knownFusionPartner': set(),
         'knownSmallMutation': set(),
@@ -92,7 +96,7 @@ def get_gene_information(graphkb_conn: GraphKBConnection, gene_names: List[str])
     for gene_name in gene_names:
         equivalent = convert_to_rid_set(get_equivalent_features(graphkb_conn, gene_name))
 
-        row = {'name': gene_name}
+        row = IprGene({'name': gene_name})
 
         for flag in gene_flags:
             row[flag] = bool(equivalent & gene_flags[flag])
@@ -111,8 +115,8 @@ def get_gene_information(graphkb_conn: GraphKBConnection, gene_names: List[str])
 
 
 def get_statements_from_variants(
-    graphkb_conn: GraphKBConnection, variants: List[Dict]
-) -> List[Dict]:
+    graphkb_conn: GraphKBConnection, variants: List[Record]
+) -> List[Statement]:
     """
     Given a list of variant records from GraphKB, return all the related statements
 
@@ -143,25 +147,9 @@ def get_statements_from_variants(
     return statements
 
 
-def get_statements_from_statements(
-    graphkb_conn: GraphKBConnection, statements: List[Dict]
-) -> List[Dict]:
-    """
-    Given a list of matched statements, created variants from their subject + relevance and
-    then match these against the database as well. Exclude re-matching any statements which matched
-    from the original input statements
-
-    Args:
-        statements: statement records to pull
-
-    Returns:
-        list of statements which matched the inferred variants from the original statements
-    """
-
-
 def get_ipr_statements_from_variants(
-    graphkb_conn: GraphKBConnection, matches: List[str], disease_name: str
-) -> List[Dict]:
+    graphkb_conn: GraphKBConnection, matches: List[Record], disease_name: str
+) -> List[KbMatch]:
     """
     Matches to GraphKB statements from the list of input variants. From these results matches
     again with the inferred variants. Then returns the results formatted for upload to IPR
@@ -179,7 +167,7 @@ def get_ipr_statements_from_variants(
         rows.append(ipr_row)
 
     # second-pass matching
-    inferred_matches = {}
+    all_inferred_matches: Dict[str, Record] = {}
     inferred_variants = {
         (s['subject']['@rid'], s['relevance']['name'])
         for s in statements
@@ -192,8 +180,8 @@ def get_ipr_statements_from_variants(
         )
 
         for variant in variants:
-            inferred_matches[variant['@rid']] = variant
-    inferred_matches = list(inferred_matches.values())
+            all_inferred_matches[variant['@rid']] = variant
+    inferred_matches: List[Record] = list(all_inferred_matches.values())
 
     inferred_statements = [
         s
@@ -204,7 +192,7 @@ def get_ipr_statements_from_variants(
     for ipr_row in convert_statements_to_alterations(
         graphkb_conn, inferred_statements, disease_name, convert_to_rid_set(inferred_matches),
     ):
-        new_row = {'kbData': {'inferred': True}}
+        new_row = KbMatch({'kbData': {'inferred': True}})
         new_row.update(ipr_row)
         rows.append(new_row)
 
@@ -213,11 +201,11 @@ def get_ipr_statements_from_variants(
 
 def annotate_category_variants(
     graphkb_conn: GraphKBConnection,
-    variants: List[Dict],
+    variants: List[IprGeneVariant],
     disease_name: str,
     copy_variant: bool = True,
     show_progress: bool = False,
-) -> List[Dict]:
+) -> List[KbMatch]:
     """
     Annotate variant calls with information from GraphKB and return these annotations in the IPR
     alterations format
@@ -255,7 +243,7 @@ def annotate_category_variants(
                 matches = match_expression_variant(graphkb_conn, gene, variant)
 
             for ipr_row in get_ipr_statements_from_variants(graphkb_conn, matches, disease_name):
-                new_row = {'variant': row['key'], 'variantType': row['variantType']}
+                new_row = KbMatch({'variant': row['key'], 'variantType': row['variantType']})
                 new_row.update(ipr_row)
                 alterations.append(new_row)
 
@@ -278,10 +266,10 @@ def annotate_category_variants(
 
 def annotate_positional_variants(
     graphkb_conn: GraphKBConnection,
-    variants: List[Dict],
+    variants: List[IprVariant],
     disease_name: str,
     show_progress: bool = False,
-) -> List[Dict]:
+) -> List[KbMatch]:
     """
     Annotate variant calls with information from GraphKB and return these annotations in the IPR
     alterations format
@@ -310,7 +298,7 @@ def annotate_positional_variants(
             matches = match_positional_variant(graphkb_conn, variant)
 
             for ipr_row in get_ipr_statements_from_variants(graphkb_conn, matches, disease_name):
-                new_row = {'variant': row['key'], 'variantType': row['variantType']}
+                new_row = KbMatch({'variant': row['key'], 'variantType': row['variantType']})
                 new_row.update(ipr_row)
                 alterations.append(new_row)
 

@@ -4,7 +4,7 @@ from setuptools import find_packages, setup
 INSTALL_REQS = ['graphkb>=1.3.0', 'argparse-env==0.1.0', 'biopython==1.76', 'progressbar2==3.51.0']
 
 # Dependencies required for development
-DEV_REQS = ['flake8', 'black', 'flake8-annotations', 'isort']
+DEV_REQS = ['flake8', 'black', 'flake8-annotations', 'isort', 'mypy']
 
 # Dependencies required only for running tests
 TEST_REQS = ['pytest', 'pytest-cov']
@@ -42,6 +42,7 @@ setup(
         'test': TEST_REQS,
         'doc': DOC_REQS,
     },
+    package_data={'genomic_report': ['py.typed']},
     long_description=long_description,
     long_description_content_type=long_description_content_type,
     python_requires='>=3',

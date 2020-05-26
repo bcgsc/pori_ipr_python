@@ -4,11 +4,12 @@ Read/Validate the variant input files
 import os
 import re
 from csv import DictReader
-from typing import Callable, Dict, List, Set, Tuple
+from typing import Callable, Dict, List, Set, Tuple, cast
 
 from Bio.Data.IUPACData import protein_letters_3to1
 from graphkb.match import INPUT_COPY_CATEGORIES, INPUT_EXPRESSION_CATEGORIES
 
+from .types import IprGeneVariant, IprStructuralVariant, IprVariant
 from .util import hash_key, logger
 
 protein_letters_3to1.setdefault('Ter', '*')
@@ -91,7 +92,7 @@ SV_OPTIONAL = [
 
 def load_variant_file(
     filename: str, required: List[str], optional: List[str], row_to_key: Callable
-) -> List[Dict]:
+) -> List[IprVariant]:
     """
     Load a tab delimited file and
     - check that the required columns are present
@@ -136,12 +137,14 @@ def load_variant_file(
             row['key'] = row_key
             keys.add(row_key)
 
-            result.append({col: row.get(col, '') for col in header})
+            result.append(cast(IprVariant, {col: row.get(col, '') for col in header}))
 
     return result
 
 
-def validate_row_patterns(rows: List[Dict], patterns: Dict, row_key_columns: List[str]) -> None:
+def validate_row_patterns(
+    rows: List[IprVariant], patterns: Dict, row_key_columns: List[str]
+) -> None:
     """
     Validate rows against a regex for some set of columns
 
@@ -161,7 +164,7 @@ def validate_row_patterns(rows: List[Dict], patterns: Dict, row_key_columns: Lis
                 )
 
 
-def load_copy_variants(filename: str) -> List[Dict]:
+def load_copy_variants(filename: str) -> List[IprVariant]:
     # default map for display - concise names
     display_name_mapping = {
         INPUT_COPY_CATEGORIES.DEEP: "deep deletion",
@@ -170,7 +173,7 @@ def load_copy_variants(filename: str) -> List[Dict]:
         INPUT_COPY_CATEGORIES.LOSS: "copy loss",
     }
 
-    def row_key(row: Dict) -> Tuple[str]:
+    def row_key(row: Dict) -> Tuple[str, ...]:
         return tuple(['cnv'] + [row[key] for key in COPY_KEY])
 
     result = load_variant_file(filename, COPY_REQ, COPY_OPTIONAL, row_key)
@@ -189,8 +192,8 @@ def load_copy_variants(filename: str) -> List[Dict]:
     return result
 
 
-def load_small_mutations(filename: str) -> List[Dict]:
-    def row_key(row: Dict) -> Tuple[str]:
+def load_small_mutations(filename: str) -> List[IprGeneVariant]:
+    def row_key(row: Dict) -> Tuple[str, ...]:
         return tuple(['small mutation'] + [row[key] for key in SMALL_MUT_KEY])
 
     result = load_variant_file(filename, SMALL_MUT_REQ, SMALL_MUT_OPTIONAL, row_key)
@@ -210,8 +213,8 @@ def load_small_mutations(filename: str) -> List[Dict]:
     return result
 
 
-def load_expression_variants(filename: str) -> List[Dict]:
-    def row_key(row: Dict) -> Tuple[str]:
+def load_expression_variants(filename: str) -> List[IprGeneVariant]:
+    def row_key(row: Dict) -> Tuple[str, ...]:
         return tuple(['expression'] + [row[key] for key in EXP_KEY])
 
     result = load_variant_file(filename, EXP_REQ, EXP_OPTIONAL, row_key)
@@ -257,7 +260,7 @@ def load_expression_variants(filename: str) -> List[Dict]:
     return result
 
 
-def create_graphkb_sv_notation(row: Dict) -> str:
+def create_graphkb_sv_notation(row: IprStructuralVariant) -> str:
     """
     Generate GKB style structural variant notation from a structural variant input row
     """
@@ -275,8 +278,8 @@ def create_graphkb_sv_notation(row: Dict) -> str:
     return f'({gene1},{gene2}):fusion(e.{exon1},e.{exon2})'
 
 
-def load_structural_variants(filename: str) -> List[Dict]:
-    def row_key(row: Dict) -> Tuple[str]:
+def load_structural_variants(filename: str) -> List[IprVariant]:
+    def row_key(row: Dict) -> Tuple[str, ...]:
         return tuple(['sv'] + [row[key] for key in SV_KEY])
 
     result = load_variant_file(filename, SV_REQ, SV_OPTIONAL, row_key)
@@ -311,10 +314,10 @@ def load_structural_variants(filename: str) -> List[Dict]:
 
 
 def check_variant_links(
-    small_mutations: List[Dict],
-    expression_variants: List[Dict],
-    copy_variants: List[Dict],
-    structural_variants: List[Dict],
+    small_mutations: List[IprGeneVariant],
+    expression_variants: List[IprGeneVariant],
+    copy_variants: List[IprGeneVariant],
+    structural_variants: List[IprStructuralVariant],
 ) -> Set[str]:
     """
     Check matching information for any genes with variants.

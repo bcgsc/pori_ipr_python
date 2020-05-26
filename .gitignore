@@ -2,6 +2,7 @@
 # python generated files
 *.pyc
 __pycache__
+*_cache
 .pytest
 *.egg-info
 bin
@@ -11,7 +12,7 @@ build
 .coverage
 
 # common virtual environment names
-venv
+venv*
 env
 
 # editors
@@ -26,4 +27,3 @@ env
 # docs
 docs/reference
 build-docs
-
