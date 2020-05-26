@@ -1,4 +1,5 @@
 import os
+from typing import Dict, List
 
 import pytest
 from graphkb import GraphKBConnection
@@ -7,7 +8,7 @@ from genomic_report.annotate import get_gene_information
 
 
 @pytest.fixture(scope='class')
-def genes():
+def genes() -> List[Dict]:
     graphkb_conn = GraphKBConnection()
     graphkb_conn.login(os.environ['USERNAME'], os.environ['PASSWORD'])
 
@@ -15,41 +16,41 @@ def genes():
 
 
 class TestGetGeneInformation:
-    def test_fetches_tumour_suppressors(self, genes):
+    def test_fetches_tumour_suppressors(self, genes: List[Dict]) -> None:
         assert genes
         gene = [g for g in genes if g['name'] == 'cdkn2a']
         assert gene
         assert 'tumourSuppressor' in gene[0]
         assert gene[0]['tumourSuppressor']
 
-    def test_fetches_oncogenes(self, genes):
+    def test_fetches_oncogenes(self, genes: List[Dict]) -> None:
         assert genes
         gene = [g for g in genes if g['name'] == 'kras']
         assert gene
         assert 'oncogene' in gene[0]
         assert gene[0]['oncogene']
 
-    def test_fetches_cancer_genes(self, genes):
+    def test_fetches_cancer_genes(self, genes: List[Dict]) -> None:
         assert genes
         cancer_genes = [g for g in genes if g.get('cancerRelated', False)]
         assert cancer_genes
 
-    def test_ignores_noninteresting_genes(self, genes):
+    def test_ignores_noninteresting_genes(self, genes: List[Dict]) -> None:
         assert genes
         names = [g['name'] for g in genes]
         assert 'blargh-monkeys' not in names
 
-    def test_fetches_fusion_partner_genes(self, genes):
+    def test_fetches_fusion_partner_genes(self, genes: List[Dict]) -> None:
         assert genes
         names = [g['name'] for g in genes if g.get('knownFusionPartner')]
         assert 'ewsr1' in names
 
-    def test_fetches_small_mutation_genes(self, genes):
+    def test_fetches_small_mutation_genes(self, genes: List[Dict]) -> None:
         assert genes
         names = [g['name'] for g in genes if g.get('knownSmallMutation')]
         assert 'kras' in names
 
-    def test_fetches_therapeutic_genes(self, genes):
+    def test_fetches_therapeutic_genes(self, genes: List[Dict]) -> None:
         assert genes
         names = [g['name'] for g in genes if g.get('therapeuticAssociated')]
         assert 'cdkn2a' in names

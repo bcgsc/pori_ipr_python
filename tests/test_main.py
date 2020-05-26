@@ -1,4 +1,5 @@
 import os
+from typing import Dict
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -12,7 +13,7 @@ def get_test_file(name: str) -> str:
 
 
 @pytest.fixture(scope='module')
-def report_upload_content():
+def report_upload_content() -> Dict:
     mock = MagicMock()
     with patch.object(IprConnection, 'upload_report', new=mock):
         create_report(
@@ -36,7 +37,7 @@ def report_upload_content():
     return report_content
 
 
-def test_main_sections_present(report_upload_content):
+def test_main_sections_present(report_upload_content: Dict) -> None:
     sections = set(report_upload_content.keys())
 
     for section in [
@@ -50,27 +51,26 @@ def test_main_sections_present(report_upload_content):
         assert section in sections
 
 
-def test_pass_through_content_added(report_upload_content):
+def test_pass_through_content_added(report_upload_content: Dict) -> None:
     # check the passthorough content was added
     assert 'blargh' in report_upload_content
 
 
-@pytest.mark.skip('TODO: currently unsupported by IPR')
-def test_found_fusion_partner_gene(report_upload_content):
+def test_found_fusion_partner_gene(report_upload_content: Dict) -> None:
     genes = report_upload_content['genes']
     assert any([g.get('knownFusionPartner', False) for g in genes])
 
 
-def test_found_oncogene(report_upload_content):
+def test_found_oncogene(report_upload_content: Dict) -> None:
     genes = report_upload_content['genes']
     assert any([g.get('oncogene', False) for g in genes])
 
 
-def test_found_tumour_supressor(report_upload_content):
+def test_found_tumour_supressor(report_upload_content: Dict) -> None:
     genes = report_upload_content['genes']
     assert any([g.get('tumourSuppressor', False) for g in genes])
 
 
-def test_found_cancer_related_gene(report_upload_content):
+def test_found_cancer_related_gene(report_upload_content: Dict) -> None:
     genes = report_upload_content['genes']
     assert any([g.get('cancerRelated', False) for g in genes])

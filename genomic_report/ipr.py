@@ -309,5 +309,5 @@ class IprConnection:
             **kwargs,
         )
 
-    def upload_report(self, content):
+    def upload_report(self, content: Dict) -> Dict:
         return self.post('/reports', content)
