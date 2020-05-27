@@ -45,7 +45,7 @@ setup(
     package_data={'genomic_report': ['py.typed']},
     long_description=long_description,
     long_description_content_type=long_description_content_type,
-    python_requires='>=3',
+    python_requires='>=3.6',
     author_email='creisle',
     author='creisle@bcgsc.ca',
     maintainer='creisle',
