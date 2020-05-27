@@ -3,10 +3,11 @@ nav:
   - Home: index.md
   - Variant Inputs: variant_inputs.md
   - Reference:
-      - genomic_report.main: reference/genomic_report/main.md
       - genomic_report.annotate: reference/genomic_report/annotate.md
-      - genomic_report.ipr: reference/genomic_report/ipr.md
       - genomic_report.inputs: reference/genomic_report/inputs.md
+      - genomic_report.ipr: reference/genomic_report/ipr.md
+      - genomic_report.main: reference/genomic_report/main.md
+      - genomic_report.types: reference/genomic_report/types.md
 theme:
   name: "material"
 repo_url: https://svn.bcgsc.ca/bitbucket/projects/SDEV/repos/genomic_report
