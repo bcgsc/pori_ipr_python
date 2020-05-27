@@ -1,7 +1,12 @@
 from setuptools import find_packages, setup
 
 # Dependencies required to use your package
-INSTALL_REQS = ['graphkb>=1.3.1', 'argparse-env==0.1.0', 'biopython==1.76', 'progressbar2==3.51.0']
+INSTALL_REQS = [
+    'graphkb>=1.3.1, <2',
+    'argparse-env==0.1.0',
+    'biopython==1.76',
+    'progressbar2==3.51.0',
+]
 
 # Dependencies required for development
 DEV_REQS = ['flake8', 'black', 'flake8-annotations', 'isort', 'mypy']
