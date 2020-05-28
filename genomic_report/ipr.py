@@ -3,13 +3,15 @@ upload variant and report information to IPR
 """
 import json
 import zlib
-from typing import Dict, List, Tuple
+from typing import Dict, Iterable, List, Set, Tuple
 
 import requests
 from graphkb import GraphKBConnection
+from graphkb.types import Ontology, Statement
 from graphkb.util import IterableNamespace
 from graphkb.vocab import get_term_tree
 
+from .types import ImageDefinition, IprVariant, KbMatch
 from .util import convert_to_rid_set
 
 BASE_THERAPEUTIC_TERMS = ['therapeutic efficacy', 'eligibility']
@@ -44,7 +46,16 @@ DEFAULT_URL = 'https://iprdev-api.bcgsc.ca/api'
 DEFAULT_LIMIT = 1000
 
 
-def display_evidence_levels(statement: Dict) -> str:
+def get_terms_set(graphkb_conn: GraphKBConnection, base_terms: List[str]) -> Set[str]:
+    terms = set()
+    for base_term in base_terms:
+        terms.update(
+            convert_to_rid_set(get_term_tree(graphkb_conn, base_term, include_superclasses=False))
+        )
+    return terms
+
+
+def display_evidence_levels(statement: Statement) -> str:
     result = []
 
     for evidence_level in statement.get('evidenceLevel', []) or []:
@@ -53,7 +64,7 @@ def display_evidence_levels(statement: Dict) -> str:
     return ';'.join(sorted(result))
 
 
-def get_approved_evidence_levels(graphkb_conn: GraphKBConnection) -> List[Dict]:
+def get_approved_evidence_levels(graphkb_conn: GraphKBConnection) -> List[Ontology]:
     filters = []
     for source, names in APPROVED_EVIDENCE_LEVELS.items():
         filters.append(
@@ -69,10 +80,10 @@ def get_approved_evidence_levels(graphkb_conn: GraphKBConnection) -> List[Dict]:
 
 def convert_statements_to_alterations(
     graphkb_conn: GraphKBConnection,
-    statements: List[Dict],
+    statements: List[Statement],
     disease_name: str,
-    variant_matches: List[Dict],
-) -> List[Dict]:
+    variant_matches: Iterable[str],
+) -> List[KbMatch]:
     """
     Given a set of statements matched from graphkb, convert these into their IPR equivalent representations
 
@@ -102,22 +113,10 @@ def convert_statements_to_alterations(
 
     approved = convert_to_rid_set(get_approved_evidence_levels(graphkb_conn))
 
-    therapeutic_terms = set()
-    for base_term in BASE_THERAPEUTIC_TERMS:
-        therapeutic_terms.update(
-            convert_to_rid_set(get_term_tree(graphkb_conn, base_term, include_superclasses=False))
-        )
-    diagnostic_terms = convert_to_rid_set(
-        get_term_tree(graphkb_conn, BASE_DIAGNOSTIC_TERM, include_superclasses=False)
-    )
-    prognostic_terms = convert_to_rid_set(
-        get_term_tree(graphkb_conn, BASE_PROGNOSTIC_TERM, include_superclasses=False)
-    )
-    biological_terms = set()
-    for base_term in BASE_BIOLOGICAL_TERMS:
-        biological_terms.update(
-            convert_to_rid_set(get_term_tree(graphkb_conn, base_term, include_superclasses=False))
-        )
+    therapeutic_terms = get_terms_set(graphkb_conn, BASE_THERAPEUTIC_TERMS)
+    diagnostic_terms = get_terms_set(graphkb_conn, [BASE_DIAGNOSTIC_TERM])
+    prognostic_terms = get_terms_set(graphkb_conn, [BASE_PROGNOSTIC_TERM])
+    biological_terms = get_terms_set(graphkb_conn, BASE_BIOLOGICAL_TERMS)
 
     for statement in statements:
         variants = [c for c in statement['conditions'] if c['@class'] in VARIANT_CLASSES]
@@ -151,24 +150,28 @@ def convert_statements_to_alterations(
         for variant in variants:
             if variant['@rid'] not in variant_matches:
                 continue
-            row = {
-                'approvedTherapy': approved_therapy,
-                'category': ipr_section,
-                'context': (statement['subject']['displayName'] if statement['subject'] else None),
-                'disease': ';'.join(sorted(d['displayName'] for d in diseases)),
-                'evidenceLevel': display_evidence_levels(statement),
-                'kbStatementId': statement['@rid'],
-                'kbVariant': variant['displayName'],
-                'kbVariantId': variant['@rid'],
-                'matchedCancer': disease_match,
-                'reference': pmid,
-                'relevance': statement['relevance']['displayName'],
-            }
+            row = KbMatch(
+                {
+                    'approvedTherapy': approved_therapy,
+                    'category': ipr_section,
+                    'context': (
+                        statement['subject']['displayName'] if statement['subject'] else None
+                    ),
+                    'disease': ';'.join(sorted(d['displayName'] for d in diseases)),
+                    'evidenceLevel': display_evidence_levels(statement),
+                    'kbStatementId': statement['@rid'],
+                    'kbVariant': variant['displayName'],
+                    'kbVariantId': variant['@rid'],
+                    'matchedCancer': disease_match,
+                    'reference': pmid,
+                    'relevance': statement['relevance']['displayName'],
+                }
+            )
             rows.append(row)
     return rows
 
 
-def find_variant(all_variants: List[Dict], variant_type: str, variant_key: str) -> List[Dict]:
+def find_variant(all_variants: List[IprVariant], variant_type: str, variant_key: str) -> IprVariant:
     """
     Find a variant in a list of variants by its key and type
     """
@@ -178,7 +181,9 @@ def find_variant(all_variants: List[Dict], variant_type: str, variant_key: str) 
     raise KeyError(f'expected variant ({variant_key}, {variant_type}) does not exist')
 
 
-def select_expression_plots(kb_matches: List[Dict], all_variants: List[Dict]) -> List[Dict]:
+def select_expression_plots(
+    kb_matches: List[KbMatch], all_variants: List[IprVariant]
+) -> List[Dict[str, ImageDefinition]]:
     """
     Given the list of expression variants, determine which expression
     historgram plots should be included in the IPR upload. This filters them
@@ -197,7 +202,7 @@ def select_expression_plots(kb_matches: List[Dict], all_variants: List[Dict]) ->
         for match in kb_matches
         if match['category'] == 'therapeutic'
     }
-    images_by_gene = {}
+    images_by_gene: Dict[str, ImageDefinition] = {}
     selected_genes = set()
     for variant in all_variants:
         if (variant['variantType'], variant['key']) in selected_variants:
@@ -206,12 +211,14 @@ def select_expression_plots(kb_matches: List[Dict], all_variants: List[Dict]) ->
                     selected_genes.add(variant[key])
         if variant.get('histogramImage', ''):
             gene = variant['gene']
-            images_by_gene[gene] = {'key': f'expDensity.{gene}', 'path': variant['histogramImage']}
+            images_by_gene[gene] = ImageDefinition(
+                {'key': f'expDensity.{gene}', 'path': variant['histogramImage']}
+            )
     return [images_by_gene[gene] for gene in selected_genes if gene in images_by_gene]
 
 
 def create_key_alterations(
-    kb_matches: List[Dict], all_variants: List[Dict],
+    kb_matches: List[KbMatch], all_variants: List[IprVariant],
 ) -> Tuple[List[Dict], Dict]:
     """
     Creates the list of genomic key alterations which summarizes all the variants matched by the KB
@@ -225,7 +232,7 @@ def create_key_alterations(
         'sv': "SVs",
         'exp': 'expressionOutliers',
     }
-    counts = {v: set() for v in type_mapping.values()}
+    counts: Dict[str, Set] = {v: set() for v in type_mapping.values()}
 
     for kb_match in kb_matches:
         variant_type = kb_match['variantType']
@@ -238,7 +245,7 @@ def create_key_alterations(
 
         if variant_type == 'exp':
             gene = variant['gene']
-            alterations.append(f'{gene} ({variant["expression_class"]})')
+            alterations.append(f'{gene} ({variant["expressionState"]})')
         elif variant_type == 'cnv':
             gene = variant['gene']
             alterations.append(f'{gene} ({variant["cnvState"]})')
@@ -272,7 +279,7 @@ class IprConnection:
             'Content-Type': 'application/json',
             'Content-Encoding': 'deflate',
         }
-        self.cache = {}
+        self.cache: Dict[str, List[Dict]] = {}
         self.request_count = 0
 
     def request(self, endpoint: str, method: str = 'GET', **kwargs) -> Dict:
@@ -312,5 +319,5 @@ class IprConnection:
             **kwargs,
         )
 
-    def upload_report(self, content):
+    def upload_report(self, content: Dict) -> Dict:
         return self.post('/reports', content)

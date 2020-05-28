@@ -1,52 +1,62 @@
 """
 handles annotating variants with annotation information from graphkb
 """
-from typing import Dict, List, Set, Tuple
+from typing import Dict, Iterable, List, Set
 
 from graphkb import GraphKBConnection
 from graphkb.constants import BASE_RETURN_PROPERTIES, GENERIC_RETURN_PROPERTIES
 from graphkb.genes import get_oncokb_oncogenes, get_oncokb_tumour_supressors
 from graphkb.match import (
+    INPUT_COPY_CATEGORIES,
     get_equivalent_features,
+    match_category_variant,
     match_copy_variant,
     match_expression_variant,
     match_positional_variant,
 )
+from graphkb.types import Record, Statement
 from graphkb.util import FeatureNotFoundError, convert_to_rid_list
 from progressbar import progressbar
 from requests.exceptions import HTTPError
 
-from .ipr import convert_statements_to_alterations
+from .ipr import BASE_THERAPEUTIC_TERMS, convert_statements_to_alterations, get_terms_set
+from .types import IprGene, IprGeneVariant, IprVariant, KbMatch
 from .util import convert_to_rid_set, logger
 
 
-def get_variant_related_genes(graphkb_conn: GraphKBConnection) -> Tuple[Set[str], Set[str]]:
-    """
-    Get the list of genes on any variant in GKB
-
-    Args:
-        graphkb_conn (GraphKBConnection): graphkb connection object
-
-    Returns:
-        tuple: sets of records IDs for all and fusion variants
-    """
-    # cancer related means any gene that has a variant in GKB
-    variants = graphkb_conn.query(
-        {'target': 'Variant', 'returnProperties': ['reference1', 'reference2']}
+def get_therapeutic_associated_genes(graphkb_conn: GraphKBConnection) -> Set[str]:
+    therapeutic_relevance = get_terms_set(graphkb_conn, BASE_THERAPEUTIC_TERMS)
+    statements = graphkb_conn.query(
+        {
+            'target': 'Statement',
+            'filters': {'relevance': list(therapeutic_relevance)},
+            'returnProperties': [
+                'conditions.@rid',
+                'conditions.@class',
+                'conditions.reference1.@class',
+                'conditions.reference1.@rid',
+                'conditions.reference2.@class',
+                'conditions.reference2.@rid',
+            ],
+        }
     )
-
     genes = set()
-    fusion_genes = set()
-    for variant in variants:
-        genes.add(variant['reference1'])
-        if variant['reference2']:
-            genes.add(variant['reference2'])
-            fusion_genes.add(variant['reference1'])
-            fusion_genes.add(variant['reference2'])
-    return genes, fusion_genes
+
+    for statement in statements:
+        for condition in statement['conditions']:
+            if condition['@class'] == 'Feature':
+                genes.add(condition['@rid'])
+            elif condition['@class'].endswith('Variant'):
+                if condition['reference1'] and condition['reference1']['@class'] == 'Feature':
+                    genes.add(condition['reference1']['@rid'])
+                if condition['reference2'] and condition['reference2']['@class'] == 'Feature':
+                    genes.add(condition['reference2']['@rid'])
+    return genes
 
 
-def get_gene_information(graphkb_conn: GraphKBConnection, gene_names: List[str]) -> List[Dict]:
+def get_gene_information(
+    graphkb_conn: GraphKBConnection, gene_names: Iterable[str]
+) -> List[IprGene]:
     """
     Create the Gene Info object for upload to IPR with the other report information
 
@@ -54,25 +64,43 @@ def get_gene_information(graphkb_conn: GraphKBConnection, gene_names: List[str])
         graphkb_conn ([type]): [description]
         gene_names ([type]): [description]
     """
+    logger.info('fetching variant related genes list')
+    variants = graphkb_conn.query(
+        {'target': 'Variant', 'returnProperties': ['@class', 'reference1', 'reference2']}
+    )
+
+    gene_flags: Dict[str, Set[str]] = {
+        'cancerRelated': set(),
+        'knownFusionPartner': set(),
+        'knownSmallMutation': set(),
+    }
+
+    for variant in variants:
+        gene_flags['cancerRelated'].add(variant['reference1'])
+        if variant['reference2']:
+            gene_flags['cancerRelated'].add(variant['reference2'])
+            gene_flags['knownFusionPartner'].add(variant['reference1'])
+            gene_flags['knownFusionPartner'].add(variant['reference2'])
+        elif variant['@class'] == 'PositionalVariant':
+            gene_flags['knownSmallMutation'].add(variant['reference1'])
+
     logger.info('fetching oncogenes list')
-    oncogenes = convert_to_rid_set(get_oncokb_oncogenes(graphkb_conn))
+    gene_flags['oncogene'] = convert_to_rid_set(get_oncokb_oncogenes(graphkb_conn))
     logger.info('fetching tumour supressors list')
-    tumour_suppressors = convert_to_rid_set(get_oncokb_tumour_supressors(graphkb_conn))
-    logger.info('fetching cancer related genes list')
-    cancer_related, known_fusion_partners = get_variant_related_genes(graphkb_conn)
+    gene_flags['tumourSuppressor'] = convert_to_rid_set(get_oncokb_tumour_supressors(graphkb_conn))
+    logger.info('fetching therapeutic associated genes lists')
+    gene_flags['therapeuticAssociated'] = get_therapeutic_associated_genes(graphkb_conn)
 
     result = []
 
     for gene_name in gene_names:
         equivalent = convert_to_rid_set(get_equivalent_features(graphkb_conn, gene_name))
 
-        row = {
-            'name': gene_name,
-            'oncogene': bool(equivalent & oncogenes),
-            'tumourSuppressor': bool(equivalent & tumour_suppressors),
-            'cancerRelated': bool(equivalent & cancer_related),
-            'knownFusionPartner': bool(equivalent & known_fusion_partners),
-        }
+        row = IprGene({'name': gene_name})
+
+        for flag in gene_flags:
+            row[flag] = bool(equivalent & gene_flags[flag])
+
         flags = [c for c in row.keys() if c != 'name']
 
         if any(row[c] for c in flags):
@@ -87,8 +115,8 @@ def get_gene_information(graphkb_conn: GraphKBConnection, gene_names: List[str])
 
 
 def get_statements_from_variants(
-    graphkb_conn: GraphKBConnection, variants: List[Dict]
-) -> List[Dict]:
+    graphkb_conn: GraphKBConnection, variants: List[Record]
+) -> List[Statement]:
     """
     Given a list of variant records from GraphKB, return all the related statements
 
@@ -119,12 +147,65 @@ def get_statements_from_variants(
     return statements
 
 
+def get_ipr_statements_from_variants(
+    graphkb_conn: GraphKBConnection, matches: List[Record], disease_name: str
+) -> List[KbMatch]:
+    """
+    Matches to GraphKB statements from the list of input variants. From these results matches
+    again with the inferred variants. Then returns the results formatted for upload to IPR
+    """
+    if not matches:
+        return []
+    rows = []
+
+    statements = get_statements_from_variants(graphkb_conn, matches)
+    existing_statements = {s['@rid'] for s in statements}
+
+    for ipr_row in convert_statements_to_alterations(
+        graphkb_conn, statements, disease_name, convert_to_rid_set(matches)
+    ):
+        rows.append(ipr_row)
+
+    # second-pass matching
+    all_inferred_matches: Dict[str, Record] = {}
+    inferred_variants = {
+        (s['subject']['@rid'], s['relevance']['name'])
+        for s in statements
+        if s['subject'] and s['subject']['@class'] in ('Feature', 'Signature')
+    }
+
+    for (reference1, variantType) in inferred_variants:
+        variants = match_category_variant(
+            graphkb_conn, reference1, variantType, gene_is_record_id=True
+        )
+
+        for variant in variants:
+            all_inferred_matches[variant['@rid']] = variant
+    inferred_matches: List[Record] = list(all_inferred_matches.values())
+
+    inferred_statements = [
+        s
+        for s in get_statements_from_variants(graphkb_conn, inferred_matches)
+        if s['@rid'] not in existing_statements  # do not duplicate if non-inferred match
+    ]
+
+    for ipr_row in convert_statements_to_alterations(
+        graphkb_conn, inferred_statements, disease_name, convert_to_rid_set(inferred_matches),
+    ):
+        new_row = KbMatch({'kbData': {'inferred': True}})
+        new_row.update(ipr_row)
+        rows.append(new_row)
+
+    return rows
+
+
 def annotate_category_variants(
     graphkb_conn: GraphKBConnection,
-    variants: List[Dict],
+    variants: List[IprGeneVariant],
     disease_name: str,
     copy_variant: bool = True,
-) -> List[Dict]:
+    show_progress: bool = False,
+) -> List[KbMatch]:
     """
     Annotate variant calls with information from GraphKB and return these annotations in the IPR
     alterations format
@@ -141,11 +222,17 @@ def annotate_category_variants(
     problem_genes = set()
 
     logger.info(f"Starting annotation of {len(variants)} category_variants")
-    for row in progressbar(variants):
+    iterfunc = progressbar if show_progress else iter
+    for row in iterfunc(variants):
         gene = row['gene']
         variant = row['variant']
 
         if not variant:
+            skipped += 1
+            continue
+
+        if copy_variant and variant not in [INPUT_COPY_CATEGORIES.AMP, INPUT_COPY_CATEGORIES.DEEP]:
+            # https://www.bcgsc.ca/jira/browse/GERO-77
             skipped += 1
             continue
 
@@ -155,14 +242,11 @@ def annotate_category_variants(
             else:
                 matches = match_expression_variant(graphkb_conn, gene, variant)
 
-            if matches:
-                statements = get_statements_from_variants(graphkb_conn, matches)
-                for ipr_row in convert_statements_to_alterations(
-                    graphkb_conn, statements, disease_name, convert_to_rid_set(matches)
-                ):
-                    new_row = {'variant': row['key'], 'variantType': row['variantType']}
-                    new_row.update(ipr_row)
-                    alterations.append(new_row)
+            for ipr_row in get_ipr_statements_from_variants(graphkb_conn, matches, disease_name):
+                new_row = KbMatch({'variant': row['key'], 'variantType': row['variantType']})
+                new_row.update(ipr_row)
+                alterations.append(new_row)
+
         except FeatureNotFoundError as err:
             problem_genes.add(gene)
             logger.debug(f'Unrecognized gene ({gene} {variant}): {err}')
@@ -181,8 +265,11 @@ def annotate_category_variants(
 
 
 def annotate_positional_variants(
-    graphkb_conn: GraphKBConnection, variants: List[Dict], disease_name: str
-) -> List[Dict]:
+    graphkb_conn: GraphKBConnection,
+    variants: List[IprVariant],
+    disease_name: str,
+    show_progress: bool = False,
+) -> List[KbMatch]:
     """
     Annotate variant calls with information from GraphKB and return these annotations in the IPR
     alterations format
@@ -198,7 +285,8 @@ def annotate_positional_variants(
     alterations = []
     problem_genes = set()
 
-    for row in progressbar(variants):
+    iterfunc = progressbar if show_progress else iter
+    for row in iterfunc(variants):
         variant = row['variant']
 
         if not row.get('gene', '') and (not row.get('gene1', '') or not row.get('gene2', '')):
@@ -209,15 +297,11 @@ def annotate_positional_variants(
         try:
             matches = match_positional_variant(graphkb_conn, variant)
 
-            if matches:
-                statements = get_statements_from_variants(graphkb_conn, matches)
+            for ipr_row in get_ipr_statements_from_variants(graphkb_conn, matches, disease_name):
+                new_row = KbMatch({'variant': row['key'], 'variantType': row['variantType']})
+                new_row.update(ipr_row)
+                alterations.append(new_row)
 
-                for ipr_row in convert_statements_to_alterations(
-                    graphkb_conn, statements, disease_name, convert_to_rid_set(matches)
-                ):
-                    new_row = {'variant': row['key'], 'variantType': row['variantType']}
-                    new_row.update(ipr_row)
-                    alterations.append(new_row)
         except FeatureNotFoundError as err:
             logger.debug(f'failed to match positional variants ({variant}): {err}')
             errors += 1

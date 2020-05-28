@@ -4,18 +4,22 @@ Read/Validate the variant input files
 import os
 import re
 from csv import DictReader
-from typing import Dict, List, Set, Tuple
+from typing import Callable, Dict, List, Set, Tuple, cast
 
 from Bio.Data.IUPACData import protein_letters_3to1
 from graphkb.match import INPUT_COPY_CATEGORIES, INPUT_EXPRESSION_CATEGORIES
 
+from .types import IprGeneVariant, IprStructuralVariant, IprVariant
 from .util import hash_key, logger
 
 protein_letters_3to1.setdefault('Ter', '*')
 
 NULLABLE_FLOAT_REGEX = r'^-?((inf)|(\d+(\.\d+)?)|)$'
-COPY_REQ = ['gene', 'variant']  # 'variant' in INPUT_COPY_CATEGORIES
+# 'cnvState' is for display
+COPY_REQ = ['gene', 'kbCategory']
+COPY_KEY = ['gene']
 COPY_OPTIONAL = [
+    'cnvState',
     'ploidyCorrCpChange',
     'lohState',  # Loss of Heterzygosity state - informative detail to analyst
     'chromosomeBand',
@@ -23,12 +27,14 @@ COPY_OPTIONAL = [
     'end',
 ]
 
-SMALL_MUT_REQ = ['location', 'refAlt', 'gene', 'proteinChange', 'transcript']
+SMALL_MUT_REQ = ['gene', 'proteinChange', 'location', 'transcript', 'refAlt']
+SMALL_MUT_KEY = SMALL_MUT_REQ
 SMALL_MUT_OPTIONAL = ['zygosity', 'tumourReads', 'rnaReads', 'detectedIn']
 
-# 'expression_class', is for display
-EXP_REQ = ['gene', 'variant', 'expression_class']
+EXP_REQ = ['gene', 'kbCategory']
+EXP_KEY = ['gene']
 EXP_OPTIONAL = [
+    'expressionState',
     'rnaReads',
     'rpkm',
     'foldChange',
@@ -80,12 +86,13 @@ SV_OPTIONAL = [
     'name',
     'frame',
     'omicSupport',
+    'highQuality',
 ]
 
 
 def load_variant_file(
-    filename: str, required: List[str], optional: List[str], row_to_key
-) -> List[Dict]:
+    filename: str, required: List[str], optional: List[str], row_to_key: Callable
+) -> List[IprVariant]:
     """
     Load a tab delimited file and
     - check that the required columns are present
@@ -130,12 +137,14 @@ def load_variant_file(
             row['key'] = row_key
             keys.add(row_key)
 
-            result.append({col: row.get(col, '') for col in header})
+            result.append(cast(IprVariant, {col: row.get(col, '') for col in header}))
 
     return result
 
 
-def validate_row_patterns(rows: List[Dict], patterns: Dict):
+def validate_row_patterns(
+    rows: List[IprVariant], patterns: Dict, row_key_columns: List[str]
+) -> None:
     """
     Validate rows against a regex for some set of columns
 
@@ -149,57 +158,49 @@ def validate_row_patterns(rows: List[Dict], patterns: Dict):
     for row in rows:
         for col, pattern in patterns.items():
             if not re.match(pattern, '' if row[col] is None else row[col]):
+                row_repr_dict = dict((key, row[key]) for key in row_key_columns)
                 raise ValueError(
-                    f'row value ({row[col]}) does not match expected column ({col}) pattern of "{pattern}"'
+                    f'{row_repr_dict} column {col}: "{row[col]}" re pattern failure: "{pattern}"'
                 )
 
 
-def load_copy_variants(filename: str) -> List[Dict]:
+def load_copy_variants(filename: str) -> List[IprVariant]:
     # default map for display - concise names
-    COPY_VARIANT2CNVSTATE = {
-        INPUT_COPY_CATEGORIES.DEEP: "Deep Loss",
-        INPUT_COPY_CATEGORIES.AMP: "Amplification",
-        INPUT_COPY_CATEGORIES.GAIN: "Gain",
-        INPUT_COPY_CATEGORIES.LOSS: "Loss",
+    display_name_mapping = {
+        INPUT_COPY_CATEGORIES.DEEP: "deep deletion",
+        INPUT_COPY_CATEGORIES.AMP: "amplification",
+        INPUT_COPY_CATEGORIES.GAIN: "copy gain",
+        INPUT_COPY_CATEGORIES.LOSS: "copy loss",
     }
 
-    def row_key(row):
-        return ('cnv', row['gene'])
+    def row_key(row: Dict) -> Tuple[str, ...]:
+        return tuple(['cnv'] + [row[key] for key in COPY_KEY])
 
     result = load_variant_file(filename, COPY_REQ, COPY_OPTIONAL, row_key)
 
-    # verify the copy number category is valid or blank
-    patterns = {'variant': f'({"|".join(INPUT_COPY_CATEGORIES.values())}|)'}
-    validate_row_patterns(result, patterns)
-
     for row in result:
-        if row['variant'] and row['variant'] not in COPY_VARIANT2CNVSTATE:
-            raise ValueError(
-                f'invalid copy variant value ({row["variant"]}) in filename {filename}'
-            )
-        # Create a 'cnvState' displayed variant label
-        row['cnvState'] = COPY_VARIANT2CNVSTATE.get(row['variant'], '')
+        if row['kbCategory']:
+            if row['kbCategory'] not in INPUT_COPY_CATEGORIES.values():
+                raise ValueError(
+                    f'invalid copy variant kbCategory value ({row["kbCategory"]}) in filename {filename}'
+                )
+            if not row['cnvState']:  # apply default short display name
+                row['cnvState'] = display_name_mapping[row['kbCategory']]
+        row['variant'] = row['kbCategory']
         row['variantType'] = 'cnv'
 
     return result
 
 
-def load_small_mutations(filename: str) -> List[Dict]:
-    def row_key(row: Dict) -> Tuple[str]:
-        return (
-            'small mutation',
-            row['location'],
-            row['refAlt'],
-            row['gene'],
-            row['proteinChange'],
-            row['transcript'],
-        )
+def load_small_mutations(filename: str) -> List[IprGeneVariant]:
+    def row_key(row: Dict) -> Tuple[str, ...]:
+        return tuple(['small mutation'] + [row[key] for key in SMALL_MUT_KEY])
 
-    result = load_variant_file(filename, SMALL_MUT_REQ, SMALL_MUT_OPTIONAL, row_key,)
+    result = load_variant_file(filename, SMALL_MUT_REQ, SMALL_MUT_OPTIONAL, row_key)
 
     patterns = {'location': r'^\w+:\d+$', 'refAlt': r'^[A-Z]+>[A-Z]+$'}
 
-    validate_row_patterns(result, patterns)
+    validate_row_patterns(result, patterns, SMALL_MUT_KEY)
 
     # change 3 letter AA to 1 letter AA notation
     for row in result:
@@ -212,9 +213,9 @@ def load_small_mutations(filename: str) -> List[Dict]:
     return result
 
 
-def load_expression_variants(filename):
-    def row_key(row):
-        return ('expression', row['gene'])
+def load_expression_variants(filename: str) -> List[IprGeneVariant]:
+    def row_key(row: Dict) -> Tuple[str, ...]:
+        return tuple(['expression'] + [row[key] for key in EXP_KEY])
 
     result = load_variant_file(filename, EXP_REQ, EXP_OPTIONAL, row_key)
 
@@ -228,19 +229,19 @@ def load_expression_variants(filename):
     for col in float_columns:
         if col not in patterns:
             patterns[col] = NULLABLE_FLOAT_REGEX
-    validate_row_patterns(result, patterns)
+    validate_row_patterns(result, patterns, EXP_KEY)
 
     errors = []
     for row in result:
+        row['variant'] = row['kbCategory']
+        if not row['expressionState'] and row['kbCategory']:
+            row['expressionState'] = row['kbCategory']
+
         if row['variant']:
             if row['variant'] not in INPUT_EXPRESSION_CATEGORIES.values():
-                err_msg = (
-                    f"{row['gene']} variant '{row['variant']}' not in {INPUT_EXPRESSION_CATEGORIES}"
-                )
+                err_msg = f"{row['gene']} variant '{row['variant']}' not in {INPUT_EXPRESSION_CATEGORIES.values()}"
                 errors.append(err_msg)
                 logger.error(err_msg)
-        else:
-            row['expression_class'] = ''
         row['variantType'] = 'exp'
 
         for col in float_columns:
@@ -259,7 +260,7 @@ def load_expression_variants(filename):
     return result
 
 
-def create_graphkb_sv_notation(row: Dict) -> str:
+def create_graphkb_sv_notation(row: IprStructuralVariant) -> str:
     """
     Generate GKB style structural variant notation from a structural variant input row
     """
@@ -277,8 +278,8 @@ def create_graphkb_sv_notation(row: Dict) -> str:
     return f'({gene1},{gene2}):fusion(e.{exon1},e.{exon2})'
 
 
-def load_structural_variants(filename: str) -> List[Dict]:
-    def row_key(row):
+def load_structural_variants(filename: str) -> List[IprVariant]:
+    def row_key(row: Dict) -> Tuple[str, ...]:
         return tuple(['sv'] + [row[key] for key in SV_KEY])
 
     result = load_variant_file(filename, SV_REQ, SV_OPTIONAL, row_key)
@@ -291,7 +292,7 @@ def load_structural_variants(filename: str) -> List[Dict]:
         'exon1': EXON_PATTERN,
         'exon2': EXON_PATTERN,
     }
-    validate_row_patterns(result, patterns)
+    validate_row_patterns(result, patterns, SV_KEY)
 
     for row in result:
         row['variant'] = create_graphkb_sv_notation(row)
@@ -304,14 +305,19 @@ def load_structural_variants(filename: str) -> List[Dict]:
             with open(row['svg'], 'r') as fh:
                 row['svg'] = fh.read()
 
+        if row['highQuality']:
+            if row['highQuality'].lower() not in ['true', 'false']:
+                raise ValueError('highQuality flag must be true or false if given')
+            row['highQuality'] = bool(row['highQuality'].lower() == 'true')
+
     return result
 
 
 def check_variant_links(
-    small_mutations: List[Dict],
-    expression_variants: List[Dict],
-    copy_variants: List[Dict],
-    structural_variants: List[Dict],
+    small_mutations: List[IprGeneVariant],
+    expression_variants: List[IprGeneVariant],
+    copy_variants: List[IprGeneVariant],
+    structural_variants: List[IprStructuralVariant],
 ) -> Set[str]:
     """
     Check matching information for any genes with variants.
