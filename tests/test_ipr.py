@@ -1,7 +1,7 @@
-from typing import Dict
 from unittest.mock import Mock
 
 import pytest
+from graphkb.types import Statement
 
 from genomic_report.ipr import convert_statements_to_alterations
 
@@ -30,23 +30,25 @@ def graphkb_conn():
     return conn
 
 
-def base_graphkb_statement(disease_id: str = 'disease') -> Dict:
-    statement = {
-        'conditions': [
-            {'@class': 'Disease', '@rid': disease_id, 'displayName': 'disease_display_name'},
-            {
-                '@class': 'CategoryVariant',
-                '@rid': 'variant_rid',
-                'displayName': 'KRAS increased expression',
-            },
-        ],
-        'evidence': [],
-        'subject': None,
-        'source': None,
-        'sourceId': None,
-        'relevance': {'@rid': 'relevance_rid', 'displayName': 'relevance_display_name'},
-        '@rid': 'statement_rid',
-    }
+def base_graphkb_statement(disease_id: str = 'disease') -> Statement:
+    statement = Statement(
+        {
+            'conditions': [
+                {'@class': 'Disease', '@rid': disease_id, 'displayName': 'disease_display_name'},
+                {
+                    '@class': 'CategoryVariant',
+                    '@rid': 'variant_rid',
+                    'displayName': 'KRAS increased expression',
+                },
+            ],
+            'evidence': [],
+            'subject': None,
+            'source': None,
+            'sourceId': None,
+            'relevance': {'@rid': 'relevance_rid', 'displayName': 'relevance_display_name'},
+            '@rid': 'statement_rid',
+        }
+    )
     return statement
 
 
