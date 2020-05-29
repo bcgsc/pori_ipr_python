@@ -11,7 +11,7 @@ from graphkb.types import Ontology, Statement
 from graphkb.util import IterableNamespace
 from graphkb.vocab import get_term_tree
 
-from .types import ImageDefinition, IprVariant, KbMatch
+from .types import ImageDefinition, IprGene, IprStructuralVariant, IprVariant, KbMatch
 from .util import convert_to_rid_set
 
 BASE_THERAPEUTIC_TERMS = ['therapeutic efficacy', 'eligibility']
@@ -76,6 +76,35 @@ def get_approved_evidence_levels(graphkb_conn: GraphKBConnection) -> List[Ontolo
             }
         )
     return graphkb_conn.query({'target': 'EvidenceLevel', 'filters': {'OR': filters}})
+
+
+def filter_structural_variants(
+    structural_variants: List[IprStructuralVariant],
+    kb_matches: List[KbMatch],
+    gene_annotations: List[IprGene],
+) -> List[IprStructuralVariant]:
+    """
+    Filter structural variants to remove non-high quality events unless they are matched/annotated or
+    they involve a gene that is a known fusion partner
+    """
+    matched_svs = {match['variant'] for match in kb_matches if match['variantType'] == 'sv'}
+    fusion_genes = {
+        gene['name'] for gene in gene_annotations if gene.get('knownFusionPartner', False)
+    }
+
+    result = []
+
+    for structural_variant in structural_variants:
+        if any(
+            [
+                structural_variant['highQuality'],
+                structural_variant['key'] in matched_svs,
+                structural_variant['gene1'] in fusion_genes,
+                structural_variant['gene2'] in fusion_genes,
+            ]
+        ):
+            result.append(structural_variant)
+    return result
 
 
 def convert_statements_to_alterations(

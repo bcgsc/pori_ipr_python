@@ -305,10 +305,11 @@ def load_structural_variants(filename: str) -> List[IprVariant]:
             with open(row['svg'], 'r') as fh:
                 row['svg'] = fh.read()
 
-        if row['highQuality']:
-            if row['highQuality'].lower() not in ['true', 'false']:
-                raise ValueError('highQuality flag must be true or false if given')
-            row['highQuality'] = bool(row['highQuality'].lower() == 'true')
+        for bool_col in ['highQuality', 'omicSupport']:
+            if row[bool_col]:
+                if row[bool_col].lower() not in ['true', 'false']:
+                    raise ValueError(f'{bool_col} flag must be true or false if given')
+                row[bool_col] = bool(row[bool_col].lower() == 'true')
 
     return result
 

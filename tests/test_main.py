@@ -20,7 +20,7 @@ def report_upload_content() -> Dict:
             patient_id='PATIENT001',
             project='TEST',
             expression_variants_file=get_test_file('expression.tab'),
-            small_mutations_file=get_test_file('small_mutations.tab'),
+            small_mutations_file=get_test_file('small_mutations.short.tab'),
             copy_variants_file=get_test_file('copy_variants.tab'),
             structural_variants_file=get_test_file('fusions.tab'),
             username=os.environ['USERNAME'],
@@ -49,6 +49,11 @@ def test_main_sections_present(report_upload_content: Dict) -> None:
         'genes',
     ]:
         assert section in sections
+
+
+def test_kept_low_quality_fusion(report_upload_content: Dict) -> None:
+    fusions = [(sv['gene1'], sv['gene2']) for sv in report_upload_content['structuralVariants']]
+    assert ('SARM1', 'SUZ12') in fusions
 
 
 def test_pass_through_content_added(report_upload_content: Dict) -> None:
