@@ -85,7 +85,8 @@ def command_interface() -> None:
         structural_variants_file=args.structural_variants,
         copy_variants_file=args.copy_variants,
         small_mutations_file=args.small_mutations,
-        write_to_json=args.write_to_json,
+        ipr_json=args.write_to_json,
+        ipr_json_upload_error_only=True,
     )
 
 
@@ -118,9 +119,10 @@ def create_report(
     structural_variants_file: str = None,
     copy_variants_file: str = None,
     small_mutations_file: str = None,
-    upload_json: str = None,
     optional_content: Optional[Dict] = None,
-    write_json_on_error_only: bool = False,
+    ipr_json: str = None,
+    ipr_json_upload_error_only: bool = False,
+    ipr_upload: bool = True,
     interactive: bool = False,
     cache_gene_minimum: int = CACHE_GENE_MINIMUM,
 ) -> Optional[Dict]:
@@ -137,9 +139,10 @@ def create_report(
         structural_variants_file: path to the structural variants input file
         copy_variants_file: path to the copy number variants input file
         small_mutations_file: path to the small mutations input file
-        upload_json: path to a JSON file to output the report upload body.  Only on failure if write_to_json_on_error_only.
         optional_content: pass-through content to include in the JSON upload
-        write_to_json_on_error_only: flag to only save report upload body on failures.
+        ipr_json: path to a JSON file to output the report upload body.  Only on failure if write_to_json_on_error_only.
+        ipr_json_upload_error_only: only save ipr_json file on ipr_upload errors.
+        ipr_upload: upload report to ipr
         interactive: progressbars for interactive users
         cache_gene_minimum: minimum number of genes required for gene name caching optimization
     Returns:
@@ -282,18 +285,17 @@ def create_report(
 
     output = clean_unsupported_content(output)
 
-    try:
-        result = ipr_conn.upload_report(output)
-        logger.debug(result)
-        if upload_json and not write_json_on_error_only:
-            logger.info(f'Writing failed report upload content to file: {upload_json}')
-            with open(upload_json, 'w') as fh:
+    ipr_result = None
+    if ipr_upload:
+        try:
+            logger.info('Uploading to IPR')
+            ipr_result = ipr_conn.upload_report(output)
+            logger.info(ipr_result)
+        except Exception as err:
+            logger.error(f"ipr_conn.upload_report failed: {err}", exc_info=True)
+    if ipr_json:
+        if not ipr_json_upload_error_only or not ipr_result:
+            with open(ipr_json, 'w') as fh:
+                logger.info(f'Writing IPR upload json to: {ipr_json}')
                 fh.write(json.dumps(output))
-        return result
-    except Exception as err:
-        if upload_json:
-            logger.error("ipr_conn.upload_report failed")
-            logger.info(f'Writing failed report upload content to file: {upload_json}')
-            with open(upload_json, 'w') as fh:
-                fh.write(json.dumps(output))
-        raise err
+    return output
