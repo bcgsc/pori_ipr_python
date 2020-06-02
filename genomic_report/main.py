@@ -140,7 +140,7 @@ def create_report(
         copy_variants_file: path to the copy number variants input file
         small_mutations_file: path to the small mutations input file
         optional_content: pass-through content to include in the JSON upload
-        ipr_json: path to a JSON file to output the report upload body.  Only on failure if write_to_json_on_error_only.
+        ipr_json: path to a JSON file to output the report upload body.
         ipr_json_upload_error_only: only save ipr_json file on ipr_upload errors.
         ipr_upload: upload report to ipr
         interactive: progressbars for interactive users
