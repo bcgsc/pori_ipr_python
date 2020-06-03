@@ -69,7 +69,7 @@ def command_interface() -> None:
         '-o', '--output_json_path', help='path to a JSON to output the report upload body',
     )
     parser.add_argument(
-        'w',
+        '-w',
         '--always_write_output_json',
         action="store_true",
         help='Write to output_json_path on successful IPR uploads',
