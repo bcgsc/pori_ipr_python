@@ -66,9 +66,13 @@ def command_interface() -> None:
     parser.add_argument('--patient_id', required=True, help='The patient ID for this report')
     parser.add_argument('--project', default='TEST', help='The project to upload this report to')
     parser.add_argument(
-        '-w',
-        '--write_to_json',
-        help='path to a JSON to output the report upload body to on failure to upload',
+        '-o', '--output_json_path', help='path to a JSON to output the report upload body',
+    )
+    parser.add_argument(
+        'w',
+        '--always_write_output_json',
+        action="store_true",
+        help='Write to output_json_path on successful IPR uploads',
     )
 
     args = parser.parse_args()
@@ -85,8 +89,8 @@ def command_interface() -> None:
         structural_variants_file=args.structural_variants,
         copy_variants_file=args.copy_variants,
         small_mutations_file=args.small_mutations,
-        ipr_json=args.write_to_json,
-        ipr_json_upload_error_only=True,
+        output_json_path=args.output_json_path,
+        always_write_output_json=args.always_write_output_json,
     )
 
 
@@ -120,8 +124,8 @@ def create_report(
     copy_variants_file: str = None,
     small_mutations_file: str = None,
     optional_content: Optional[Dict] = None,
-    ipr_json: str = None,
-    ipr_json_upload_error_only: bool = False,
+    output_json_path: str = None,
+    always_write_output_json: bool = False,
     ipr_upload: bool = True,
     interactive: bool = False,
     cache_gene_minimum: int = CACHE_GENE_MINIMUM,
@@ -140,8 +144,8 @@ def create_report(
         copy_variants_file: path to the copy number variants input file
         small_mutations_file: path to the small mutations input file
         optional_content: pass-through content to include in the JSON upload
-        ipr_json: path to a JSON file to output the report upload body.
-        ipr_json_upload_error_only: only save ipr_json file on ipr_upload errors.
+        output_json_path: path to a JSON file to output the report upload body.
+        always_write_output_json: with successful IPR upload
         ipr_upload: upload report to ipr
         interactive: progressbars for interactive users
         cache_gene_minimum: minimum number of genes required for gene name caching optimization
@@ -291,11 +295,12 @@ def create_report(
             logger.info('Uploading to IPR')
             ipr_result = ipr_conn.upload_report(output)
             logger.info(ipr_result)
+            output.update(ipr_result)
         except Exception as err:
             logger.error(f"ipr_conn.upload_report failed: {err}", exc_info=True)
-    if ipr_json:
-        if not ipr_json_upload_error_only or not ipr_result:
-            with open(ipr_json, 'w') as fh:
-                logger.info(f'Writing IPR upload json to: {ipr_json}')
+    if output_json_path:
+        if always_write_output_json or not ipr_result:
+            logger.info(f'Writing IPR upload json to: {output_json_path}')
+            with open(output_json_path, 'w') as fh:
                 fh.write(json.dumps(output))
     return output
