@@ -66,9 +66,13 @@ def command_interface() -> None:
     parser.add_argument('--patient_id', required=True, help='The patient ID for this report')
     parser.add_argument('--project', default='TEST', help='The project to upload this report to')
     parser.add_argument(
+        '-o', '--output_json_path', help='path to a JSON to output the report upload body',
+    )
+    parser.add_argument(
         '-w',
-        '--write_to_json',
-        help='path to a JSON to output the report upload body to on failure to upload',
+        '--always_write_output_json',
+        action="store_true",
+        help='Write to output_json_path on successful IPR uploads',
     )
 
     args = parser.parse_args()
@@ -85,7 +89,8 @@ def command_interface() -> None:
         structural_variants_file=args.structural_variants,
         copy_variants_file=args.copy_variants,
         small_mutations_file=args.small_mutations,
-        write_to_json=args.write_to_json,
+        output_json_path=args.output_json_path,
+        always_write_output_json=args.always_write_output_json,
     )
 
 
@@ -118,9 +123,11 @@ def create_report(
     structural_variants_file: str = None,
     copy_variants_file: str = None,
     small_mutations_file: str = None,
-    write_to_json: str = None,
     optional_content: Optional[Dict] = None,
-    interactive: bool = True,
+    output_json_path: str = None,
+    always_write_output_json: bool = False,
+    ipr_upload: bool = True,
+    interactive: bool = False,
     cache_gene_minimum: int = CACHE_GENE_MINIMUM,
 ) -> Optional[Dict]:
     """
@@ -136,8 +143,10 @@ def create_report(
         structural_variants_file: path to the structural variants input file
         copy_variants_file: path to the copy number variants input file
         small_mutations_file: path to the small mutations input file
-        write_to_json: path to a JSON file to output the report upload body to if given on failure to upload
         optional_content: pass-through content to include in the JSON upload
+        output_json_path: path to a JSON file to output the report upload body.
+        always_write_output_json: with successful IPR upload
+        ipr_upload: upload report to ipr
         interactive: progressbars for interactive users
         cache_gene_minimum: minimum number of genes required for gene name caching optimization
     Returns:
@@ -153,25 +162,41 @@ def create_report(
     graphkb_conn = GraphKBConnection()
     graphkb_conn.login(username, password)
 
-    copy_variants = load_copy_variants(copy_variants_file) if copy_variants_file else []
-    logger.info(f'loaded {len(copy_variants)} copy variants from: {copy_variants_file}')
+    if copy_variants_file:
+        logger.info(f'loading copy variants from: {copy_variants_file}')
+        copy_variants = load_copy_variants(copy_variants_file)
+        logger.info(f'loaded {len(copy_variants)}')
+    else:
+        logger.info("no copy variants given")
+        copy_variants = []
 
-    small_mutations = load_small_mutations(small_mutations_file) if small_mutations_file else []
-    logger.info(f'loaded {len(small_mutations)} small mutations from: {small_mutations_file}')
+    if small_mutations_file:
+        logger.info(f'loading small mutations from: {small_mutations_file}')
+        small_mutations = load_small_mutations(small_mutations_file)
+        logger.info(f'loaded {len(small_mutations)} small mutations from: {small_mutations_file}')
+    else:
+        logger.info("no small mutations given")
+        small_mutations = []
 
-    expression_variants = (
-        load_expression_variants(expression_variants_file) if expression_variants_file else []
-    )
-    logger.info(
-        f'loaded {len(expression_variants)} expression variants from: {expression_variants_file}'
-    )
+    if expression_variants_file:
+        logger.info(f'loading expression variants from: {expression_variants_file}')
+        expression_variants = load_expression_variants(expression_variants_file)
+        logger.info(
+            f'loaded {len(expression_variants)} expression variants from: {expression_variants_file}'
+        )
+    else:
+        logger.info("no expression given")
+        expression_variants = []
 
-    structural_variants = (
-        load_structural_variants(structural_variants_file) if structural_variants_file else []
-    )
-    logger.info(
-        f'loaded {len(structural_variants)} structural variants from: {structural_variants_file}'
-    )
+    if structural_variants_file:
+        f'loading structural variants from: {structural_variants_file}'
+        structural_variants = load_structural_variants(structural_variants_file)
+        logger.info(
+            f'loaded {len(structural_variants)} structural variants from: {structural_variants_file}'
+        )
+    else:
+        logger.info("no structural variants given")
+        structural_variants = []
 
     genes_with_variants = check_variant_links(
         small_mutations, expression_variants, copy_variants, structural_variants
@@ -222,7 +247,6 @@ def create_report(
     key_alterations, variant_counts = ipr.create_key_alterations(
         alterations, expression_variants + copy_variants + structural_variants + small_mutations
     )
-    matched_structural_variants = {a['variant'] for a in alterations if a['variantType'] == 'sv'}
 
     output.update(
         {
@@ -243,8 +267,9 @@ def create_report(
             'kbVersion': timestamp(),
             'structuralVariants': [
                 trim_empty_values(s)
-                for s in structural_variants
-                if s['key'] in matched_structural_variants or s['highQuality'] is not False
+                for s in ipr.filter_structural_variants(
+                    structural_variants, alterations, gene_information
+                )
             ],
             'genes': gene_information,
             'genomicAlterationsIdentified': key_alterations,
@@ -264,14 +289,18 @@ def create_report(
 
     output = clean_unsupported_content(output)
 
-    try:
-        result = ipr_conn.upload_report(output)
-        logger.info(result)
-        return result
-    except Exception as err:
-        if write_to_json:
-            logger.error("ipr_conn.upload_report failed")
-            logger.info(f'Writing failed report upload content to file: {write_to_json}')
-            with open(write_to_json, 'w') as fh:
+    ipr_result = None
+    if ipr_upload:
+        try:
+            logger.info('Uploading to IPR')
+            ipr_result = ipr_conn.upload_report(output)
+            logger.info(ipr_result)
+            output.update(ipr_result)
+        except Exception as err:
+            logger.error(f"ipr_conn.upload_report failed: {err}", exc_info=True)
+    if output_json_path:
+        if always_write_output_json or not ipr_result:
+            logger.info(f'Writing IPR upload json to: {output_json_path}')
+            with open(output_json_path, 'w') as fh:
                 fh.write(json.dumps(output))
-        raise err
+    return output

@@ -305,10 +305,11 @@ def load_structural_variants(filename: str) -> List[IprVariant]:
             with open(row['svg'], 'r') as fh:
                 row['svg'] = fh.read()
 
-        if row['highQuality']:
-            if row['highQuality'].lower() not in ['true', 'false']:
-                raise ValueError('highQuality flag must be true or false if given')
-            row['highQuality'] = bool(row['highQuality'].lower() == 'true')
+        for bool_col in ['highQuality', 'omicSupport']:
+            if row[bool_col]:
+                if row[bool_col].lower() not in ['true', 'false']:
+                    raise ValueError(f'{bool_col} flag must be true or false if given')
+                row[bool_col] = bool(row[bool_col].lower() == 'true')
 
     return result
 
@@ -402,6 +403,6 @@ def check_variant_links(
     if missing_information_genes:
         for err_msg in sorted(missing_information_errors):
             logger.warning(err_msg)
-        keyerr_msg = f"Missing information KeyErrors on {len(missing_information_genes)} genes: {sorted(missing_information_genes)}"
-        logger.error(keyerr_msg)
+        link_err_msg = f"Missing information variant links on {len(missing_information_genes)} genes: {sorted(missing_information_genes)}"
+        logger.error(link_err_msg)
     return genes_with_variants
