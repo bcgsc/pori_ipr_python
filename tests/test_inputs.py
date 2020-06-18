@@ -23,6 +23,12 @@ def test_load_small_mutations() -> None:
     assert len(records) == 2614
 
 
+def test_load_small_mutations_probe() -> None:
+    records = load_small_mutations(os.path.join(DATA_DIR, 'small_mutations_probe.tab'))
+    assert records
+    assert len(records) == 3
+
+
 def test_load_copy_variants() -> None:
     records = load_copy_variants(os.path.join(DATA_DIR, 'copy_variants.tab'))
     assert records
