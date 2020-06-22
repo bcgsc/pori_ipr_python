@@ -28,16 +28,9 @@ COPY_OPTIONAL = [
 ]
 
 SMALL_MUT_REQ = ['gene', 'proteinChange']
-SMALL_MUT_KEY = ['gene', 'proteinChange']
-SMALL_MUT_OPTIONAL = [
-    'location',
-    'transcript',
-    'refAlt',
-    'zygosity',
-    'tumourReads',
-    'rnaReads',
-    'detectedIn',
-]
+# alternate details in the key, can distinguish / subtype events.
+SMALL_MUT_KEY = SMALL_MUT_REQ + ['transcript', 'location', 'refAlt']
+SMALL_MUT_OPTIONAL = ['zygosity', 'tumourReads', 'rnaReads', 'detectedIn']
 
 EXP_REQ = ['gene', 'kbCategory']
 EXP_KEY = ['gene']
