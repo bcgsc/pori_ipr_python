@@ -17,7 +17,7 @@ def probe_upload_content() -> Dict:
     mock = MagicMock()
     with patch.object(IprConnection, 'upload_report', new=mock):
         create_report(
-            patient_id='PATIENT002',
+            patient_id='PATIENT001',
             project='TEST',
             small_mutations_file=get_test_file('small_mutations_probe.tab'),
             structural_variants_file=get_test_file('fusions.tab'),
