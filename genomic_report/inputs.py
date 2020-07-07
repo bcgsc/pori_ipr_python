@@ -158,7 +158,7 @@ def validate_row_patterns(
     """
     for row in rows:
         for col, pattern in patterns.items():
-            if not re.match(pattern, '' if row[col] is None else row[col]):
+            if not re.match(pattern, '' if col not in row.keys() or row[col] is None else row[col]):
                 row_repr_dict = dict((key, row[key]) for key in row_key_columns)
                 raise ValueError(
                     f'{row_repr_dict} column {col}: "{row[col]}" re pattern failure: "{pattern}"'
@@ -201,17 +201,9 @@ def load_small_mutations(filename: str) -> List[IprGeneVariant]:
     if not result:
         return result
 
-    # 'location' and 'refAlt' are not currently used for matching.
-    # Only warn about issues for future data analysis
-    patterns = {'location': r'^\w+:\d+$', 'refAlt': r'^[A-Z]+>[A-Z]+$'}
-    missing_patterns = [col for col in patterns.keys() if col not in result[0].keys()]
-    for col in missing_patterns:
-        logger.warning(f"Missing small mutation data: '{col}'")
-        del patterns[col]
-    try:
-        validate_row_patterns(result, patterns, SMALL_MUT_KEY)
-    except ValueError as pattern_error:
-        logger.warning(f"Invalid small mutation pattern: {pattern_error}")
+    # 'location' and 'refAlt' are not currently used for matching; still optional and allowed blank
+    patterns = {'location': r'^(\w+:\d+)?$', 'refAlt': r'^([A-Z]+>[A-Z]+)?$'}
+    validate_row_patterns(result, patterns, SMALL_MUT_KEY)
 
     # change 3 letter AA to 1 letter AA notation
     for row in result:
