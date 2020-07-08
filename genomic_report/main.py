@@ -6,6 +6,7 @@ import os
 from typing import Dict, List, Optional
 
 from argparse_env import Action, ArgumentParser
+
 from graphkb import GraphKBConnection
 from graphkb.match import cache_gene_names
 
@@ -62,6 +63,7 @@ def command_interface() -> None:
         help='Disease name to be used in matching to GraphKB',
     )
     parser.add_argument('--ipr_url', default=ipr.DEFAULT_URL)
+    parser.add_argument('--graphkb_url', default=None)
     parser.add_argument('--log_level', default='info', choices=LOG_LEVELS.keys())
     parser.add_argument('--patient_id', required=True, help='The patient ID for this report')
     parser.add_argument('--project', default='TEST', help='The project to upload this report to')
@@ -84,6 +86,7 @@ def command_interface() -> None:
         project=args.project,
         kb_disease_match=args.kb_disease_match,
         ipr_url=args.ipr_url,
+        graphkb_url=args.graphkb_url,
         log_level=args.log_level,
         expression_variants_file=args.expression_variants,
         structural_variants_file=args.structural_variants,
@@ -129,6 +132,7 @@ def create_report(
     ipr_upload: bool = True,
     interactive: bool = False,
     cache_gene_minimum: int = CACHE_GENE_MINIMUM,
+    graphkb_url: str = '',
 ) -> Optional[Dict]:
     """
     Run the matching and create the report JSON for upload to IPR
@@ -159,7 +163,11 @@ def create_report(
         datefmt='%m-%d-%y %H:%M:%S',
     )
     ipr_conn = ipr.IprConnection(username, password, ipr_url)
-    graphkb_conn = GraphKBConnection()
+    if graphkb_url:
+        print('connecting to graphkb', graphkb_url)
+        graphkb_conn = GraphKBConnection(graphkb_url)
+    else:
+        graphkb_conn = GraphKBConnection()
     graphkb_conn.login(username, password)
 
     if copy_variants_file:
@@ -286,6 +294,7 @@ def create_report(
         logger.info(f'section {section} has {len(output[section])} {section_content_type}')
 
     logger.info(f'made {graphkb_conn.request_count} requests to graphkb')
+    logger.info(f'average load {graphkb_conn.load}')
 
     output = clean_unsupported_content(output)
 
