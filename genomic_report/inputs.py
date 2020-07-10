@@ -27,9 +27,10 @@ COPY_OPTIONAL = [
     'end',
 ]
 
-SMALL_MUT_REQ = ['gene', 'proteinChange', 'location', 'transcript', 'refAlt']
-SMALL_MUT_KEY = SMALL_MUT_REQ
-SMALL_MUT_OPTIONAL = ['zygosity', 'tumourReads', 'rnaReads', 'detectedIn']
+SMALL_MUT_REQ = ['gene', 'proteinChange']
+# alternate details in the key, can distinguish / subtype events.
+SMALL_MUT_KEY = SMALL_MUT_REQ + ['transcript', 'location', 'refAlt']
+SMALL_MUT_OPTIONAL = ['zygosity', 'tumourReads', 'rnaReads']
 
 EXP_REQ = ['gene', 'kbCategory']
 EXP_KEY = ['gene']
@@ -157,7 +158,7 @@ def validate_row_patterns(
     """
     for row in rows:
         for col, pattern in patterns.items():
-            if not re.match(pattern, '' if row[col] is None else row[col]):
+            if not re.match(pattern, '' if row.get(col, None) is None else row[col]):
                 row_repr_dict = dict((key, row[key]) for key in row_key_columns)
                 raise ValueError(
                     f'{row_repr_dict} column {col}: "{row[col]}" re pattern failure: "{pattern}"'
@@ -197,9 +198,11 @@ def load_small_mutations(filename: str) -> List[IprGeneVariant]:
         return tuple(['small mutation'] + [row[key] for key in SMALL_MUT_KEY])
 
     result = load_variant_file(filename, SMALL_MUT_REQ, SMALL_MUT_OPTIONAL, row_key)
+    if not result:
+        return result
 
-    patterns = {'location': r'^\w+:\d+$', 'refAlt': r'^[A-Z]+>[A-Z]+$'}
-
+    # 'location' and 'refAlt' are not currently used for matching; still optional and allowed blank
+    patterns = {'location': r'^(\w+:\d+)?$', 'refAlt': r'^([A-Z]+>[A-Z]+)?$'}
     validate_row_patterns(result, patterns, SMALL_MUT_KEY)
 
     # change 3 letter AA to 1 letter AA notation
