@@ -416,7 +416,9 @@ def summarize(
     # section statements by genes
     statements_by_genes = section_statements_by_genes(graphkb_conn, list(statements.values()))
 
-    output: List[str] = []
+    output: List[str] = [
+        '<h3>The comments below were automatically generated from matches to GraphKB and have not been manually reviewed</h3>'
+    ]
 
     for section, statement_rids in sorted(
         statements_by_genes.items(), key=lambda x: len(x[1]), reverse=True
