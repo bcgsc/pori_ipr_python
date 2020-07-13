@@ -345,7 +345,9 @@ class IprConnection:
         return self.post('/reports', content)
 
     def set_analyst_comments(self, report_id: str, data: Dict) -> Dict:
-        # Request URL: https://iprstaging-api.bcgsc.ca/api/reports/07a91083-094c-4718-b3e7-bf5fd348ce6e/summary/analyst-comments
+        """
+        Update report comments to an existing report
+        """
         return self.request(
             f'/reports/{report_id}/summary/analyst-comments',
             method='PUT',
