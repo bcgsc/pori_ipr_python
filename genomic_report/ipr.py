@@ -347,6 +347,10 @@ class IprConnection:
     def set_analyst_comments(self, report_id: str, data: Dict) -> Dict:
         """
         Update report comments to an existing report
+
+        TODO:
+            Add to main upload.
+            Pending: https://www.bcgsc.ca/jira/browse/DEVSU-1177
         """
         return self.request(
             f'/reports/{report_id}/summary/analyst-comments',
