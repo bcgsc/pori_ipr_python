@@ -38,7 +38,7 @@ def filter_by_record_class(
         else:
             return name in record_classes
 
-    return [l for l in record_list if check(l['@class'])]
+    return [rec for rec in record_list if check(rec['@class'])]
 
 
 def natural_join(word_list: List[str]) -> str:
