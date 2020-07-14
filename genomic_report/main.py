@@ -65,7 +65,7 @@ def command_interface() -> None:
     )
     parser.add_argument('--ipr_url', default=ipr.DEFAULT_URL)
     parser.add_argument('--graphkb_url', default=None)
-    parser.add_argument('--graphkb_client_url', default='https://graphbkb.bcgsc.ca')
+    parser.add_argument('--graphkb_client_url', default='https://graphkb.bcgsc.ca')
     parser.add_argument('--log_level', default='info', choices=LOG_LEVELS.keys())
     parser.add_argument('--patient_id', required=True, help='The patient ID for this report')
     parser.add_argument('--project', default='TEST', help='The project to upload this report to')
