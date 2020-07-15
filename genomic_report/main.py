@@ -6,6 +6,7 @@ import os
 from typing import Dict, List, Optional
 
 from argparse_env import Action, ArgumentParser
+
 from graphkb import GraphKBConnection
 from graphkb.match import cache_gene_names
 
@@ -20,6 +21,7 @@ from .inputs import (
 )
 from .types import KbMatch
 from .util import LOG_LEVELS, logger, trim_empty_values
+from .summary import summarize
 
 CACHE_GENE_MINIMUM = 5000
 
@@ -62,6 +64,8 @@ def command_interface() -> None:
         help='Disease name to be used in matching to GraphKB',
     )
     parser.add_argument('--ipr_url', default=ipr.DEFAULT_URL)
+    parser.add_argument('--graphkb_url', default=None)
+    parser.add_argument('--graphkb_client_url', default='https://graphkb.bcgsc.ca')
     parser.add_argument('--log_level', default='info', choices=LOG_LEVELS.keys())
     parser.add_argument('--patient_id', required=True, help='The patient ID for this report')
     parser.add_argument('--project', default='TEST', help='The project to upload this report to')
@@ -84,6 +88,8 @@ def command_interface() -> None:
         project=args.project,
         kb_disease_match=args.kb_disease_match,
         ipr_url=args.ipr_url,
+        graphkb_url=args.graphkb_url,
+        graphkb_client_url=args.graphkb_client_url,
         log_level=args.log_level,
         expression_variants_file=args.expression_variants,
         structural_variants_file=args.structural_variants,
@@ -95,6 +101,11 @@ def command_interface() -> None:
 
 
 def clean_unsupported_content(upload_content: Dict) -> Dict:
+    """
+    Remove unsupported content. This content is either added to facilitate creation
+    or to support upcoming and soon to be supported content that we would like
+    to implement but is not yet supported by the upload
+    """
     for variant_section in [
         'expressionVariants',
         'smallMutations',
@@ -129,6 +140,8 @@ def create_report(
     ipr_upload: bool = True,
     interactive: bool = False,
     cache_gene_minimum: int = CACHE_GENE_MINIMUM,
+    graphkb_url: str = '',
+    graphkb_client_url: str = 'https://graphkb.bcgsc.ca',
 ) -> Optional[Dict]:
     """
     Run the matching and create the report JSON for upload to IPR
@@ -159,7 +172,11 @@ def create_report(
         datefmt='%m-%d-%y %H:%M:%S',
     )
     ipr_conn = ipr.IprConnection(username, password, ipr_url)
-    graphkb_conn = GraphKBConnection()
+    if graphkb_url:
+        print('connecting to graphkb', graphkb_url)
+        graphkb_conn = GraphKBConnection(graphkb_url)
+    else:
+        graphkb_conn = GraphKBConnection()
     graphkb_conn.login(username, password)
 
     if copy_variants_file:
@@ -239,6 +256,7 @@ def create_report(
             show_progress=interactive,
         )
     )
+
     logger.info('fetching gene annotations')
     gene_information = get_gene_information(graphkb_conn, genes_with_variants)
 
@@ -285,15 +303,16 @@ def create_report(
         section_content_type = 'rows' if not isinstance(output[section], str) else 'characters'
         logger.info(f'section {section} has {len(output[section])} {section_content_type}')
 
-    logger.info(f'made {graphkb_conn.request_count} requests to graphkb')
-
     output = clean_unsupported_content(output)
 
     ipr_result = None
+    report_id = None
+    comments = summarize(graphkb_conn, alterations, kb_disease_match, graphkb_client_url)
     if ipr_upload:
         try:
-            logger.info('Uploading to IPR')
+            logger.info(f'Uploading to IPR {ipr_conn.url}')
             ipr_result = ipr_conn.upload_report(output)
+            report_id = ipr_result['ident']
             logger.info(ipr_result)
             output.update(ipr_result)
         except Exception as err:
@@ -303,4 +322,12 @@ def create_report(
             logger.info(f'Writing IPR upload json to: {output_json_path}')
             with open(output_json_path, 'w') as fh:
                 fh.write(json.dumps(output))
+    if report_id:
+        try:
+            ipr_conn.set_analyst_comments(report_id, {'comments': comments})
+            logger.info(f'report {report_id} was annotated with generated comments')
+        except Exception as err:
+            logger.error(f"ipr_conn.set_analyst_comments failed: {err}", exc_info=True)
+    logger.info(f'made {graphkb_conn.request_count} requests to graphkb')
+    logger.info(f'average load {int(graphkb_conn.load or 0)} req/s')
     return output

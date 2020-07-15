@@ -12,14 +12,16 @@ from graphkb.util import IterableNamespace
 from graphkb.vocab import get_term_tree
 
 from .types import ImageDefinition, IprGene, IprStructuralVariant, IprVariant, KbMatch
-from .util import convert_to_rid_set
+from .util import convert_to_rid_set, get_terms_set
+from .constants import (
+    BASE_BIOLOGICAL_TERMS,
+    BASE_DIAGNOSTIC_TERM,
+    BASE_PROGNOSTIC_TERM,
+    BASE_THERAPEUTIC_TERMS,
+    VARIANT_CLASSES,
+)
 
-BASE_THERAPEUTIC_TERMS = ['therapeutic efficacy', 'eligibility']
-BASE_DIAGNOSTIC_TERM = 'diagnostic indicator'
-BASE_PROGNOSTIC_TERM = 'prognostic indicator'
-BASE_BIOLOGICAL_TERMS = ['functional effect', 'tumourigenesis', 'predisposing']
 
-VARIANT_CLASSES = {'Variant', 'CategoryVariant', 'PositionalVariant', 'CatalogueVariant'}
 REPORT_KB_SECTIONS = IterableNamespace(
     therapeutic='therapeutic',
     prognostic='prognostic',
@@ -42,17 +44,8 @@ APPROVED_EVIDENCE_LEVELS = {
     ],
 }
 
-DEFAULT_URL = 'https://iprdev-api.bcgsc.ca/api'
+DEFAULT_URL = 'https://iprstaging-api.bcgsc.ca/api'
 DEFAULT_LIMIT = 1000
-
-
-def get_terms_set(graphkb_conn: GraphKBConnection, base_terms: List[str]) -> Set[str]:
-    terms = set()
-    for base_term in base_terms:
-        terms.update(
-            convert_to_rid_set(get_term_tree(graphkb_conn, base_term, include_superclasses=False))
-        )
-    return terms
 
 
 def display_evidence_levels(statement: Statement) -> str:
@@ -350,3 +343,17 @@ class IprConnection:
 
     def upload_report(self, content: Dict) -> Dict:
         return self.post('/reports', content)
+
+    def set_analyst_comments(self, report_id: str, data: Dict) -> Dict:
+        """
+        Update report comments to an existing report
+
+        TODO:
+            Add to main upload.
+            Pending: https://www.bcgsc.ca/jira/browse/DEVSU-1177
+        """
+        return self.request(
+            f'/reports/{report_id}/summary/analyst-comments',
+            method='PUT',
+            data=zlib.compress(json.dumps(data, allow_nan=False).encode('utf-8')),
+        )
