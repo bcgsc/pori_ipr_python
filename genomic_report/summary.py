@@ -22,7 +22,7 @@ from .constants import (
 OTHER_DISEASES = 'other disease types'
 ENTREZ_GENE_URL = 'https://www.ncbi.nlm.nih.gov/gene'
 # TODO: https://www.bcgsc.ca/jira/browse/DEVSU-1181
-GRAPHKB_GUI = 'https://graphkb.bcgsc.ca'
+GRAPHKB_GUI = '/graphkb'
 
 
 def filter_by_record_class(
@@ -92,18 +92,16 @@ def get_preferred_drug_representation(graphkb_conn: GraphKBConnection, drug_reco
     return drugs[0]
 
 
-def create_graphkb_link(
-    record_ids: List[str], graphkb_client_url: str = GRAPHKB_GUI, record_class: str = 'Statement',
-) -> str:
+def create_graphkb_link(record_ids: List[str], record_class: str = 'Statement',) -> str:
     """
     Create a link for a set of statements to the GraphKB client
     """
     record_ids = sorted(list(set(record_ids)))
     if len(record_ids) == 1:
-        return f'{graphkb_client_url}/view/{record_class}/{record_ids[0].replace("#", "")}'
+        return f'{GRAPHKB_GUI}/view/{record_class}/{record_ids[0].replace("#", "")}'
     complex_param = base64.b64encode(json.dumps({'target': record_ids}).encode("utf-8"))
     search_params = {'complex': complex_param, '@class': record_class}
-    return f'{graphkb_client_url}/data/table?{urlencode(search_params)}'
+    return f'{GRAPHKB_GUI}/data/table?{urlencode(search_params)}'
 
 
 def substitute_sentence_template(
@@ -114,7 +112,6 @@ def substitute_sentence_template(
     evidence: List[Record],
     statement_rids: List[str] = [],
     disease_matches: Set[str] = set(),
-    graphkb_client_url: str = '',
 ) -> str:
     """
     Create the filled-in sentence template for a given template and list of substitutions
@@ -167,11 +164,7 @@ def substitute_sentence_template(
 
     result = result.replace(r'{conditions}', natural_join_records(other_conditions))
 
-    link_url = (
-        create_graphkb_link(statement_rids, graphkb_client_url=graphkb_client_url)
-        if statement_rids
-        else ''
-    )
+    link_url = create_graphkb_link(statement_rids) if statement_rids else ''
 
     if r'{evidence}' in template:
 
@@ -188,7 +181,6 @@ def aggregate_statements(
     template: str,
     statements: List[Statement],
     disease_matches: Set[str],
-    graphkb_client_url: str,
 ) -> Dict[str, str]:
     """
     Group Statements that only differ in disease conditions and evidence
@@ -235,7 +227,6 @@ def aggregate_statements(
             evidence,
             statement_rids=convert_to_rid_list(group),
             disease_matches=disease_matches,
-            graphkb_client_url=graphkb_client_url,
         )
 
         for statement in group:
@@ -388,10 +379,7 @@ def section_statements_by_genes(
 
 
 def summarize(
-    graphkb_conn: GraphKBConnection,
-    matches: Sequence[KbMatch],
-    disease_name: str,
-    graphkb_client_url: str,
+    graphkb_conn: GraphKBConnection, matches: Sequence[KbMatch], disease_name: str,
 ) -> str:
     """
     Given a list of GraphKB matches generate a text summary to add to the report
@@ -414,9 +402,7 @@ def summarize(
     # aggregate similar sentences
     sentences = {}
     for template, group in templates.items():
-        sentences.update(
-            aggregate_statements(graphkb_conn, template, group, disease_matches, graphkb_client_url)
-        )
+        sentences.update(aggregate_statements(graphkb_conn, template, group, disease_matches))
 
     # section statements by genes
     statements_by_genes = section_statements_by_genes(graphkb_conn, list(statements.values()))

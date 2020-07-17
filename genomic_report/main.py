@@ -8,7 +8,7 @@ from typing import Dict, List, Optional
 from argparse_env import Action, ArgumentParser
 
 from graphkb import GraphKBConnection
-from graphkb.match import cache_gene_names
+from graphkb.match import cache_missing_features
 
 from . import ipr
 from .annotate import annotate_category_variants, annotate_positional_variants, get_gene_information
@@ -65,7 +65,6 @@ def command_interface() -> None:
     )
     parser.add_argument('--ipr_url', default=ipr.DEFAULT_URL)
     parser.add_argument('--graphkb_url', default=None)
-    parser.add_argument('--graphkb_client_url', default='https://graphkb.bcgsc.ca')
     parser.add_argument('--log_level', default='info', choices=LOG_LEVELS.keys())
     parser.add_argument('--patient_id', required=True, help='The patient ID for this report')
     parser.add_argument('--project', default='TEST', help='The project to upload this report to')
@@ -89,7 +88,6 @@ def command_interface() -> None:
         kb_disease_match=args.kb_disease_match,
         ipr_url=args.ipr_url,
         graphkb_url=args.graphkb_url,
-        graphkb_client_url=args.graphkb_client_url,
         log_level=args.log_level,
         expression_variants_file=args.expression_variants,
         structural_variants_file=args.structural_variants,
@@ -141,7 +139,6 @@ def create_report(
     interactive: bool = False,
     cache_gene_minimum: int = CACHE_GENE_MINIMUM,
     graphkb_url: str = '',
-    graphkb_client_url: str = 'https://graphkb.bcgsc.ca',
 ) -> Optional[Dict]:
     """
     Run the matching and create the report JSON for upload to IPR
@@ -224,7 +221,7 @@ def create_report(
     # calculations on small numbers of genes.
     if len(genes_with_variants) > cache_gene_minimum:
         logger.info('caching genes to improve matching speed')
-        cache_gene_names(graphkb_conn)
+        cache_missing_features(graphkb_conn)
 
     # filter excess variants not required for extra gene information
     logger.info(f'annotating small mutations from: {small_mutations_file}')
@@ -307,7 +304,7 @@ def create_report(
 
     ipr_result = None
     report_id = None
-    comments = summarize(graphkb_conn, alterations, kb_disease_match, graphkb_client_url)
+    comments = summarize(graphkb_conn, alterations, kb_disease_match)
     if ipr_upload:
         try:
             logger.info(f'Uploading to IPR {ipr_conn.url}')
