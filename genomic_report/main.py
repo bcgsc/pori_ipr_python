@@ -105,7 +105,12 @@ def clean_unsupported_content(upload_content: Dict) -> Dict:
     to implement but is not yet supported by the upload
     """
     drop_columns = [
-        'variant', 'variantType', 'histogramImage', 'hgvs_protein', 'hgvs_cds', 'hgvs_genomic'
+        'variant',
+        'variantType',
+        'histogramImage',
+        'hgvs_protein',
+        'hgvs_cds',
+        'hgvs_genomic',
     ]
     for variant_section in [
         'expressionVariants',
