@@ -104,6 +104,14 @@ def clean_unsupported_content(upload_content: Dict) -> Dict:
     or to support upcoming and soon to be supported content that we would like
     to implement but is not yet supported by the upload
     """
+    drop_columns = [
+        'variant',
+        'variantType',
+        'histogramImage',
+        'hgvs_protein',
+        'hgvs_cds',
+        'hgvs_genomic',
+    ]
     for variant_section in [
         'expressionVariants',
         'smallMutations',
@@ -111,12 +119,9 @@ def clean_unsupported_content(upload_content: Dict) -> Dict:
         'structuralVariants',
     ]:
         for variant in upload_content[variant_section]:
-            if 'variant' in variant:
-                del variant['variant']
-            if 'variantType' in variant:
-                del variant['variantType']
-            if 'histogramImage' in variant:
-                del variant['histogramImage']
+            for col in drop_columns:
+                if col in variant:
+                    del variant[col]
     return upload_content
 
 
