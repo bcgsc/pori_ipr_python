@@ -21,7 +21,7 @@ def report_upload_content() -> Dict:
             project='TEST',
             expression_variants_file=get_test_file('expression.tab'),
             small_mutations_file=get_test_file('small_mutations.short.tab'),
-            copy_variants_file=get_test_file('copy_variants.short.tab'),
+            copy_variants_file=get_test_file('copy_variants.tab'),
             structural_variants_file=get_test_file('fusions.tab'),
             username=os.environ['USERNAME'],
             password=os.environ['PASSWORD'],
