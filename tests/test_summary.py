@@ -98,7 +98,7 @@ class TestSubstituteSentenceTemplate:
         )
         assert (
             sentence
-            == 'KRAS increased RNA expression is associated with senitivity to some drug in other disease types (<a href="/data/table?complex=eyJ0YXJnZXQiOiBbIjYiLCAiNyJdfQ%3D%3D&%40class=Statement" target="_blank" rel="noopener"></a>)'
+            == 'KRAS increased RNA expression is associated with senitivity to some drug in other disease types (<a href="/graphkb/data/table?complex=eyJ0YXJnZXQiOiBbIjYiLCAiNyJdfQ%3D%3D&%40class=Statement" target="_blank" rel="noopener"></a>)'
         )
 
     def test_multiple_diseases_some_matches(self):
@@ -123,7 +123,7 @@ class TestSubstituteSentenceTemplate:
         )
         assert (
             sentence
-            == 'KRAS increased RNA expression is associated with senitivity to some drug in disease 1, and other disease types (<a href="/data/table?complex=eyJ0YXJnZXQiOiBbIjYiLCAiNyJdfQ%3D%3D&%40class=Statement" target="_blank" rel="noopener"></a>)'
+            == 'KRAS increased RNA expression is associated with senitivity to some drug in disease 1, and other disease types (<a href="/graphkb/data/table?complex=eyJ0YXJnZXQiOiBbIjYiLCAiNyJdfQ%3D%3D&%40class=Statement" target="_blank" rel="noopener"></a>)'
         )
 
     def test_multiple_diseases_only_matches(self):
@@ -148,5 +148,5 @@ class TestSubstituteSentenceTemplate:
         )
         assert (
             sentence
-            == 'KRAS increased RNA expression is associated with senitivity to some drug in disease 1, disease 2, and disease 3 (<a href="/data/table?complex=eyJ0YXJnZXQiOiBbIjYiLCAiNyJdfQ%3D%3D&%40class=Statement" target="_blank" rel="noopener"></a>)'
+            == 'KRAS increased RNA expression is associated with senitivity to some drug in disease 1, disease 2, and disease 3 (<a href="/graphkb/data/table?complex=eyJ0YXJnZXQiOiBbIjYiLCAiNyJdfQ%3D%3D&%40class=Statement" target="_blank" rel="noopener"></a>)'
         )

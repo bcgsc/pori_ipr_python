@@ -8,7 +8,7 @@ from typing import Dict, List, Optional
 from argparse_env import Action, ArgumentParser
 
 from graphkb import GraphKBConnection
-from graphkb.match import cache_gene_names
+from graphkb.match import cache_missing_features
 
 from . import ipr
 from .annotate import annotate_category_variants, annotate_positional_variants, get_gene_information
@@ -221,7 +221,7 @@ def create_report(
     # calculations on small numbers of genes.
     if len(genes_with_variants) > cache_gene_minimum:
         logger.info('caching genes to improve matching speed')
-        cache_gene_names(graphkb_conn)
+        cache_missing_features(graphkb_conn)
 
     # filter excess variants not required for extra gene information
     logger.info(f'annotating small mutations from: {small_mutations_file}')
