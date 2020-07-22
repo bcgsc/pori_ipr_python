@@ -305,11 +305,15 @@ def create_report(
         section_content_type = 'rows' if not isinstance(output[section], str) else 'characters'
         logger.info(f'section {section} has {len(output[section])} {section_content_type}')
 
-    output = clean_unsupported_content(output)
-
     ipr_result = None
     report_id = None
-    comments = summarize(graphkb_conn, alterations, kb_disease_match)
+    comments = summarize(
+        graphkb_conn,
+        alterations,
+        disease_name=kb_disease_match,
+        variants=expression_variants + copy_variants + structural_variants + small_mutations,
+    )
+    output = clean_unsupported_content(output)
     if ipr_upload:
         try:
             logger.info(f'Uploading to IPR {ipr_conn.url}')
