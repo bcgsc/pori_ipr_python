@@ -307,7 +307,6 @@ def create_report(
         logger.info(f'section {section} has {len(output[section])} {section_content_type}')
 
     ipr_result = None
-    # report_id = None
     output['analystComments'] = {
         'comments': summarize(
             graphkb_conn,
@@ -321,7 +320,6 @@ def create_report(
         try:
             logger.info(f'Uploading to IPR {ipr_conn.url}')
             ipr_result = ipr_conn.upload_report(output)
-            # report_id = ipr_result['ident']
             logger.info(ipr_result)
             output.update(ipr_result)
         except Exception as err:
