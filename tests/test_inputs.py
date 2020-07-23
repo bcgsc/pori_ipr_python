@@ -10,7 +10,7 @@ from genomic_report.inputs import (
     preprocess_expression_variants,
     preprocess_small_mutations,
     preprocess_structural_variants,
-    read_tabbed_file
+    read_tabbed_file,
 )
 from genomic_report.types import IprGeneVariant, IprStructuralVariant
 from genomic_report.util import logger

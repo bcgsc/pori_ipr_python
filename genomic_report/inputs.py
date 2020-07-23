@@ -209,6 +209,7 @@ def preprocess_small_mutations(rows: Iterable[Dict]) -> List[IprGeneVariant]:
     Validate the input rows contain the minimum required fields and
     generate any default values where possible
     """
+
     def row_key(row: Dict) -> Tuple[str, ...]:
         return tuple(['small mutation'] + [row[key] for key in SMALL_MUT_KEY])
 
@@ -242,6 +243,7 @@ def preprocess_expression_variants(rows: Iterable[Dict]) -> List[IprGeneVariant]
     Validate the input rows contain the minimum required fields and
     generate any default values where possible
     """
+
     def row_key(row: Dict) -> Tuple[str, ...]:
         return tuple(['expression'] + [row[key] for key in EXP_KEY])
 
@@ -309,6 +311,7 @@ def preprocess_structural_variants(rows: Iterable[Dict]) -> List[IprVariant]:
     Validate the input rows contain the minimum required fields and
     generate any default values where possible
     """
+
     def row_key(row: Dict) -> Tuple[str, ...]:
         return tuple(['sv'] + [row[key] for key in SV_KEY])
 
