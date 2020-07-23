@@ -222,8 +222,8 @@ def preprocess_small_mutations(rows: Iterable[Dict]) -> List[IprGeneVariant]:
 
     # 'location' and 'refAlt' are not currently used for matching; still optional and allowed blank
     patterns = {
-        'location': r'^(\w+:\d+)?$',
-        'refAlt': r'^([A-Z]+>[A-Z]+)?$',
+        'location': r'^(\w+:\d+(-\d+)?)?$',
+        'refAlt': r'^([A-Z]*>[A-Z]*)?$',
         'hgvsProtein': r'^(\S+:p\.\S+)?$',
         'hgvsCds': r'^(\S+:c\.\S+)?$',
         'hgvsGenomic': r'^(\S+:g\.\S+)?$',
