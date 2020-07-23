@@ -3,7 +3,7 @@ import datetime
 import json
 import logging
 import os
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Iterable
 
 from argparse_env import Action, ArgumentParser
 
@@ -14,10 +14,11 @@ from . import ipr
 from .annotate import annotate_category_variants, annotate_positional_variants, get_gene_information
 from .inputs import (
     check_variant_links,
-    load_copy_variants,
-    load_expression_variants,
-    load_small_mutations,
-    load_structural_variants,
+    preprocess_copy_variants,
+    preprocess_expression_variants,
+    preprocess_small_mutations,
+    preprocess_structural_variants,
+    read_tabbed_file,
 )
 from .types import KbMatch
 from .util import LOG_LEVELS, logger, trim_empty_values
@@ -80,6 +81,40 @@ def command_interface() -> None:
 
     args = parser.parse_args()
 
+    if args.copy_variants_file:
+        logger.info(f'loading copy variants from: {args.copy_variants_file}')
+        copy_variants = read_tabbed_file(args.copy_variants_file)
+        logger.info(f'loaded {len(copy_variants)}')
+    else:
+        copy_variants = []
+
+    if args.small_mutations_file:
+        logger.info(f'loading small mutations from: {args.small_mutations_file}')
+        small_mutations = read_tabbed_file(args.small_mutations_file)
+        logger.info(
+            f'loaded {len(small_mutations)} small mutations from: {args.small_mutations_file}'
+        )
+    else:
+        small_mutations = []
+
+    if args.expression_variants_file:
+        logger.info(f'loading expression variants from: {args.expression_variants_file}')
+        expression_variants = read_tabbed_file(args.expression_variants_file)
+        logger.info(
+            f'loaded {len(expression_variants)} expression variants from: {args.expression_variants_file}'
+        )
+    else:
+        expression_variants = []
+
+    if args.structural_variants_file:
+        f'loading structural variants from: {args.structural_variants_file}'
+        structural_variants = read_tabbed_file(args.structural_variants_file)
+        logger.info(
+            f'loaded {len(structural_variants)} structural variants from: {args.structural_variants_file}'
+        )
+    else:
+        structural_variants = []
+
     create_report(
         username=args.username,
         password=args.password,
@@ -89,10 +124,10 @@ def command_interface() -> None:
         ipr_url=args.ipr_url,
         graphkb_url=args.graphkb_url,
         log_level=args.log_level,
-        expression_variants_file=args.expression_variants,
-        structural_variants_file=args.structural_variants,
-        copy_variants_file=args.copy_variants,
-        small_mutations_file=args.small_mutations,
+        expression_variant_rows=expression_variants,
+        structural_variant_rows=structural_variants,
+        copy_variant_rows=copy_variants,
+        small_mutation_rows=small_mutations,
         output_json_path=args.output_json_path,
         always_write_output_json=args.always_write_output_json,
     )
@@ -133,10 +168,10 @@ def create_report(
     project: str = 'TEST',
     ipr_url: str = ipr.DEFAULT_URL,
     log_level: str = 'info',
-    expression_variants_file: str = None,
-    structural_variants_file: str = None,
-    copy_variants_file: str = None,
-    small_mutations_file: str = None,
+    expression_variant_rows: Iterable[Dict] = [],
+    structural_variant_rows: Iterable[Dict] = [],
+    copy_variant_rows: Iterable[Dict] = [],
+    small_mutation_rows: Iterable[Dict] = [],
     optional_content: Optional[Dict] = None,
     output_json_path: str = None,
     always_write_output_json: bool = False,
@@ -154,10 +189,6 @@ def create_report(
         kb_disease_match: disease name to be used in matching to GraphKB
         ipr_url: base URL to use in connecting to IPR
         log_level: the logging level
-        expression_variants_file: path to the expression variants input file
-        structural_variants_file: path to the structural variants input file
-        copy_variants_file: path to the copy number variants input file
-        small_mutations_file: path to the small mutations input file
         optional_content: pass-through content to include in the JSON upload
         output_json_path: path to a JSON file to output the report upload body.
         always_write_output_json: with successful IPR upload
@@ -173,6 +204,12 @@ def create_report(
         format='%(asctime)s %(name)s %(levelname)s %(message)s',
         datefmt='%m-%d-%y %H:%M:%S',
     )
+    # validate the input variants
+    small_mutations = preprocess_small_mutations(small_mutation_rows)
+    copy_variants = preprocess_copy_variants(copy_variant_rows)
+    structural_variants = preprocess_structural_variants(structural_variant_rows)
+    expression_variants = preprocess_expression_variants(expression_variant_rows)
+
     ipr_conn = ipr.IprConnection(username, password, ipr_url)
     if graphkb_url:
         print('connecting to graphkb', graphkb_url)
@@ -180,42 +217,6 @@ def create_report(
     else:
         graphkb_conn = GraphKBConnection()
     graphkb_conn.login(username, password)
-
-    if copy_variants_file:
-        logger.info(f'loading copy variants from: {copy_variants_file}')
-        copy_variants = load_copy_variants(copy_variants_file)
-        logger.info(f'loaded {len(copy_variants)}')
-    else:
-        logger.info("no copy variants given")
-        copy_variants = []
-
-    if small_mutations_file:
-        logger.info(f'loading small mutations from: {small_mutations_file}')
-        small_mutations = load_small_mutations(small_mutations_file)
-        logger.info(f'loaded {len(small_mutations)} small mutations from: {small_mutations_file}')
-    else:
-        logger.info("no small mutations given")
-        small_mutations = []
-
-    if expression_variants_file:
-        logger.info(f'loading expression variants from: {expression_variants_file}')
-        expression_variants = load_expression_variants(expression_variants_file)
-        logger.info(
-            f'loaded {len(expression_variants)} expression variants from: {expression_variants_file}'
-        )
-    else:
-        logger.info("no expression given")
-        expression_variants = []
-
-    if structural_variants_file:
-        f'loading structural variants from: {structural_variants_file}'
-        structural_variants = load_structural_variants(structural_variants_file)
-        logger.info(
-            f'loaded {len(structural_variants)} structural variants from: {structural_variants_file}'
-        )
-    else:
-        logger.info("no structural variants given")
-        structural_variants = []
 
     genes_with_variants = check_variant_links(
         small_mutations, expression_variants, copy_variants, structural_variants
@@ -229,26 +230,26 @@ def create_report(
         cache_missing_features(graphkb_conn)
 
     # filter excess variants not required for extra gene information
-    logger.info(f'annotating small mutations from: {small_mutations_file}')
+    logger.info(f'annotating small mutations')
     alterations: List[KbMatch] = annotate_positional_variants(
         graphkb_conn, small_mutations, kb_disease_match, show_progress=interactive
     )
 
-    logger.info(f'annotating structural variants from: {structural_variants_file}')
+    logger.info(f'annotating structural variants')
     alterations.extend(
         annotate_positional_variants(
             graphkb_conn, structural_variants, kb_disease_match, show_progress=interactive
         )
     )
 
-    logger.info(f'annotating copy variants from {copy_variants_file}')
+    logger.info(f'annotating copy variants')
     alterations.extend(
         annotate_category_variants(
             graphkb_conn, copy_variants, kb_disease_match, show_progress=interactive
         )
     )
 
-    logger.info(f'annotating expression variants from: {expression_variants_file}')
+    logger.info(f'annotating expression variants')
     alterations.extend(
         annotate_category_variants(
             graphkb_conn,
@@ -306,19 +307,21 @@ def create_report(
         logger.info(f'section {section} has {len(output[section])} {section_content_type}')
 
     ipr_result = None
-    report_id = None
-    comments = summarize(
-        graphkb_conn,
-        alterations,
-        disease_name=kb_disease_match,
-        variants=expression_variants + copy_variants + structural_variants + small_mutations,
-    )
+    # report_id = None
+    output['analystComments'] = {
+        'comments': summarize(
+            graphkb_conn,
+            alterations,
+            disease_name=kb_disease_match,
+            variants=expression_variants + copy_variants + structural_variants + small_mutations,
+        )
+    }
     output = clean_unsupported_content(output)
     if ipr_upload:
         try:
             logger.info(f'Uploading to IPR {ipr_conn.url}')
             ipr_result = ipr_conn.upload_report(output)
-            report_id = ipr_result['ident']
+            # report_id = ipr_result['ident']
             logger.info(ipr_result)
             output.update(ipr_result)
         except Exception as err:
@@ -328,12 +331,6 @@ def create_report(
             logger.info(f'Writing IPR upload json to: {output_json_path}')
             with open(output_json_path, 'w') as fh:
                 fh.write(json.dumps(output))
-    if report_id:
-        try:
-            ipr_conn.set_analyst_comments(report_id, {'comments': comments})
-            logger.info(f'report {report_id} was annotated with generated comments')
-        except Exception as err:
-            logger.error(f"ipr_conn.set_analyst_comments failed: {err}", exc_info=True)
     logger.info(f'made {graphkb_conn.request_count} requests to graphkb')
     logger.info(f'average load {int(graphkb_conn.load or 0)} req/s')
     return output
