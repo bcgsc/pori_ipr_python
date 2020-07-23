@@ -9,7 +9,7 @@ from graphkb import GraphKBConnection
 from graphkb.vocab import get_term_tree
 from graphkb.util import convert_to_rid_list
 
-from .types import KbMatch
+from .types import KbMatch, IprVariant
 from .util import convert_to_rid_set, get_terms_set
 from .constants import (
     BASE_THERAPEUTIC_TERMS,
@@ -276,11 +276,31 @@ def get_preferred_gene_name(graphkb_conn: GraphKBConnection, record_id: str) -> 
     return record['displayName']
 
 
+def display_variants(gene_name: str, variants: List[IprVariant]):
+    def display_variant(variant: IprVariant):
+        if 'proteinChange' in variant:
+            return f'{variant["gene"]}:{variant["proteinChange"]}'
+        if 'gene1' in variant:
+            return f'({variant["gene1"]},{variant["gene2"]}):fusion(e.{variant["exon1"]},e.{variant["exon2"]})'
+        return f'{variant["kbCategory"]} of {variant["gene"]}'
+
+    result = sorted(list({v for v in [display_variant(e) for e in variants] if gene_name in v}))
+    variants_text = natural_join(result)
+    if len(result) > 1:
+        return (
+            f'Multiple variants of the gene {gene_name} were observed in this case: {variants_text}'
+        )
+    elif result:
+        return f'{variants_text[0].upper()}{variants_text[1:]} was observed in this case.'
+    return ''
+
+
 def create_section_html(
     graphkb_conn: GraphKBConnection,
     gene_name: str,
     sentences_by_statement_id: Dict[str, str],
     statements: Dict[str, Statement],
+    exp_variants: List[IprVariant],
 ) -> str:
     """
     Generate HTML for a gene section of the comments
@@ -326,6 +346,11 @@ def create_section_html(
         ),
         key=generate_ontology_preference_key,
     )
+
+    variants_text = display_variants(gene_name, exp_variants)
+    if not variants_text:
+        # exclude sections where they are not linked to an experimental variant. this can occur when there are co-occurent statements collected
+        return ''
     if genes and genes[0].get('description', ''):
         description = '. '.join(genes[0]['description'].split('. ')[:2])
         sourceId = genes[0]['sourceId']
@@ -335,6 +360,9 @@ def create_section_html(
 <blockquote class="entrez_description" cite="{ENTREZ_GENE_URL}/{sourceId}">
     {description}.
 </blockquote>
+<p>
+    {variants_text}
+</p>
 '''
         )
 
@@ -379,13 +407,28 @@ def section_statements_by_genes(
 
 
 def summarize(
-    graphkb_conn: GraphKBConnection, matches: Sequence[KbMatch], disease_name: str,
+    graphkb_conn: GraphKBConnection,
+    matches: Sequence[KbMatch],
+    disease_name: str,
+    variants: List[IprVariant],
 ) -> str:
     """
     Given a list of GraphKB matches generate a text summary to add to the report
     """
     templates: Dict[str, List[Statement]] = {}
     statements: Dict[str, Statement] = {}
+    variants_by_keys = {v['key']: v for v in variants}
+    variant_keys_by_statement_ids: Dict[str, Set[str]] = {}
+
+    for match in matches:
+        rid = match['kbStatementId']
+        # kb_variant = match['kbVariantId']
+        exp_variant = match['variant']
+        variant_keys_by_statement_ids.setdefault(rid, set()).add(exp_variant)
+
+    exp_variants_by_statements: Dict[str, List[IprVariant]] = {}
+    for rid, keys in variant_keys_by_statement_ids.items():
+        exp_variants_by_statements[rid] = [variants_by_keys[key] for key in keys]
 
     disease_matches = convert_to_rid_set(
         get_term_tree(graphkb_conn, disease_name, ontology_class='Disease')
@@ -414,12 +457,18 @@ def summarize(
     for section, statement_rids in sorted(
         statements_by_genes.items(), key=lambda x: len(x[1]), reverse=True
     ):
+        exp_variants = {}
+        for variant_list in [exp_variants_by_statements[r] for r in statement_rids]:
+            for variant in variant_list:
+                exp_variants[variant['key']] = variant
+
         output.append(
             create_section_html(
                 graphkb_conn,
                 section,
                 {r: sentences[r] for r in statement_rids},
                 {r: statements[r] for r in statement_rids},
+                list(exp_variants.values()),
             )
         )
 
