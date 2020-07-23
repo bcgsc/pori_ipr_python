@@ -18,12 +18,68 @@ from genomic_report.util import logger
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'test_data')
 
 
-def test_load_small_mutations() -> None:
-    records = preprocess_small_mutations(
-        read_tabbed_file(os.path.join(DATA_DIR, 'small_mutations.tab'))
-    )
-    assert records
-    assert len(records) == 2614
+class TestPreProcessSmallMutations:
+    def test_load_test_file(self) -> None:
+        records = preprocess_small_mutations(
+            read_tabbed_file(os.path.join(DATA_DIR, 'small_mutations.tab'))
+        )
+        assert records
+        assert len(records) == 2614
+
+    def test_error_on_missing_gene(self):
+        original = {
+            'proteinChange': 'p.V460M',
+            'zygosity': 'het',
+            'tumourReads': '48/42',
+            'rnaReads': '26/0',
+            'hgvsProtein': '',
+            'transcript': 'ENST1000',
+            'hgvsCds': '',
+            'hgvsGenomic': '',
+            'key': '02fe85a3477784b5ac0f8ecffb300d10',
+            'variant': 'A1BG:p.V460M',
+            'location': '2:1234',
+        }
+        with pytest.raises(ValueError):
+            preprocess_small_mutations([original])
+
+    def test_error_on_missing_change(self):
+        original = {
+            'zygosity': 'het',
+            'tumourReads': '48/42',
+            'rnaReads': '26/0',
+            'hgvsProtein': '',
+            'transcript': 'ENST1000',
+            'hgvsCds': '',
+            'hgvsGenomic': '',
+            'key': '02fe85a3477784b5ac0f8ecffb300d10',
+            'location': '2:1234',
+            'gene': 'KRAS',
+        }
+        with pytest.raises(ValueError):
+            preprocess_small_mutations([original])
+
+    def test_maintains_optional_fields(self):
+        original = {
+            'gene': 'A1BG',
+            'proteinChange': 'p.V460M',
+            'zygosity': 'het',
+            'tumourReads': '48/42',
+            'rnaReads': '26/0',
+            'hgvsProtein': '',
+            'transcript': 'ENST1000',
+            'hgvsCds': '',
+            'hgvsGenomic': '',
+            'key': '02fe85a3477784b5ac0f8ecffb300d10',
+            'variant': 'blargh',
+            'location': '2:1234',
+        }
+        records = preprocess_small_mutations([original])
+        record = records[0]
+        assert record['variantType'] == 'mut'
+        for col in original:
+            assert col in record
+        assert record['variant'] == 'A1BG:p.V460M'
 
 
 def test_load_small_mutations_probe() -> None:
@@ -32,6 +88,8 @@ def test_load_small_mutations_probe() -> None:
     )
     assert records
     assert len(records) == 4
+    assert records[0]['variantType'] == 'mut'
+    assert 'variant' in records[0]
 
 
 def test_load_copy_variants() -> None:
@@ -40,6 +98,8 @@ def test_load_copy_variants() -> None:
     )
     assert records
     assert len(records) == 4603
+    assert records[0]['variantType'] == 'cnv'
+    assert 'variant' in records[0]
 
 
 def test_load_structural_variants() -> None:
@@ -48,6 +108,8 @@ def test_load_structural_variants() -> None:
     )
     assert records
     assert len(records) == 5
+    assert records[0]['variantType'] == 'sv'
+    assert 'variant' in records[0]
 
 
 def test_load_expression_variants() -> None:
@@ -56,6 +118,8 @@ def test_load_expression_variants() -> None:
     )
     assert records
     assert len(records) == 4603
+    assert records[0]['variantType'] == 'exp'
+    assert 'variant' in records[0]
 
 
 class TestCheckVariantLinks:

@@ -34,9 +34,12 @@ SMALL_MUT_OPTIONAL = [
     'zygosity',
     'tumourReads',
     'rnaReads',
-    'hgvs_protein',
-    'hgvs_cds',
-    'hgvs_genomic',
+    'hgvsProtein',
+    'hgvsCds',
+    'hgvsGenomic',
+    'location',
+    'refAlt',
+    'transcript',
 ]
 
 EXP_REQ = ['gene', 'kbCategory']
@@ -73,7 +76,6 @@ EXP_OPTIONAL = [
     'histogramImage',
 ]
 
-SV_KEY = ['eventType', 'breakpoint']
 SV_REQ = [
     'eventType',
     'breakpoint',
@@ -82,6 +84,7 @@ SV_REQ = [
     'exon1',  # n-terminal
     'exon2',  # c-terminal
 ]
+SV_KEY = SV_REQ[:]
 SV_OPTIONAL = [
     'ctermTranscript',
     'ntermTranscript',
@@ -211,7 +214,7 @@ def preprocess_small_mutations(rows: Iterable[Dict]) -> List[IprGeneVariant]:
     """
 
     def row_key(row: Dict) -> Tuple[str, ...]:
-        return tuple(['small mutation'] + [row[key] for key in SMALL_MUT_KEY])
+        return tuple(['small mutation'] + [row.get(key, '') for key in SMALL_MUT_KEY])
 
     result = validate_variant_rows(rows, SMALL_MUT_REQ, SMALL_MUT_OPTIONAL, row_key)
     if not result:
@@ -221,9 +224,9 @@ def preprocess_small_mutations(rows: Iterable[Dict]) -> List[IprGeneVariant]:
     patterns = {
         'location': r'^(\w+:\d+)?$',
         'refAlt': r'^([A-Z]+>[A-Z]+)?$',
-        'hgvs_protein': r'^(\S+:p\.\S+)?$',
-        'hgvs_cds': r'^(\S+:c\.\S+)?$',
-        'hgvs_genomic': r'^(\S+:g\.\S+)?$',
+        'hgvsProtein': r'^(\S+:p\.\S+)?$',
+        'hgvsCds': r'^(\S+:c\.\S+)?$',
+        'hgvsGenomic': r'^(\S+:g\.\S+)?$',
     }
     validate_row_patterns(result, patterns, SMALL_MUT_KEY)
 
@@ -321,7 +324,7 @@ def preprocess_structural_variants(rows: Iterable[Dict]) -> List[IprVariant]:
     patterns = {
         'gene1': r'^((\w|-)+)?$',
         'gene2': r'^((\w|-)+)?$',
-        'breakpoint': r'^\w+:\d+\|\w+:\d+$',
+        'breakpoint': r'^(\w+:\d+\|\w+:\d+)?$',
         'exon1': EXON_PATTERN,
         'exon2': EXON_PATTERN,
     }

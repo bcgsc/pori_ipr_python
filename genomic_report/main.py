@@ -143,9 +143,9 @@ def clean_unsupported_content(upload_content: Dict) -> Dict:
         'variant',
         'variantType',
         'histogramImage',
-        'hgvs_protein',
-        'hgvs_cds',
-        'hgvs_genomic',
+        'hgvsProtein',
+        'hgvsCds',
+        'hgvsGenomic',
     ]
     for variant_section in [
         'expressionVariants',
@@ -212,7 +212,7 @@ def create_report(
 
     ipr_conn = ipr.IprConnection(username, password, ipr_url)
     if graphkb_url:
-        print('connecting to graphkb', graphkb_url)
+        logger.info(f'connecting to graphkb: {graphkb_url}')
         graphkb_conn = GraphKBConnection(graphkb_url)
     else:
         graphkb_conn = GraphKBConnection()
