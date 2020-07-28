@@ -71,7 +71,7 @@ Small mutations are composed of indels and single nucleotide variants.
 | tumourReads | string | 4/8                   | the reference and alternate (supporting) read counts at this position in the genome        |
 | rnaReads    | string | 4/8                   | the reference and alternate (supporting) read counts at this position in the transcriptome |
 | detectedIn  | string | DNA/RNA               | the sample types this variant was detected in                                              |
-| hgvsCds     | string | `ENS0001:c.1234+3A>G` | HGVS coding sequence notation for this variant                                             |
+| hgvsCds     | string | `ENST0001:c.1234+3A>G` | HGVS coding sequence notation for this variant                                             |
 | hgvsGenomic | string | `1:g.1234A>G`         | HGVS genomic notation for this variant                                                     |
 | hgvsProtein | string | `KRAS:p.G12D`         | HGVS protein notation for this variant                                                     |
 
