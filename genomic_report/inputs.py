@@ -4,7 +4,7 @@ Read/Validate the variant input files
 import os
 import re
 from csv import DictReader
-from typing import Callable, Dict, List, Set, Tuple, cast
+from typing import Callable, Dict, List, Set, Tuple, cast, Iterable
 
 from Bio.Data.IUPACData import protein_letters_3to1
 from graphkb.match import INPUT_COPY_CATEGORIES, INPUT_EXPRESSION_CATEGORIES
@@ -30,7 +30,17 @@ COPY_OPTIONAL = [
 SMALL_MUT_REQ = ['gene', 'proteinChange']
 # alternate details in the key, can distinguish / subtype events.
 SMALL_MUT_KEY = SMALL_MUT_REQ + ['transcript', 'location', 'refAlt']
-SMALL_MUT_OPTIONAL = ['zygosity', 'tumourReads', 'rnaReads']
+SMALL_MUT_OPTIONAL = [
+    'zygosity',
+    'tumourReads',
+    'rnaReads',
+    'hgvsProtein',
+    'hgvsCds',
+    'hgvsGenomic',
+    'location',
+    'refAlt',
+    'transcript',
+]
 
 EXP_REQ = ['gene', 'kbCategory']
 EXP_KEY = ['gene']
@@ -66,7 +76,6 @@ EXP_OPTIONAL = [
     'histogramImage',
 ]
 
-SV_KEY = ['eventType', 'breakpoint']
 SV_REQ = [
     'eventType',
     'breakpoint',
@@ -75,6 +84,7 @@ SV_REQ = [
     'exon1',  # n-terminal
     'exon2',  # c-terminal
 ]
+SV_KEY = SV_REQ[:]
 SV_OPTIONAL = [
     'ctermTranscript',
     'ntermTranscript',
@@ -91,56 +101,58 @@ SV_OPTIONAL = [
 ]
 
 
-def load_variant_file(
-    filename: str, required: List[str], optional: List[str], row_to_key: Callable
+def validate_variant_rows(
+    rows: Iterable[Dict], required: List[str], optional: List[str], row_to_key: Callable
 ) -> List[IprVariant]:
     """
-    Load a tab delimited file and
     - check that the required columns are present
     - check that a unique key can be formed for each row
     - drop any non-defined columns
 
     Args:
-        filename (str): the file to be read
-        required (List.<str>): list of required column names
-        optional (List.<str>): list of optional column names
-        row_to_key (Function): function to generate a key for a given row
+        rows: the input files rows
+        required list of required column names
+        optional: list of optional column names
+        row_to_key: function to generate a key for a given row
 
     Raises:
         ValueError: row keys are not unique
         ValueError: A required column is missing
 
     Returns:
-        List.<dict>: the rows from the tab file as dictionaries
+        the rows from the tab file as dictionaries
     """
     header = required + optional + ['key']
 
     result = []
     keys = set()
 
-    with open(filename, 'r') as fh:
-        reader = DictReader(fh, delimiter='\t')
-        header_validated = False
+    header_validated = False
 
-        for row in reader:
-            if not header_validated:
-                for req_col in required:
-                    if req_col not in row:
-                        raise ValueError(
-                            f'header missing required column ({req_col}) in {filename}'
-                        )
-                header_validated = True
-            row_key = hash_key(row_to_key(row))
-            if row_key in keys:
-                raise ValueError(
-                    f'duplicate row key ({row_key}) from ({row_to_key(row)}) in {filename}'
-                )
-            row['key'] = row_key
-            keys.add(row_key)
+    for row in rows:
+        if not header_validated:
+            for req_col in required:
+                if req_col not in row:
+                    raise ValueError(f'header missing required column ({req_col})')
+            header_validated = True
+        row_key = hash_key(row_to_key(row))
+        if row_key in keys:
+            raise ValueError(f'duplicate row key ({row_key}) from ({row_to_key(row)})')
+        row['key'] = row_key
+        keys.add(row_key)
 
-            result.append(cast(IprVariant, {col: row.get(col, '') for col in header}))
+        result.append(cast(IprVariant, {col: row.get(col, '') for col in header}))
 
     return result
+
+
+def read_tabbed_file(filename: str) -> List[Dict]:
+    """
+    Load a tab delimited file as dictionary rows
+    """
+    with open(filename, 'r') as fh:
+        reader = DictReader(fh, delimiter='\t')
+        return [row for row in reader]
 
 
 def validate_row_patterns(
@@ -159,13 +171,17 @@ def validate_row_patterns(
     for row in rows:
         for col, pattern in patterns.items():
             if not re.match(pattern, '' if row.get(col, None) is None else row[col]):
-                row_repr_dict = dict((key, row[key]) for key in row_key_columns)
+                row_repr_dict = dict((key, row.get(key, '')) for key in row_key_columns)
                 raise ValueError(
                     f'{row_repr_dict} column {col}: "{row[col]}" re pattern failure: "{pattern}"'
                 )
 
 
-def load_copy_variants(filename: str) -> List[IprVariant]:
+def preprocess_copy_variants(rows: Iterable[Dict]) -> List[IprVariant]:
+    """
+    Validate the input rows contain the minimum required fields and
+    generate any default values where possible
+    """
     # default map for display - concise names
     display_name_mapping = {
         INPUT_COPY_CATEGORIES.DEEP: "deep deletion",
@@ -177,14 +193,12 @@ def load_copy_variants(filename: str) -> List[IprVariant]:
     def row_key(row: Dict) -> Tuple[str, ...]:
         return tuple(['cnv'] + [row[key] for key in COPY_KEY])
 
-    result = load_variant_file(filename, COPY_REQ, COPY_OPTIONAL, row_key)
+    result = validate_variant_rows(rows, COPY_REQ, COPY_OPTIONAL, row_key)
 
     for row in result:
         if row['kbCategory']:
             if row['kbCategory'] not in INPUT_COPY_CATEGORIES.values():
-                raise ValueError(
-                    f'invalid copy variant kbCategory value ({row["kbCategory"]}) in filename {filename}'
-                )
+                raise ValueError(f'invalid copy variant kbCategory value ({row["kbCategory"]})')
             if not row['cnvState']:  # apply default short display name
                 row['cnvState'] = display_name_mapping[row['kbCategory']]
         row['variant'] = row['kbCategory']
@@ -193,16 +207,27 @@ def load_copy_variants(filename: str) -> List[IprVariant]:
     return result
 
 
-def load_small_mutations(filename: str) -> List[IprGeneVariant]:
-    def row_key(row: Dict) -> Tuple[str, ...]:
-        return tuple(['small mutation'] + [row[key] for key in SMALL_MUT_KEY])
+def preprocess_small_mutations(rows: Iterable[Dict]) -> List[IprGeneVariant]:
+    """
+    Validate the input rows contain the minimum required fields and
+    generate any default values where possible
+    """
 
-    result = load_variant_file(filename, SMALL_MUT_REQ, SMALL_MUT_OPTIONAL, row_key)
+    def row_key(row: Dict) -> Tuple[str, ...]:
+        return tuple(['small mutation'] + [row.get(key, '') for key in SMALL_MUT_KEY])
+
+    result = validate_variant_rows(rows, SMALL_MUT_REQ, SMALL_MUT_OPTIONAL, row_key)
     if not result:
         return result
 
     # 'location' and 'refAlt' are not currently used for matching; still optional and allowed blank
-    patterns = {'location': r'^(\w+:\d+)?$', 'refAlt': r'^([A-Z]+>[A-Z]+)?$'}
+    patterns = {
+        'location': r'^(\w+:\d+(-\d+)?)?$',
+        'refAlt': r'^([A-Z]*>[A-Z]*)?$',
+        'hgvsProtein': r'^(\S+:p\.\S+)?$',
+        'hgvsCds': r'^(\S+:c\.\S+)?$',
+        'hgvsGenomic': r'^(\S+:g\.\S+)?$',
+    }
     validate_row_patterns(result, patterns, SMALL_MUT_KEY)
 
     # change 3 letter AA to 1 letter AA notation
@@ -216,11 +241,16 @@ def load_small_mutations(filename: str) -> List[IprGeneVariant]:
     return result
 
 
-def load_expression_variants(filename: str) -> List[IprGeneVariant]:
+def preprocess_expression_variants(rows: Iterable[Dict]) -> List[IprGeneVariant]:
+    """
+    Validate the input rows contain the minimum required fields and
+    generate any default values where possible
+    """
+
     def row_key(row: Dict) -> Tuple[str, ...]:
         return tuple(['expression'] + [row[key] for key in EXP_KEY])
 
-    result = load_variant_file(filename, EXP_REQ, EXP_OPTIONAL, row_key)
+    result = validate_variant_rows(rows, EXP_REQ, EXP_OPTIONAL, row_key)
 
     patterns = {}
 
@@ -253,12 +283,10 @@ def load_expression_variants(filename: str) -> List[IprGeneVariant]:
 
         # check images exist
         if row['histogramImage'] and not os.path.exists(row['histogramImage']):
-            raise FileNotFoundError(
-                f'missing image ({row["histogramImage"]}) from file - {filename}'
-            )
+            raise FileNotFoundError(f'missing image ({row["histogramImage"]})')
 
     if errors:
-        raise ValueError(f"{len(errors)} Invalid expression variants in file - {filename}")
+        raise ValueError(f'{len(errors)} Invalid expression variants in file')
 
     return result
 
@@ -281,17 +309,22 @@ def create_graphkb_sv_notation(row: IprStructuralVariant) -> str:
     return f'({gene1},{gene2}):fusion(e.{exon1},e.{exon2})'
 
 
-def load_structural_variants(filename: str) -> List[IprVariant]:
+def preprocess_structural_variants(rows: Iterable[Dict]) -> List[IprVariant]:
+    """
+    Validate the input rows contain the minimum required fields and
+    generate any default values where possible
+    """
+
     def row_key(row: Dict) -> Tuple[str, ...]:
         return tuple(['sv'] + [row[key] for key in SV_KEY])
 
-    result = load_variant_file(filename, SV_REQ, SV_OPTIONAL, row_key)
+    result = validate_variant_rows(rows, SV_REQ, SV_OPTIONAL, row_key)
     # genes are optional for structural variants
     EXON_PATTERN = r'^(\d+)?$'
     patterns = {
         'gene1': r'^((\w|-)+)?$',
         'gene2': r'^((\w|-)+)?$',
-        'breakpoint': r'^\w+:\d+\|\w+:\d+$',
+        'breakpoint': r'^(\w+:\d+\|\w+:\d+)?$',
         'exon1': EXON_PATTERN,
         'exon2': EXON_PATTERN,
     }

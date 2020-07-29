@@ -2,7 +2,7 @@ from setuptools import find_packages, setup
 
 # Dependencies required to use your package
 INSTALL_REQS = [
-    'graphkb>=1.3.5, <2',
+    'graphkb>=1.3.6, <2',
     'argparse-env==0.1.0',
     'biopython==1.76',
     'progressbar2==3.51.0',
@@ -38,7 +38,7 @@ except ImportError:
 
 setup(
     name='genomic_report',
-    version='1.2.1',
+    version='2.0.0',
     packages=find_packages(),
     install_requires=INSTALL_REQS,
     extras_require={

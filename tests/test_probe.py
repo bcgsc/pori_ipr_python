@@ -6,6 +6,7 @@ import pytest
 
 from genomic_report.ipr import IprConnection
 from genomic_report.main import create_report
+from genomic_report.inputs import read_tabbed_file
 
 
 def get_test_file(name: str) -> str:
@@ -19,8 +20,8 @@ def probe_upload_content() -> Dict:
         create_report(
             patient_id='PATIENT001',
             project='TEST',
-            small_mutations_file=get_test_file('small_mutations_probe.tab'),
-            structural_variants_file=get_test_file('fusions.tab'),
+            small_mutation_rows=read_tabbed_file(get_test_file('small_mutations_probe.tab')),
+            structural_variant_rows=read_tabbed_file(get_test_file('fusions.tab')),
             username=os.environ['USERNAME'],
             password=os.environ['PASSWORD'],
             log_level='info',
