@@ -1,9 +1,9 @@
 import argparse
-import datetime
 import json
 import logging
 import os
 from typing import Dict, List, Optional, Iterable
+from datetime import datetime
 
 from argparse_env import Action, ArgumentParser
 
@@ -34,7 +34,7 @@ def file_path(path: str) -> str:
 
 
 def timestamp() -> str:
-    return datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
+    return datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
 
 
 def command_interface() -> None:
@@ -155,6 +155,9 @@ def clean_unsupported_content(upload_content: Dict) -> Dict:
             for col in drop_columns:
                 if col in variant:
                     del variant[col]
+    for row in upload_content['kbMatches']:
+        del row['kbContextId']
+        del row['kbRelevanceId']
     return upload_content
 
 
@@ -196,6 +199,7 @@ def create_report(
     Returns:
         ipr_conn.upload_report return dictionary
     """
+    start_time = datetime.now()
     # set the default logging configuration
     logging.basicConfig(
         level=LOG_LEVELS[log_level],
@@ -266,6 +270,7 @@ def create_report(
     key_alterations, variant_counts = ipr.create_key_alterations(
         alterations, expression_variants + copy_variants + structural_variants + small_mutations
     )
+    targets = ipr.create_therapeutic_options(graphkb_conn, alterations)
 
     output.update(
         {
@@ -275,6 +280,7 @@ def create_report(
             'copyVariants': [
                 trim_empty_values(c) for c in copy_variants if c['gene'] in genes_with_variants
             ],
+            'therapeuticTarget': targets,
             'smallMutations': [trim_empty_values(s) for s in small_mutations],
             'expressionVariants': [
                 trim_empty_values(e)
@@ -339,4 +345,5 @@ def create_report(
             logger.error(f"ipr_conn.set_analyst_comments failed: {err}", exc_info=True)
     logger.info(f'made {graphkb_conn.request_count} requests to graphkb')
     logger.info(f'average load {int(graphkb_conn.load or 0)} req/s')
+    logger.info(f'report creation time: {datetime.now() - start_time}')
     return output

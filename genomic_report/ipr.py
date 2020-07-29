@@ -3,22 +3,29 @@ upload variant and report information to IPR
 """
 import json
 import zlib
+import pandas
 from typing import Dict, Iterable, List, Set, Tuple
 
 import requests
 from graphkb import GraphKBConnection
-from graphkb.types import Ontology, Statement
+from graphkb.types import Ontology, Statement, Variant
 from graphkb.util import IterableNamespace
 from graphkb.vocab import get_term_tree
 
 from .types import ImageDefinition, IprGene, IprStructuralVariant, IprVariant, KbMatch
-from .util import convert_to_rid_set, get_terms_set
+from .util import (
+    convert_to_rid_set,
+    get_terms_set,
+    get_preferred_gene_name,
+    get_preferred_drug_representation,
+)
 from .constants import (
     BASE_BIOLOGICAL_TERMS,
     BASE_DIAGNOSTIC_TERM,
     BASE_PROGNOSTIC_TERM,
     BASE_THERAPEUTIC_TERMS,
     VARIANT_CLASSES,
+    BASE_RESISTANCE_TERMS,
 )
 
 
@@ -179,6 +186,7 @@ def convert_statements_to_alterations(
                     'context': (
                         statement['subject']['displayName'] if statement['subject'] else None
                     ),
+                    'kbContextId': (statement['subject']['@rid'] if statement['subject'] else None),
                     'disease': ';'.join(sorted(d['displayName'] for d in diseases)),
                     'evidenceLevel': display_evidence_levels(statement),
                     'kbStatementId': statement['@rid'],
@@ -187,6 +195,7 @@ def convert_statements_to_alterations(
                     'matchedCancer': disease_match,
                     'reference': pmid,
                     'relevance': statement['relevance']['displayName'],
+                    'kbRelevanceId': statement['relevance']['@rid'],
                 }
             )
             rows.append(row)
@@ -288,6 +297,98 @@ def create_key_alterations(
         [{'geneVariant': alt} for alt in set(alterations)],
         {k: len(v) for k, v in counts.items()},
     )
+
+
+def create_therapeutic_options(
+    graphkb_conn: GraphKBConnection, kb_matches: List[KbMatch]
+) -> List[Dict]:
+    """
+    Generate therapeutic options summary from the list of kb-matches
+    """
+    options = []
+    resistance_markers = get_terms_set(graphkb_conn, BASE_RESISTANCE_TERMS)
+
+    variant_ids = {
+        match['kbVariantId']
+        for match in kb_matches
+        if match['category'] == REPORT_KB_SECTIONS.therapeutic
+    }
+    variants: Dict[str, Variant] = {}
+    for record in graphkb_conn.query(
+        {
+            'target': list(variant_ids),
+            'returnProperties': [
+                'reference1',
+                'reference2',
+                'displayName',
+                '@rid',
+                '@class',
+                'type.@rid',
+                'type.displayName',
+            ],
+        }
+    ):
+        variants[record['@rid']] = record
+
+    for match in kb_matches:
+        row_type = 'therapeutic'
+        if (
+            match['category'] != REPORT_KB_SECTIONS.therapeutic
+            or match['relevance'] == 'eligibility'
+        ):
+            continue
+        if match['kbRelevanceId'] in resistance_markers:
+            row_type = 'chemoresistance'
+        variant_record = variants[match['kbVariantId']]
+        gene1 = get_preferred_gene_name(graphkb_conn, variant_record['reference1'])
+        gene2 = ''
+        if variant_record.get('reference2', None):
+            gene2 = get_preferred_gene_name(graphkb_conn, variant_record['reference2'])
+        gene = gene1 if not gene2 else f'{gene1}, {gene2}'
+        drug = get_preferred_drug_representation(graphkb_conn, match['kbContextId'])
+
+        variant = variant_record['type']['displayName']
+        if variant_record['@class'] == 'PositionalVariant':
+            variant = variant_record['displayName'].split(':')[1]
+
+        options.append(
+            {
+                'gene': gene,
+                'type': row_type,
+                'therapy': drug['displayName'],
+                'therapyGraphkbId': drug['@rid'],
+                'context': match['relevance'],
+                'contextGraphkbId': match['kbRelevanceId'],
+                'variantGraphkbId': match['kbVariantId'],
+                'variant': variant,
+                'evidenceLevel': match['evidenceLevel'],
+                'notes': match['kbStatementId'],
+            }
+        )
+    options_df = pandas.DataFrame.from_records(options)
+
+    def delimited_list(inputs, delimiter=' / ') -> str:
+        return delimiter.join(sorted(list({i for i in inputs if i})))
+
+    options_df = options_df.groupby(['gene', 'type', 'therapy', 'variant']).agg(
+        {
+            'evidenceLevel': delimited_list,
+            'context': delimited_list,
+            'notes': lambda x: delimited_list(x, ' '),
+        }
+    )
+    options_df = options_df.reset_index()
+    options = options_df.to_dict('records')
+    therapeutic_rank = 0
+    chemoresistance_rank = 0
+    for option in options:
+        if option['type'] == 'therapeutic':
+            option['rank'] = therapeutic_rank
+            therapeutic_rank += 1
+        else:
+            option['rank'] = chemoresistance_rank
+            chemoresistance_rank += 1
+    return options
 
 
 class IprConnection:

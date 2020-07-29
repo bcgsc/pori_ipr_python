@@ -15,11 +15,13 @@ class KbMatch(TypedDict):
     disease: str
     evidenceLevel: str
     kbStatementId: str
+    kbContextId: str
     kbVariant: str
     kbVariantId: str
     matchedCancer: bool
     reference: str
     relevance: str
+    kbRelevanceId: str
 
 
 class IprGeneVariant(TypedDict):
