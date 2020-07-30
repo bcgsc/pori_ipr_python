@@ -81,36 +81,34 @@ def command_interface() -> None:
 
     args = parser.parse_args()
 
-    if args.copy_variants_file:
-        logger.info(f'loading copy variants from: {args.copy_variants_file}')
-        copy_variants = read_tabbed_file(args.copy_variants_file)
+    if args.copy_variants:
+        logger.info(f'loading copy variants from: {args.copy_variants}')
+        copy_variants = read_tabbed_file(args.copy_variants)
         logger.info(f'loaded {len(copy_variants)}')
     else:
         copy_variants = []
 
-    if args.small_mutations_file:
-        logger.info(f'loading small mutations from: {args.small_mutations_file}')
-        small_mutations = read_tabbed_file(args.small_mutations_file)
-        logger.info(
-            f'loaded {len(small_mutations)} small mutations from: {args.small_mutations_file}'
-        )
+    if args.small_mutations:
+        logger.info(f'loading small mutations from: {args.small_mutations}')
+        small_mutations = read_tabbed_file(args.small_mutations)
+        logger.info(f'loaded {len(small_mutations)} small mutations from: {args.small_mutations}')
     else:
         small_mutations = []
 
-    if args.expression_variants_file:
-        logger.info(f'loading expression variants from: {args.expression_variants_file}')
-        expression_variants = read_tabbed_file(args.expression_variants_file)
+    if args.expression_variants:
+        logger.info(f'loading expression variants from: {args.expression_variants}')
+        expression_variants = read_tabbed_file(args.expression_variants)
         logger.info(
-            f'loaded {len(expression_variants)} expression variants from: {args.expression_variants_file}'
+            f'loaded {len(expression_variants)} expression variants from: {args.expression_variants}'
         )
     else:
         expression_variants = []
 
-    if args.structural_variants_file:
-        f'loading structural variants from: {args.structural_variants_file}'
-        structural_variants = read_tabbed_file(args.structural_variants_file)
+    if args.structural_variants:
+        f'loading structural variants from: {args.structural_variants}'
+        structural_variants = read_tabbed_file(args.structural_variants)
         logger.info(
-            f'loaded {len(structural_variants)} structural variants from: {args.structural_variants_file}'
+            f'loaded {len(structural_variants)} structural variants from: {args.structural_variants}'
         )
     else:
         structural_variants = []
@@ -307,7 +305,7 @@ def create_report(
         logger.info(f'section {section} has {len(output[section])} {section_content_type}')
 
     ipr_result = None
-    output['analystComments'] = {
+    comments = {
         'comments': summarize(
             graphkb_conn,
             alterations,
@@ -316,11 +314,14 @@ def create_report(
         )
     }
     output = clean_unsupported_content(output)
+    report_id = None
     if ipr_upload:
         try:
             logger.info(f'Uploading to IPR {ipr_conn.url}')
             ipr_result = ipr_conn.upload_report(output)
+            report_id = ipr_result['ident']
             logger.info(ipr_result)
+            logger.info('adding analyst comments')
             output.update(ipr_result)
         except Exception as err:
             logger.error(f"ipr_conn.upload_report failed: {err}", exc_info=True)
@@ -329,6 +330,13 @@ def create_report(
             logger.info(f'Writing IPR upload json to: {output_json_path}')
             with open(output_json_path, 'w') as fh:
                 fh.write(json.dumps(output))
+
+    if report_id:
+        try:
+            ipr_conn.set_analyst_comments(report_id, comments)
+            logger.info(f'report {report_id} was annotated with generated comments')
+        except Exception as err:
+            logger.error(f"ipr_conn.set_analyst_comments failed: {err}", exc_info=True)
     logger.info(f'made {graphkb_conn.request_count} requests to graphkb')
     logger.info(f'average load {int(graphkb_conn.load or 0)} req/s')
     return output

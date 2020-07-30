@@ -22,7 +22,7 @@ from .constants import (
 OTHER_DISEASES = 'other disease types'
 ENTREZ_GENE_URL = 'https://www.ncbi.nlm.nih.gov/gene'
 # TODO: https://www.bcgsc.ca/jira/browse/DEVSU-1181
-GRAPHKB_GUI = '/graphkb'
+GRAPHKB_GUI = 'https://graphkb.bcgsc.ca'
 
 
 def filter_by_record_class(
