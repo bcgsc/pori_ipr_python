@@ -195,6 +195,11 @@ def preprocess_copy_variants(rows: Iterable[Dict]) -> List[IprVariant]:
 
     result = validate_variant_rows(rows, COPY_REQ, COPY_OPTIONAL, row_key)
 
+    patterns = {
+        'chromosomeBand': r'^(\S+:\S+?)?$',
+    }
+    validate_row_patterns(result, patterns, COPY_KEY)
+
     for row in result:
         if row['kbCategory']:
             if row['kbCategory'] not in INPUT_COPY_CATEGORIES.values():
