@@ -230,7 +230,7 @@ def preprocess_small_mutations(rows: Iterable[Dict]) -> List[IprGeneVariant]:
         'location': r'^(\w+:\d+(-\d+)?)?$',
         'refAlt': r'^([A-Z]*>[A-Z]*)?$',
         'hgvsProtein': r'^(\S+:p\.\S+)?$',
-        'hgvsCds': r'^(\S+:c\.\S+)?$',
+        'hgvsCds': r'^(\S+:[crn]\.\S+)?$',
         'hgvsGenomic': r'^(\S+:g\.\S+)?$',
     }
     validate_row_patterns(result, patterns, SMALL_MUT_KEY)
