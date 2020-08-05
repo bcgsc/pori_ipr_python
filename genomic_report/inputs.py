@@ -443,7 +443,7 @@ def check_variant_links(
 
     if missing_information_genes:
         for err_msg in sorted(missing_information_errors):
-            logger.warning(err_msg)
+            logger.verbose(err_msg)  # type: ignore
         link_err_msg = f"Missing information variant links on {len(missing_information_genes)} genes: {sorted(missing_information_genes)}"
         logger.error(link_err_msg)
     return genes_with_variants
