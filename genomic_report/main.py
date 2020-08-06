@@ -8,7 +8,6 @@ from typing import Dict, List, Optional, Iterable
 from argparse_env import Action, ArgumentParser
 
 from graphkb import GraphKBConnection
-from graphkb.match import cache_missing_features
 
 from . import ipr
 from .annotate import annotate_category_variants, annotate_positional_variants, get_gene_information
@@ -175,7 +174,6 @@ def create_report(
     always_write_output_json: bool = False,
     ipr_upload: bool = True,
     interactive: bool = False,
-    cache_gene_minimum: int = CACHE_GENE_MINIMUM,
     graphkb_url: str = '',
 ) -> Optional[Dict]:
     """
@@ -219,13 +217,6 @@ def create_report(
     genes_with_variants = check_variant_links(
         small_mutations, expression_variants, copy_variants, structural_variants
     )
-
-    # cache of the graphkb gene names speeds up calculation for large
-    # numbers of genes, but has significant overhead and slows down
-    # calculations on small numbers of genes.
-    if len(genes_with_variants) > cache_gene_minimum:
-        logger.info('caching genes to improve matching speed')
-        cache_missing_features(graphkb_conn)
 
     # filter excess variants not required for extra gene information
     logger.info(f'annotating small mutations')
