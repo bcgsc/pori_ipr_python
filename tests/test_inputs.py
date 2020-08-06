@@ -79,7 +79,7 @@ class TestPreProcessSmallMutations:
         assert record['variantType'] == 'mut'
         for col in original:
             assert col in record
-        assert record['variant'] == 'A1BG:p.V460M'
+        assert record['variant'] == 'p.V460M'
 
 
 def test_load_small_mutations_probe() -> None:
@@ -204,25 +204,25 @@ class TestCreateGraphkbSvNotation:
         notation = create_graphkb_sv_notation(
             IprStructuralVariant({'gene1': 'A', 'gene2': 'B', 'exon1': 1, 'exon2': 2})
         )
-        assert notation == '(A,B):fusion(e.1,e.2)'
+        assert notation == 'fusion(e.1,e.2)'
 
     def test_one_exon_missing(self) -> None:
         notation = create_graphkb_sv_notation(
             IprStructuralVariant({'gene1': 'A', 'gene2': 'B', 'exon1': '', 'exon2': 2})
         )
-        assert notation == '(A,B):fusion(e.?,e.2)'
+        assert notation == 'fusion(e.?,e.2)'
 
     def test_one_gene_missing(self) -> None:
         notation = create_graphkb_sv_notation(
             IprStructuralVariant({'gene1': 'A', 'gene2': '', 'exon1': 1, 'exon2': 2})
         )
-        assert notation == '(A,?):fusion(e.1,e.2)'
+        assert notation == 'fusion(e.1,e.2)'
 
     def test_first_gene_missing(self) -> None:
         notation = create_graphkb_sv_notation(
             IprStructuralVariant({'gene1': '', 'gene2': 'B', 'exon1': 1, 'exon2': 2})
         )
-        assert notation == '(B,?):fusion(e.2,e.1)'
+        assert notation == 'fusion(e.2,e.1)'
 
     def test_no_genes_error(self) -> None:
         with pytest.raises(ValueError):

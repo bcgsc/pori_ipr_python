@@ -30,7 +30,11 @@ class IprGeneVariant(TypedDict):
 
 
 class IprGene(TypedDict):
+    key: str
     name: str
+    source: str
+    sourceId: str
+    sourceIdVersion: str
     cancerRelated: Optional[bool]
     knownFusionPartner: Optional[bool]
     knownSmallMutation: Optional[bool]

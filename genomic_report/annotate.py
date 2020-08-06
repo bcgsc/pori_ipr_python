@@ -55,7 +55,10 @@ def get_therapeutic_associated_genes(graphkb_conn: GraphKBConnection) -> Set[str
 
 
 def get_gene_information(
-    graphkb_conn: GraphKBConnection, gene_names: Iterable[str]
+    graphkb_conn: GraphKBConnection,
+    gene_names: Iterable[str],
+    gene_defns: Dict[str, IprGene] = {},
+    gene_source: str = '',
 ) -> List[IprGene]:
     """
     Create the Gene Info object for upload to IPR with the other report information
@@ -63,6 +66,7 @@ def get_gene_information(
     Args:
         graphkb_conn ([type]): [description]
         gene_names ([type]): [description]
+        gene_defns: the gene definitions from the inputs
     """
     logger.info('fetching variant related genes list')
     variants = graphkb_conn.query(
@@ -94,9 +98,20 @@ def get_gene_information(
     result = []
 
     for gene_name in gene_names:
-        equivalent = convert_to_rid_set(get_equivalent_features(graphkb_conn, gene_name))
+        defn: IprGene = gene_defns.get(gene_name, IprGene())
+        name = gene_name if not defn else defn.get('name')
+        gene_source = ''
+        if defn.get('sourceId') and defn.get('source'):
+            name = defn['sourceId']
+            gene_source = defn['source']
+        equivalent = convert_to_rid_set(
+            get_equivalent_features(
+                graphkb_conn, name, source=gene_source, is_source_id=bool(gene_source)
+            )
+        )
 
-        row = IprGene({'name': gene_name})
+        row = IprGene({'name': name})
+        row.update(defn)
 
         for flag in gene_flags:
             row[flag] = bool(equivalent & gene_flags[flag])
@@ -148,7 +163,10 @@ def get_statements_from_variants(
 
 
 def get_ipr_statements_from_variants(
-    graphkb_conn: GraphKBConnection, matches: List[Record], disease_name: str
+    graphkb_conn: GraphKBConnection,
+    matches: List[Record],
+    disease_name: str,
+    gene_source: str = '',
 ) -> List[KbMatch]:
     """
     Matches to GraphKB statements from the list of input variants. From these results matches
@@ -176,7 +194,7 @@ def get_ipr_statements_from_variants(
 
     for (reference1, variantType) in inferred_variants:
         variants = match_category_variant(
-            graphkb_conn, reference1, variantType, gene_is_record_id=True
+            graphkb_conn, reference1, variantType, gene_source=gene_source
         )
 
         for variant in variants:
@@ -192,7 +210,7 @@ def get_ipr_statements_from_variants(
     for ipr_row in convert_statements_to_alterations(
         graphkb_conn, inferred_statements, disease_name, convert_to_rid_set(inferred_matches),
     ):
-        new_row = KbMatch({'kbData': {'inferred': True}})
+        new_row = KbMatch({'inferred': True})
         new_row.update(ipr_row)
         rows.append(new_row)
 
@@ -205,6 +223,8 @@ def annotate_category_variants(
     disease_name: str,
     copy_variant: bool = True,
     show_progress: bool = False,
+    gene_defns: Dict[str, IprGene] = {},
+    gene_source: str = '',
 ) -> List[KbMatch]:
     """
     Annotate variant calls with information from GraphKB and return these annotations in the IPR
@@ -238,11 +258,15 @@ def annotate_category_variants(
 
         try:
             if copy_variant:
-                matches = match_copy_variant(graphkb_conn, gene, variant)
+                matches = match_copy_variant(graphkb_conn, gene, variant, gene_source=gene_source)
             else:
-                matches = match_expression_variant(graphkb_conn, gene, variant)
+                matches = match_expression_variant(
+                    graphkb_conn, gene, variant, gene_source=gene_source
+                )
 
-            for ipr_row in get_ipr_statements_from_variants(graphkb_conn, matches, disease_name):
+            for ipr_row in get_ipr_statements_from_variants(
+                graphkb_conn, matches, disease_name, gene_source=gene_source
+            ):
                 new_row = KbMatch({'variant': row['key'], 'variantType': row['variantType']})
                 new_row.update(ipr_row)
                 alterations.append(new_row)
@@ -269,6 +293,8 @@ def annotate_positional_variants(
     variants: List[IprVariant],
     disease_name: str,
     show_progress: bool = False,
+    gene_defns: Dict[str, IprGene] = {},
+    gene_source: str = '',
 ) -> List[KbMatch]:
     """
     Annotate variant calls with information from GraphKB and return these annotations in the IPR
@@ -294,8 +320,17 @@ def annotate_positional_variants(
             # should not match single gene SVs
             continue
 
+        reference1 = row.get('gene') or row.get('gene1')
+        reference2 = row.get('gene2')
+
         try:
-            matches = match_positional_variant(graphkb_conn, variant)
+            matches = match_positional_variant(
+                graphkb_conn,
+                variant,
+                reference1=reference1,
+                reference2=reference2,
+                gene_source=gene_source,
+            )
 
             for ipr_row in get_ipr_statements_from_variants(graphkb_conn, matches, disease_name):
                 new_row = KbMatch({'variant': row['key'], 'variantType': row['variantType']})

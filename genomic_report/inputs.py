@@ -9,7 +9,7 @@ from typing import Callable, Dict, List, Set, Tuple, cast, Iterable
 from Bio.Data.IUPACData import protein_letters_3to1
 from graphkb.match import INPUT_COPY_CATEGORIES, INPUT_EXPRESSION_CATEGORIES
 
-from .types import IprGeneVariant, IprStructuralVariant, IprVariant
+from .types import IprGeneVariant, IprStructuralVariant, IprVariant, IprGene
 from .util import hash_key, logger
 
 protein_letters_3to1.setdefault('Ter', '*')
@@ -100,9 +100,16 @@ SV_OPTIONAL = [
     'highQuality',
 ]
 
+GENE_REQ = ['key', 'name']
+GENE_OPTIONAL = ['source', 'sourceId', 'sourceIdVersion']
+
 
 def validate_variant_rows(
-    rows: Iterable[Dict], required: List[str], optional: List[str], row_to_key: Callable
+    rows: Iterable[Dict],
+    required: List[str],
+    optional: List[str],
+    row_to_key: Callable,
+    hash_function: Callable = hash_key,
 ) -> List[IprVariant]:
     """
     - check that the required columns are present
@@ -135,7 +142,10 @@ def validate_variant_rows(
                 if req_col not in row:
                     raise ValueError(f'header missing required column ({req_col})')
             header_validated = True
-        row_key = hash_key(row_to_key(row))
+        row_key = row_to_key(row)
+        if not isinstance(row_key, str) and len(row_key) > 1:
+            row_key = hash_key(row_key)
+
         if row_key in keys:
             raise ValueError(f'duplicate row key ({row_key}) from ({row_to_key(row)})')
         row['key'] = row_key
@@ -239,8 +249,7 @@ def preprocess_small_mutations(rows: Iterable[Dict]) -> List[IprGeneVariant]:
     for row in result:
         for longAA, shortAA in protein_letters_3to1.items():
             row['proteinChange'] = row['proteinChange'].replace(longAA, shortAA)
-        hgvsp = '{}:{}'.format(row['gene'], row['proteinChange'])
-        row['variant'] = hgvsp
+        row['variant'] = row['proteinChange']
         row['variantType'] = 'mut'
 
     return result
@@ -296,22 +305,37 @@ def preprocess_expression_variants(rows: Iterable[Dict]) -> List[IprGeneVariant]
     return result
 
 
+def preprocess_genes(rows: Iterable[Dict], default_source: str = '') -> Dict[str, IprGene]:
+    """
+    Preprocess the genes rows which define the genes used in the variant rows
+    """
+
+    def row_key(row: Dict) -> str:
+        return row['key']
+
+    result = validate_variant_rows(rows, GENE_REQ, GENE_OPTIONAL, row_key)
+
+    patterns = {
+        'name': r'^(\w|_)+$',
+    }
+    genes: Dict[str, IprGene] = {}
+
+    validate_row_patterns(result, patterns, ['key'])
+    for row in result:
+        if not row.get('name') and not row.get('sourceId'):
+            row['name'] = row['key']
+        row.setdefault('source', default_source)
+        genes[row['key']] = IprGene(**row)
+    return genes
+
+
 def create_graphkb_sv_notation(row: IprStructuralVariant) -> str:
     """
     Generate GKB style structural variant notation from a structural variant input row
     """
-    gene1 = row['gene1'] if row['gene1'] else '?'
-    gene2 = row['gene2'] if row['gene2'] else '?'
     exon1 = row['exon1'] if row['exon1'] else '?'
     exon2 = row['exon2'] if row['exon2'] else '?'
-    if not row['gene1']:
-        gene1, gene2 = gene2, gene1
-        exon1, exon2 = exon2, exon1
-    if gene1 == '?':
-        raise ValueError(
-            f'both genes cannot be blank for a structural variant {row["key"]}. At least 1 gene must be entered'
-        )
-    return f'({gene1},{gene2}):fusion(e.{exon1},e.{exon2})'
+    return f'fusion(e.{exon1},e.{exon2})'
 
 
 def preprocess_structural_variants(rows: Iterable[Dict]) -> List[IprVariant]:
@@ -327,8 +351,8 @@ def preprocess_structural_variants(rows: Iterable[Dict]) -> List[IprVariant]:
     # genes are optional for structural variants
     EXON_PATTERN = r'^(\d+)?$'
     patterns = {
-        'gene1': r'^((\w|-)+)?$',
-        'gene2': r'^((\w|-)+)?$',
+        'gene1': r'^\S*$',
+        'gene2': r'^\S*$',
         'breakpoint': r'^(\w+:\d+\|\w+:\d+)?$',
         'exon1': EXON_PATTERN,
         'exon2': EXON_PATTERN,

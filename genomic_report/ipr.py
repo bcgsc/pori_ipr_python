@@ -240,7 +240,7 @@ def select_expression_plots(
 
 
 def create_key_alterations(
-    kb_matches: List[KbMatch], all_variants: List[IprVariant],
+    kb_matches: List[KbMatch], all_variants: List[IprVariant], gene_defns: Dict[str, IprGene] = {},
 ) -> Tuple[List[Dict], Dict]:
     """
     Creates the list of genomic key alterations which summarizes all the variants matched by the KB
@@ -256,6 +256,9 @@ def create_key_alterations(
     }
     counts: Dict[str, Set] = {v: set() for v in type_mapping.values()}
 
+    def get_gene_name(key):
+        return gene_defns.get(key, {'name': key})['name']
+
     for kb_match in kb_matches:
         variant_type = kb_match['variantType']
         variant_key = kb_match['variant']
@@ -266,13 +269,19 @@ def create_key_alterations(
             continue
 
         if variant_type == 'exp':
-            gene = variant['gene']
+            gene = get_gene_name(variant['gene'])
             alterations.append(f'{gene} ({variant["expressionState"]})')
         elif variant_type == 'cnv':
-            gene = variant['gene']
+            gene = get_gene_name(variant['gene'])
             alterations.append(f'{gene} ({variant["cnvState"]})')
+        elif variant_type == 'sv':
+            gene1 = get_gene_name(variant.get('gene1', '?'))
+            gene2 = get_gene_name(variant.get('gene2', '?'))
+
+            alterations.append(f'({gene1},{gene2}):{variant["variant"]}')
         else:
-            alterations.append(variant['variant'])
+            gene = get_gene_name(variant['gene'])
+            alterations.append(f'{gene}:{variant["variant"]}')
 
     counted_variants = set.union(*counts.values())
     counts['variantsUnknown'] = set()

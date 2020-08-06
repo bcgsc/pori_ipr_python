@@ -18,6 +18,7 @@ from .inputs import (
     preprocess_expression_variants,
     preprocess_small_mutations,
     preprocess_structural_variants,
+    preprocess_genes,
     read_tabbed_file,
 )
 from .types import KbMatch
@@ -66,6 +67,10 @@ def command_interface() -> None:
     )
     parser.add_argument('--ipr_url', default=ipr.DEFAULT_URL)
     parser.add_argument('--graphkb_url', default=None)
+    parser.add_argument('--genes', '-g', type=file_path)
+    parser.add_argument(
+        '--gene_source', help='Gene Definition Database (ex. ensembl, hgnc, entrez gene)'
+    )
     parser.add_argument('--log_level', default='info', choices=LOG_LEVELS.keys())
     parser.add_argument('--patient_id', required=True, help='The patient ID for this report')
     parser.add_argument('--project', default='TEST', help='The project to upload this report to')
@@ -105,13 +110,20 @@ def command_interface() -> None:
         expression_variants = []
 
     if args.structural_variants:
-        f'loading structural variants from: {args.structural_variants}'
+        logger.info(f'loading structural variants from: {args.structural_variants}')
         structural_variants = read_tabbed_file(args.structural_variants)
         logger.info(
             f'loaded {len(structural_variants)} structural variants from: {args.structural_variants}'
         )
     else:
         structural_variants = []
+
+    if args.genes:
+        logger.info(f'loading genes from: {args.genes}')
+        genes = read_tabbed_file(args.genes)
+        logger.info(f'loaded {len(genes)} genes from: {args.genes}')
+    else:
+        genes = []
 
     create_report(
         username=args.username,
@@ -122,10 +134,12 @@ def command_interface() -> None:
         ipr_url=args.ipr_url,
         graphkb_url=args.graphkb_url,
         log_level=args.log_level,
+        gene_rows=genes,
         expression_variant_rows=expression_variants,
         structural_variant_rows=structural_variants,
         copy_variant_rows=copy_variants,
         small_mutation_rows=small_mutations,
+        gene_source=args.gene_source,
         output_json_path=args.output_json_path,
         always_write_output_json=args.always_write_output_json,
     )
@@ -155,6 +169,10 @@ def clean_unsupported_content(upload_content: Dict) -> Dict:
             for col in drop_columns:
                 if col in variant:
                     del variant[col]
+    for gene in upload_content['genes']:
+        for col in ['sourceId', 'sourceIdVersion', 'source']:
+            if col in gene:
+                del gene[col]
     return upload_content
 
 
@@ -170,6 +188,7 @@ def create_report(
     structural_variant_rows: Iterable[Dict] = [],
     copy_variant_rows: Iterable[Dict] = [],
     small_mutation_rows: Iterable[Dict] = [],
+    gene_rows: Iterable[Dict] = [],
     optional_content: Optional[Dict] = None,
     output_json_path: str = None,
     always_write_output_json: bool = False,
@@ -177,6 +196,7 @@ def create_report(
     interactive: bool = False,
     cache_gene_minimum: int = CACHE_GENE_MINIMUM,
     graphkb_url: str = '',
+    gene_source: str = '',
 ) -> Optional[Dict]:
     """
     Run the matching and create the report JSON for upload to IPR
@@ -193,6 +213,7 @@ def create_report(
         ipr_upload: upload report to ipr
         interactive: progressbars for interactive users
         cache_gene_minimum: minimum number of genes required for gene name caching optimization
+        gene_source: the source name to use in looking up gene features
     Returns:
         ipr_conn.upload_report return dictionary
     """
@@ -207,6 +228,7 @@ def create_report(
     copy_variants = preprocess_copy_variants(copy_variant_rows)
     structural_variants = preprocess_structural_variants(structural_variant_rows)
     expression_variants = preprocess_expression_variants(expression_variant_rows)
+    gene_defns = preprocess_genes(gene_rows)
 
     ipr_conn = ipr.IprConnection(username, password, ipr_url)
     if graphkb_url:
@@ -230,20 +252,35 @@ def create_report(
     # filter excess variants not required for extra gene information
     logger.info(f'annotating small mutations')
     alterations: List[KbMatch] = annotate_positional_variants(
-        graphkb_conn, small_mutations, kb_disease_match, show_progress=interactive
+        graphkb_conn,
+        small_mutations,
+        kb_disease_match,
+        show_progress=interactive,
+        gene_source=gene_source,
+        gene_defns=gene_defns,
     )
 
     logger.info(f'annotating structural variants')
     alterations.extend(
         annotate_positional_variants(
-            graphkb_conn, structural_variants, kb_disease_match, show_progress=interactive
+            graphkb_conn,
+            structural_variants,
+            kb_disease_match,
+            show_progress=interactive,
+            gene_defns=gene_defns,
+            gene_source=gene_source,
         )
     )
 
     logger.info(f'annotating copy variants')
     alterations.extend(
         annotate_category_variants(
-            graphkb_conn, copy_variants, kb_disease_match, show_progress=interactive
+            graphkb_conn,
+            copy_variants,
+            kb_disease_match,
+            show_progress=interactive,
+            gene_defns=gene_defns,
+            gene_source=gene_source,
         )
     )
 
@@ -255,16 +292,20 @@ def create_report(
             kb_disease_match,
             copy_variant=False,
             show_progress=interactive,
+            gene_defns=gene_defns,
+            gene_source=gene_source,
         )
     )
 
     logger.info('fetching gene annotations')
-    gene_information = get_gene_information(graphkb_conn, genes_with_variants)
+    gene_information = get_gene_information(graphkb_conn, genes_with_variants, gene_defns)
 
     output = optional_content or dict()
 
     key_alterations, variant_counts = ipr.create_key_alterations(
-        alterations, expression_variants + copy_variants + structural_variants + small_mutations
+        alterations,
+        expression_variants + copy_variants + structural_variants + small_mutations,
+        gene_defns,
     )
 
     output.update(
