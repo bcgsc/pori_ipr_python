@@ -142,7 +142,7 @@ class TestCheckVariantLinks:
         assert genes == {'KRAS'}
 
     def test_sm_missing_copy(self) -> None:
-        with mock.patch.object(logger, 'warning') as mock_debug:
+        with mock.patch.object(logger, 'verbose') as mock_debug:
             check_variant_links(
                 small_mutations=[IprGeneVariant({'gene': 'KRAS'})],
                 copy_variants=[IprGeneVariant({'gene': 'CDK', 'variant': ''})],
@@ -152,7 +152,7 @@ class TestCheckVariantLinks:
             assert mock_debug.called
 
     def test_sm_missing_exp(self) -> None:
-        with mock.patch.object(logger, 'warning') as mock_debug:
+        with mock.patch.object(logger, 'verbose') as mock_debug:
             check_variant_links(
                 small_mutations=[IprGeneVariant({'gene': 'KRAS'})],
                 copy_variants=[IprGeneVariant({'gene': 'KRAS', 'variant': ''})],
@@ -174,7 +174,7 @@ class TestCheckVariantLinks:
         assert genes == {'KRAS'}
 
     def test_copy_missing_exp(self) -> None:
-        with mock.patch.object(logger, 'warning') as mock_debug:
+        with mock.patch.object(logger, 'verbose') as mock_debug:
             check_variant_links(
                 small_mutations=[],
                 copy_variants=[
@@ -187,7 +187,7 @@ class TestCheckVariantLinks:
             assert mock_debug.called
 
     def test_exp_missing_copy(self) -> None:
-        with mock.patch.object(logger, 'warning') as mock_debug:
+        with mock.patch.object(logger, 'verbose') as mock_debug:
             check_variant_links(
                 small_mutations=[],
                 copy_variants=[IprGeneVariant({'gene': 'KRAS', 'variant': ''})],
