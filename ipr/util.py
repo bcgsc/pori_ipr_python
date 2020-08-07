@@ -7,11 +7,13 @@ from graphkb.types import Record
 from graphkb.vocab import get_term_tree
 from graphkb import GraphKBConnection
 
+from .types import IprVariant
+
 # name the logger after the package to make it simple to disable for packages using this one as a dependency
 # https://stackoverflow.com/questions/11029717/how-do-i-disable-log-messages-from-the-requests-library
 VERBOSE_ERROR_CODE = (logging.INFO + logging.DEBUG) // 2
 logging.addLevelName(VERBOSE_ERROR_CODE, 'VERBOSE')
-logger = logging.getLogger('genomic_report')
+logger = logging.getLogger('ipr')
 # add shortbut for verbose logging
 setattr(logger, 'verbose', lambda *pos, **kw: logger.log(VERBOSE_ERROR_CODE, *pos, **kw))
 LOG_LEVELS = {
@@ -40,6 +42,44 @@ def hash_key(key: Tuple[str]) -> str:
 
 def convert_to_rid_set(records: List[Record]) -> Set[str]:
     return {r['@rid'] for r in records}
+
+
+def create_variant_name(variant: IprVariant) -> str:
+    """
+    Given an IPR variant row, create the variant representation to be used as the name
+    of the variant
+    """
+    variant_type = variant['variantType']
+    if variant_type == 'exp':
+        gene = variant['gene']
+        return f'{gene} ({variant["expressionState"]})'
+    elif variant_type == 'cnv':
+        gene = variant['gene']
+        return f'{gene} ({variant["cnvState"]})'
+    return variant['variant']
+
+
+def create_variant_name_tuple(variant: IprVariant) -> Tuple[str, str]:
+    """
+    Given an IPR variant row, create the variant representation to be used as the name
+    of the variant
+    """
+    variant_type = variant['variantType']
+    gene = variant['gene'] if 'gene' in variant else variant['gene1']
+    if variant_type == 'exp':
+        gene = variant['gene']
+        return (gene, variant['expressionState'])
+    elif variant_type == 'cnv':
+        gene = variant['gene']
+        return (gene, variant['cnvState'])
+    variant_split = variant['variant'].split(':', 1)[1]
+    gene2 = variant.get('gene2')
+    if gene and gene2:
+        gene = f'{gene}, {gene2}'
+    elif gene2:
+        gene = gene2
+
+    return (gene, variant_split)
 
 
 def trim_empty_values(obj: Dict, empty_values: List = ['', None]) -> Dict:
@@ -132,3 +172,13 @@ def get_preferred_drug_representation(graphkb_conn: GraphKBConnection, drug_reco
         key=lambda rec: generate_ontology_preference_key(rec, source_preference),
     )
     return drugs[0]
+
+
+def find_variant(all_variants: List[IprVariant], variant_type: str, variant_key: str) -> IprVariant:
+    """
+    Find a variant in a list of variants by its key and type
+    """
+    for variant in all_variants:
+        if variant['key'] == variant_key and variant['variantType'] == variant_type:
+            return variant
+    raise KeyError(f'expected variant ({variant_key}, {variant_type}) does not exist')

@@ -4,17 +4,20 @@ from typing import Dict, List
 import pytest
 from graphkb import GraphKBConnection
 
-from genomic_report.annotate import get_gene_information
+from ipr.annotate import get_gene_information
+
+from .constants import EXCLUDE_INTEGRATION_TESTS
 
 
 @pytest.fixture(scope='class')
 def genes() -> List[Dict]:
     graphkb_conn = GraphKBConnection()
-    graphkb_conn.login(os.environ['USERNAME'], os.environ['PASSWORD'])
+    graphkb_conn.login(os.environ['IPR_USER'], os.environ['IPR_PASS'])
 
     return get_gene_information(graphkb_conn, ['kras', 'cdkn2a', 'blargh-monkeys', 'ewsr1'])
 
 
+@pytest.mark.skipif(EXCLUDE_INTEGRATION_TESTS, reason="excluding long running integration tests")
 class TestGetGeneInformation:
     def test_fetches_tumour_suppressors(self, genes: List[Dict]) -> None:
         assert genes

@@ -195,6 +195,11 @@ def preprocess_copy_variants(rows: Iterable[Dict]) -> List[IprVariant]:
 
     result = validate_variant_rows(rows, COPY_REQ, COPY_OPTIONAL, row_key)
 
+    patterns = {
+        'chromosomeBand': r'^(\S+:\S+?)?$',
+    }
+    validate_row_patterns(result, patterns, COPY_KEY)
+
     for row in result:
         if row['kbCategory']:
             if row['kbCategory'] not in INPUT_COPY_CATEGORIES.values():
@@ -225,7 +230,7 @@ def preprocess_small_mutations(rows: Iterable[Dict]) -> List[IprGeneVariant]:
         'location': r'^(\w+:\d+(-\d+)?)?$',
         'refAlt': r'^([A-Z]*>[A-Z]*)?$',
         'hgvsProtein': r'^(\S+:p\.\S+)?$',
-        'hgvsCds': r'^(\S+:c\.\S+)?$',
+        'hgvsCds': r'^(\S+:[crn]\.\S+)?$',
         'hgvsGenomic': r'^(\S+:g\.\S+)?$',
     }
     validate_row_patterns(result, patterns, SMALL_MUT_KEY)
@@ -438,7 +443,9 @@ def check_variant_links(
 
     if missing_information_genes:
         for err_msg in sorted(missing_information_errors):
-            logger.warning(err_msg)
-        link_err_msg = f"Missing information variant links on {len(missing_information_genes)} genes: {sorted(missing_information_genes)}"
-        logger.error(link_err_msg)
+            logger.verbose(err_msg)  # type: ignore
+        link_err_msg = (
+            f'Missing information variant links on {len(missing_information_genes)} genes'
+        )
+        logger.warning(link_err_msg)
     return genes_with_variants

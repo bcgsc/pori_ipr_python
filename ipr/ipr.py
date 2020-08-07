@@ -1,23 +1,18 @@
 """
 upload variant and report information to IPR
 """
-import json
-import zlib
-import pandas
 from typing import Dict, Iterable, List, Set, Tuple
 
-import requests
 from graphkb import GraphKBConnection
-from graphkb.types import Ontology, Statement, Variant
-from graphkb.util import IterableNamespace
+from graphkb.types import Ontology, Statement
 from graphkb.vocab import get_term_tree
 
 from .types import ImageDefinition, IprGene, IprStructuralVariant, IprVariant, KbMatch
 from .util import (
     convert_to_rid_set,
+    find_variant,
     get_terms_set,
-    get_preferred_gene_name,
-    get_preferred_drug_representation,
+    create_variant_name,
 )
 from .constants import (
     BASE_BIOLOGICAL_TERMS,
@@ -25,34 +20,9 @@ from .constants import (
     BASE_PROGNOSTIC_TERM,
     BASE_THERAPEUTIC_TERMS,
     VARIANT_CLASSES,
-    BASE_RESISTANCE_TERMS,
+    REPORT_KB_SECTIONS,
+    APPROVED_EVIDENCE_LEVELS,
 )
-
-
-REPORT_KB_SECTIONS = IterableNamespace(
-    therapeutic='therapeutic',
-    prognostic='prognostic',
-    biological='biological',
-    unknown='unknown',
-    novel='novel',
-    diagnostic='diagnostic',
-)
-
-APPROVED_EVIDENCE_LEVELS = {
-    # sourceIds of levels by source name
-    'oncokb': ['1', 'r1'],
-    'profyle': ['t1'],
-    'cancer genome interpreter': [
-        'cpic guidelines',
-        'european leukemianet guidelines',
-        'fda guidelines',
-        'nccn guidelines',
-        'nccn/cap guidelines',
-    ],
-}
-
-DEFAULT_URL = 'https://iprstaging-api.bcgsc.ca/api'
-DEFAULT_LIMIT = 1000
 
 
 def display_evidence_levels(statement: Statement) -> str:
@@ -202,16 +172,6 @@ def convert_statements_to_alterations(
     return rows
 
 
-def find_variant(all_variants: List[IprVariant], variant_type: str, variant_key: str) -> IprVariant:
-    """
-    Find a variant in a list of variants by its key and type
-    """
-    for variant in all_variants:
-        if variant['key'] == variant_key and variant['variantType'] == variant_type:
-            return variant
-    raise KeyError(f'expected variant ({variant_key}, {variant_type}) does not exist')
-
-
 def select_expression_plots(
     kb_matches: List[KbMatch], all_variants: List[IprVariant]
 ) -> List[Dict[str, ImageDefinition]]:
@@ -274,14 +234,7 @@ def create_key_alterations(
         if kb_match['category'] == 'unknown':
             continue
 
-        if variant_type == 'exp':
-            gene = variant['gene']
-            alterations.append(f'{gene} ({variant["expressionState"]})')
-        elif variant_type == 'cnv':
-            gene = variant['gene']
-            alterations.append(f'{gene} ({variant["cnvState"]})')
-        else:
-            alterations.append(variant['variant'])
+        alterations.append(create_variant_name(variant))
 
     counted_variants = set.union(*counts.values())
     counts['variantsUnknown'] = set()
@@ -297,164 +250,3 @@ def create_key_alterations(
         [{'geneVariant': alt} for alt in set(alterations)],
         {k: len(v) for k, v in counts.items()},
     )
-
-
-def create_therapeutic_options(
-    graphkb_conn: GraphKBConnection, kb_matches: List[KbMatch]
-) -> List[Dict]:
-    """
-    Generate therapeutic options summary from the list of kb-matches
-    """
-    options = []
-    resistance_markers = get_terms_set(graphkb_conn, BASE_RESISTANCE_TERMS)
-
-    variant_ids = {
-        match['kbVariantId']
-        for match in kb_matches
-        if match['category'] == REPORT_KB_SECTIONS.therapeutic
-    }
-    variants: Dict[str, Variant] = {}
-    for record in graphkb_conn.query(
-        {
-            'target': list(variant_ids),
-            'returnProperties': [
-                'reference1',
-                'reference2',
-                'displayName',
-                '@rid',
-                '@class',
-                'type.@rid',
-                'type.displayName',
-            ],
-        }
-    ):
-        variants[record['@rid']] = record
-
-    for match in kb_matches:
-        row_type = 'therapeutic'
-        if (
-            match['category'] != REPORT_KB_SECTIONS.therapeutic
-            or match['relevance'] == 'eligibility'
-        ):
-            continue
-        if match['kbRelevanceId'] in resistance_markers:
-            row_type = 'chemoresistance'
-        variant_record = variants[match['kbVariantId']]
-        gene1 = get_preferred_gene_name(graphkb_conn, variant_record['reference1'])
-        gene2 = ''
-        if variant_record.get('reference2', None):
-            gene2 = get_preferred_gene_name(graphkb_conn, variant_record['reference2'])
-        gene = gene1 if not gene2 else f'{gene1}, {gene2}'
-        drug = get_preferred_drug_representation(graphkb_conn, match['kbContextId'])
-
-        variant = variant_record['type']['displayName']
-        if variant_record['@class'] == 'PositionalVariant':
-            variant = variant_record['displayName'].split(':')[1]
-
-        options.append(
-            {
-                'gene': gene,
-                'type': row_type,
-                'therapy': drug['displayName'],
-                'therapyGraphkbId': drug['@rid'],
-                'context': match['relevance'],
-                'contextGraphkbId': match['kbRelevanceId'],
-                'variantGraphkbId': match['kbVariantId'],
-                'variant': variant,
-                'evidenceLevel': match['evidenceLevel'],
-                'notes': match['kbStatementId'],
-            }
-        )
-    options_df = pandas.DataFrame.from_records(options)
-
-    def delimited_list(inputs, delimiter=' / ') -> str:
-        return delimiter.join(sorted(list({i for i in inputs if i})))
-
-    options_df = options_df.groupby(['gene', 'type', 'therapy', 'variant']).agg(
-        {
-            'evidenceLevel': delimited_list,
-            'context': delimited_list,
-            'notes': lambda x: delimited_list(x, ' '),
-        }
-    )
-    options_df = options_df.reset_index()
-    options = options_df.to_dict('records')
-    therapeutic_rank = 0
-    chemoresistance_rank = 0
-    for option in options:
-        if option['type'] == 'therapeutic':
-            option['rank'] = therapeutic_rank
-            therapeutic_rank += 1
-        else:
-            option['rank'] = chemoresistance_rank
-            chemoresistance_rank += 1
-    return options
-
-
-class IprConnection:
-    def __init__(self, username: str, password: str, url: str = DEFAULT_URL):
-        self.token = None
-        self.url = url
-        self.username = username
-        self.password = password
-        self.headers = {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-            'Content-Encoding': 'deflate',
-        }
-        self.cache: Dict[str, List[Dict]] = {}
-        self.request_count = 0
-
-    def request(self, endpoint: str, method: str = 'GET', **kwargs) -> Dict:
-        """Request wrapper to handle adding common headers and logging
-
-        Args:
-            endpoint (string): api endpoint, excluding the base uri
-            method (str, optional): the http method. Defaults to 'GET'.
-
-        Returns:
-            dict: the json response as a python dict
-        """
-        url = f'{self.url}/{endpoint}'
-        self.request_count += 1
-        resp = requests.request(
-            method, url, headers=self.headers, auth=(self.username, self.password), **kwargs
-        )
-        try:
-            resp.raise_for_status()
-        except requests.exceptions.HTTPError as err:
-            # try to get more error details
-            message = str(err)
-            try:
-                message += ' ' + resp.json()['error']['message']
-            except Exception:
-                pass
-
-            raise requests.exceptions.HTTPError(message)
-        return resp.json()
-
-    def post(self, uri: str, data: Dict = {}, **kwargs) -> Dict:
-        """Convenience method for making post requests"""
-        return self.request(
-            uri,
-            method='POST',
-            data=zlib.compress(json.dumps(data, allow_nan=False).encode('utf-8')),
-            **kwargs,
-        )
-
-    def upload_report(self, content: Dict) -> Dict:
-        return self.post('/reports', content)
-
-    def set_analyst_comments(self, report_id: str, data: Dict) -> Dict:
-        """
-        Update report comments to an existing report
-
-        TODO:
-            Add to main upload.
-            Pending: https://www.bcgsc.ca/jira/browse/DEVSU-1177
-        """
-        return self.request(
-            f'/reports/{report_id}/summary/analyst-comments',
-            method='PUT',
-            data=zlib.compress(json.dumps(data, allow_nan=False).encode('utf-8')),
-        )

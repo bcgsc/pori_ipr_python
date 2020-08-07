@@ -1,4 +1,4 @@
-from genomic_report.summary import (
+from ipr.summary import (
     substitute_sentence_template,
     get_preferred_drug_representation,
     GRAPHKB_GUI,

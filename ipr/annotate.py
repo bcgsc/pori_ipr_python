@@ -175,9 +175,7 @@ def get_ipr_statements_from_variants(
     }
 
     for (reference1, variantType) in inferred_variants:
-        variants = match_category_variant(
-            graphkb_conn, reference1, variantType, gene_is_record_id=True
-        )
+        variants = match_category_variant(graphkb_conn, reference1, variantType)
 
         for variant in variants:
             all_inferred_matches[variant['@rid']] = variant
