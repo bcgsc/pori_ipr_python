@@ -5,7 +5,7 @@ import logging
 import os
 from typing import Dict, List, Optional, Iterable
 
-from argparse_env import Action, ArgumentParser
+from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 
 from graphkb import GraphKBConnection
 from graphkb.match import cache_missing_features
@@ -38,21 +38,15 @@ def timestamp() -> str:
 
 
 def command_interface() -> None:
-    parser = ArgumentParser()
+    parser = ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter)
     parser.add_argument(
         '--username',
-        env=True,
-        action=Action,
-        required=True,
+        required=not os.environ.get('USER'),
+        default=os.environ.get('USER'),
         help='username to use connecting to graphkb/ipr',
     )
     parser.add_argument(
-        '--password',
-        env=True,
-        action=Action,
-        required=True,
-        sensitive=True,
-        help='password to use connecting to graphkb/ipr',
+        '--password', required=True, help='password to use connecting to graphkb/ipr',
     )
     parser.add_argument('-c', '--copy_variants', required=False, type=file_path)
     parser.add_argument('-m', '--small_mutations', required=False, type=file_path)

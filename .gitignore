@@ -10,6 +10,7 @@ dist
 build
 .pytest_cache
 .coverage
+htmlcov
 
 # common virtual environment names
 venv*
@@ -23,6 +24,7 @@ env
 
 # misc
 .DS_STORE
+upload_failure.json
 
 # docs
 docs/reference

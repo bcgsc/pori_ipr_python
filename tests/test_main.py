@@ -4,9 +4,9 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from genomic_report.ipr import IprConnection
-from genomic_report.main import create_report
-from genomic_report.inputs import read_tabbed_file
+from ipr.ipr import IprConnection
+from ipr.main import create_report
+from ipr.inputs import read_tabbed_file
 
 
 def get_test_file(name: str) -> str:
@@ -24,7 +24,7 @@ def report_upload_content() -> Dict:
             small_mutation_rows=read_tabbed_file(get_test_file('small_mutations.short.tab')),
             copy_variant_rows=read_tabbed_file(get_test_file('copy_variants.tab')),
             structural_variant_rows=read_tabbed_file(get_test_file('fusions.tab')),
-            username=os.environ['USERNAME'],
+            username=os.environ['USER'],
             password=os.environ['PASSWORD'],
             log_level='info',
             ipr_url='http://fake.url.ca',

@@ -3,7 +3,7 @@ from unittest import mock
 
 import pytest
 
-from genomic_report.inputs import (
+from ipr.inputs import (
     check_variant_links,
     create_graphkb_sv_notation,
     preprocess_copy_variants,
@@ -12,8 +12,8 @@ from genomic_report.inputs import (
     preprocess_structural_variants,
     read_tabbed_file,
 )
-from genomic_report.types import IprGeneVariant, IprStructuralVariant
-from genomic_report.util import logger
+from ipr.types import IprGeneVariant, IprStructuralVariant
+from ipr.util import logger
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'test_data')
 

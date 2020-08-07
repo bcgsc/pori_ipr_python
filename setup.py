@@ -2,8 +2,7 @@ from setuptools import find_packages, setup
 
 # Dependencies required to use your package
 INSTALL_REQS = [
-    'graphkb>=1.3.6, <2',
-    'argparse-env==0.1.0',
+    'graphkb>=1.4.0, <2',
     'biopython==1.76',
     'progressbar2==3.51.0',
 ]
@@ -23,21 +22,13 @@ long_description = ''
 long_description_content_type = 'text/markdown'
 
 try:
-    import m2r
-    import re
-
-    long_description = m2r.parse_from_file('README.md')
-    long_description = re.sub(
-        r'.. code-block::.*', '.. code::', long_description
-    )  # pyshop has issues with fenced code blocks
-    long_description_content_type = 'text/rst'
-except ImportError:
     with open('README.md', 'r') as fh:
         long_description = fh.read()
-
+except Exception:
+    pass
 
 setup(
-    name='genomic_report',
+    name='ipr',
     version='2.0.0',
     packages=find_packages(),
     install_requires=INSTALL_REQS,
@@ -47,7 +38,7 @@ setup(
         'test': TEST_REQS,
         'doc': DOC_REQS,
     },
-    package_data={'genomic_report': ['py.typed']},
+    package_data={'ipr': ['py.typed']},
     long_description=long_description,
     long_description_content_type=long_description_content_type,
     python_requires='>=3.6',
@@ -58,5 +49,5 @@ setup(
     dependency_links=[],
     test_suite='tests',
     tests_require=TEST_REQS,
-    entry_points={'console_scripts': ['genomic_report = genomic_report.main:command_interface']},
+    entry_points={'console_scripts': ['ipr = ipr.main:command_interface']},
 )
