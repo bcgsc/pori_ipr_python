@@ -11,7 +11,7 @@ from graphkb import GraphKBConnection
 # https://stackoverflow.com/questions/11029717/how-do-i-disable-log-messages-from-the-requests-library
 VERBOSE_ERROR_CODE = (logging.INFO + logging.DEBUG) // 2
 logging.addLevelName(VERBOSE_ERROR_CODE, 'VERBOSE')
-logger = logging.getLogger('genomic_report')
+logger = logging.getLogger('ipr')
 # add shortbut for verbose logging
 setattr(logger, 'verbose', lambda *pos, **kw: logger.log(VERBOSE_ERROR_CODE, *pos, **kw))
 LOG_LEVELS = {
