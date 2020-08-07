@@ -1,51 +1,24 @@
 """
-upload variant and report information to IPR
+Contains functions specific to formatting reports for IPR that are unlikely to be used
+by other reporting systems
 """
-import json
-import zlib
 from typing import Dict, Iterable, List, Set, Tuple
 
-import requests
 from graphkb import GraphKBConnection
 from graphkb.types import Ontology, Statement
-from graphkb.util import IterableNamespace
 from graphkb.vocab import get_term_tree
 
 from .types import ImageDefinition, IprGene, IprStructuralVariant, IprVariant, KbMatch
-from .util import convert_to_rid_set, get_terms_set
+from .util import convert_to_rid_set, get_terms_set, find_variant
 from .constants import (
     BASE_BIOLOGICAL_TERMS,
     BASE_DIAGNOSTIC_TERM,
     BASE_PROGNOSTIC_TERM,
     BASE_THERAPEUTIC_TERMS,
     VARIANT_CLASSES,
+    REPORT_KB_SECTIONS,
+    APPROVED_EVIDENCE_LEVELS,
 )
-
-
-REPORT_KB_SECTIONS = IterableNamespace(
-    therapeutic='therapeutic',
-    prognostic='prognostic',
-    biological='biological',
-    unknown='unknown',
-    novel='novel',
-    diagnostic='diagnostic',
-)
-
-APPROVED_EVIDENCE_LEVELS = {
-    # sourceIds of levels by source name
-    'oncokb': ['1', 'r1'],
-    'profyle': ['t1'],
-    'cancer genome interpreter': [
-        'cpic guidelines',
-        'european leukemianet guidelines',
-        'fda guidelines',
-        'nccn guidelines',
-        'nccn/cap guidelines',
-    ],
-}
-
-DEFAULT_URL = 'https://iprstaging-api.bcgsc.ca/api'
-DEFAULT_LIMIT = 1000
 
 
 def display_evidence_levels(statement: Statement) -> str:
@@ -193,16 +166,6 @@ def convert_statements_to_alterations(
     return rows
 
 
-def find_variant(all_variants: List[IprVariant], variant_type: str, variant_key: str) -> IprVariant:
-    """
-    Find a variant in a list of variants by its key and type
-    """
-    for variant in all_variants:
-        if variant['key'] == variant_key and variant['variantType'] == variant_type:
-            return variant
-    raise KeyError(f'expected variant ({variant_key}, {variant_type}) does not exist')
-
-
 def select_expression_plots(
     kb_matches: List[KbMatch], all_variants: List[IprVariant]
 ) -> List[Dict[str, ImageDefinition]]:
@@ -288,72 +251,3 @@ def create_key_alterations(
         [{'geneVariant': alt} for alt in set(alterations)],
         {k: len(v) for k, v in counts.items()},
     )
-
-
-class IprConnection:
-    def __init__(self, username: str, password: str, url: str = DEFAULT_URL):
-        self.token = None
-        self.url = url
-        self.username = username
-        self.password = password
-        self.headers = {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-            'Content-Encoding': 'deflate',
-        }
-        self.cache: Dict[str, List[Dict]] = {}
-        self.request_count = 0
-
-    def request(self, endpoint: str, method: str = 'GET', **kwargs) -> Dict:
-        """Request wrapper to handle adding common headers and logging
-
-        Args:
-            endpoint (string): api endpoint, excluding the base uri
-            method (str, optional): the http method. Defaults to 'GET'.
-
-        Returns:
-            dict: the json response as a python dict
-        """
-        url = f'{self.url}/{endpoint}'
-        self.request_count += 1
-        resp = requests.request(
-            method, url, headers=self.headers, auth=(self.username, self.password), **kwargs
-        )
-        try:
-            resp.raise_for_status()
-        except requests.exceptions.HTTPError as err:
-            # try to get more error details
-            message = str(err)
-            try:
-                message += ' ' + resp.json()['error']['message']
-            except Exception:
-                pass
-
-            raise requests.exceptions.HTTPError(message)
-        return resp.json()
-
-    def post(self, uri: str, data: Dict = {}, **kwargs) -> Dict:
-        """Convenience method for making post requests"""
-        return self.request(
-            uri,
-            method='POST',
-            data=zlib.compress(json.dumps(data, allow_nan=False).encode('utf-8')),
-            **kwargs,
-        )
-
-    def upload_report(self, content: Dict) -> Dict:
-        return self.post('/reports', content)
-
-    def set_analyst_comments(self, report_id: str, data: Dict) -> Dict:
-        """
-        Update report comments to an existing report
-
-        TODO:
-            Add to main upload.
-            Pending: https://www.bcgsc.ca/jira/browse/DEVSU-1177
-        """
-        return self.request(
-            f'/reports/{report_id}/summary/analyst-comments',
-            method='PUT',
-            data=zlib.compress(json.dumps(data, allow_nan=False).encode('utf-8')),
-        )
