@@ -3,7 +3,11 @@
 
 name: build
 
-on: [push]
+on:
+  push:
+    paths-ignore:
+    - docs
+    - README
 
 jobs:
   build:
