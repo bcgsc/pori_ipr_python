@@ -49,7 +49,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#genomic-report-user-manual" class="md-skip">
+        <a href="#ipr-adapater-user-manual" class="md-skip">
           Skip to content
         </a>
       
@@ -375,23 +375,23 @@
                   
                 
                 
-                <h1 id="genomic-report-user-manual">Genomic Report User Manual</h1>
-<p>The Genomic Report python package is a tool for generating an IPR report with GraphKB annotations.
+                <h1 id="ipr-adapater-user-manual">IPR Adapater User Manual</h1>
+<p>The IPR python package is a tool for generating an IPR report with GraphKB annotations.
 Lists of variants are parsed, annotated, and then uploaded as part of a report.</p>
 <h2 id="getting-started">Getting Started</h2>
 <p>Install the package with pip</p>
-<pre><code class="bash">pip install genomic_report
+<pre><code class="bash">pip install ipr
 </code></pre>
 
 <p>This will require python 3.6 or greater.</p>
 <p>this can now be used as a command line tool</p>
-<pre><code class="bash">genomic_report -h
+<pre><code class="bash">ipr -h
 </code></pre>
 
 <p>or as part of a script</p>
 <pre><code class="python">from argparse import Namespace
 
-from genomic_report.main import create_report
+from ipr.main import create_report
 
 create_report(...)
 </code></pre>
