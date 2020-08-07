@@ -8,6 +8,8 @@ from ipr.ipr import IprConnection
 from ipr.main import create_report
 from ipr.inputs import read_tabbed_file
 
+from .constants import EXCLUDE_INTEGRATION_TESTS
+
 
 def get_test_file(name: str) -> str:
     return os.path.join(os.path.dirname(__file__), 'test_data', name)
@@ -36,18 +38,19 @@ def probe_upload_content() -> Dict:
     return report_content
 
 
-def test_found_probe_small_mutations(probe_upload_content: Dict) -> None:
-    assert probe_upload_content['smallMutations']
+@pytest.mark.skipif(EXCLUDE_INTEGRATION_TESTS, reason="excluding long running integration tests")
+class TestCreateReport:
+    def test_found_probe_small_mutations(self, probe_upload_content: Dict) -> None:
+        assert probe_upload_content['smallMutations']
 
-
-def test_found_probe_small_mutations_match(probe_upload_content: Dict) -> None:
-    # verify each probe had a KB match
-    for sm_probe in probe_upload_content['smallMutations']:
-        match_list = [
-            kb_match
-            for kb_match in probe_upload_content['kbMatches']
-            if kb_match['variant'] == sm_probe["key"]
-        ]
-        assert (
-            match_list
-        ), f"probe match failure: {sm_probe['gene']} {sm_probe['proteinChange']} key: {sm_probe['proteinChange']}"
+    def test_found_probe_small_mutations_match(self, probe_upload_content: Dict) -> None:
+        # verify each probe had a KB match
+        for sm_probe in probe_upload_content['smallMutations']:
+            match_list = [
+                kb_match
+                for kb_match in probe_upload_content['kbMatches']
+                if kb_match['variant'] == sm_probe["key"]
+            ]
+            assert (
+                match_list
+            ), f"probe match failure: {sm_probe['gene']} {sm_probe['proteinChange']} key: {sm_probe['proteinChange']}"

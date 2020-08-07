@@ -8,6 +8,8 @@ from ipr.ipr import IprConnection
 from ipr.main import create_report
 from ipr.inputs import read_tabbed_file
 
+from .constants import EXCLUDE_INTEGRATION_TESTS
+
 
 def get_test_file(name: str) -> str:
     return os.path.join(os.path.dirname(__file__), 'test_data', name)
@@ -38,45 +40,41 @@ def report_upload_content() -> Dict:
     return report_content
 
 
-def test_main_sections_present(report_upload_content: Dict) -> None:
-    sections = set(report_upload_content.keys())
+@pytest.mark.skipif(EXCLUDE_INTEGRATION_TESTS, reason="excluding long running integration tests")
+class TestCreateReport:
+    def test_main_sections_present(self, report_upload_content: Dict) -> None:
+        sections = set(report_upload_content.keys())
 
-    for section in [
-        'structuralVariants',
-        'expressionVariants',
-        'copyVariants',
-        'smallMutations',
-        'kbMatches',
-        'genes',
-    ]:
-        assert section in sections
+        for section in [
+            'structuralVariants',
+            'expressionVariants',
+            'copyVariants',
+            'smallMutations',
+            'kbMatches',
+            'genes',
+        ]:
+            assert section in sections
 
+    def test_kept_low_quality_fusion(self, report_upload_content: Dict) -> None:
+        fusions = [(sv['gene1'], sv['gene2']) for sv in report_upload_content['structuralVariants']]
+        assert ('SARM1', 'SUZ12') in fusions
 
-def test_kept_low_quality_fusion(report_upload_content: Dict) -> None:
-    fusions = [(sv['gene1'], sv['gene2']) for sv in report_upload_content['structuralVariants']]
-    assert ('SARM1', 'SUZ12') in fusions
+    def test_pass_through_content_added(self, report_upload_content: Dict) -> None:
+        # check the passthorough content was added
+        assert 'blargh' in report_upload_content
 
+    def test_found_fusion_partner_gene(self, report_upload_content: Dict) -> None:
+        genes = report_upload_content['genes']
+        assert any([g.get('knownFusionPartner', False) for g in genes])
 
-def test_pass_through_content_added(report_upload_content: Dict) -> None:
-    # check the passthorough content was added
-    assert 'blargh' in report_upload_content
+    def test_found_oncogene(self, report_upload_content: Dict) -> None:
+        genes = report_upload_content['genes']
+        assert any([g.get('oncogene', False) for g in genes])
 
+    def test_found_tumour_supressor(self, report_upload_content: Dict) -> None:
+        genes = report_upload_content['genes']
+        assert any([g.get('tumourSuppressor', False) for g in genes])
 
-def test_found_fusion_partner_gene(report_upload_content: Dict) -> None:
-    genes = report_upload_content['genes']
-    assert any([g.get('knownFusionPartner', False) for g in genes])
-
-
-def test_found_oncogene(report_upload_content: Dict) -> None:
-    genes = report_upload_content['genes']
-    assert any([g.get('oncogene', False) for g in genes])
-
-
-def test_found_tumour_supressor(report_upload_content: Dict) -> None:
-    genes = report_upload_content['genes']
-    assert any([g.get('tumourSuppressor', False) for g in genes])
-
-
-def test_found_cancer_related_gene(report_upload_content: Dict) -> None:
-    genes = report_upload_content['genes']
-    assert any([g.get('cancerRelated', False) for g in genes])
+    def test_found_cancer_related_gene(self, report_upload_content: Dict) -> None:
+        genes = report_upload_content['genes']
+        assert any([g.get('cancerRelated', False) for g in genes])

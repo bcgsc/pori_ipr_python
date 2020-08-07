@@ -6,6 +6,8 @@ from graphkb import GraphKBConnection
 
 from ipr.annotate import get_gene_information
 
+from .constants import EXCLUDE_INTEGRATION_TESTS
+
 
 @pytest.fixture(scope='class')
 def genes() -> List[Dict]:
@@ -15,6 +17,7 @@ def genes() -> List[Dict]:
     return get_gene_information(graphkb_conn, ['kras', 'cdkn2a', 'blargh-monkeys', 'ewsr1'])
 
 
+@pytest.mark.skipif(EXCLUDE_INTEGRATION_TESTS, reason="excluding long running integration tests")
 class TestGetGeneInformation:
     def test_fetches_tumour_suppressors(self, genes: List[Dict]) -> None:
         assert genes
