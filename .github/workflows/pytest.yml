@@ -8,6 +8,10 @@ on:
     paths-ignore:
     - docs
     - README
+  pull-request:
+    paths-ignore:
+    - docs
+    - README
 
 jobs:
   build:
@@ -42,20 +46,20 @@ jobs:
         IPR_USER: ${{ secrets.IPR_TEST_USER }}
         IPR_PASS: ${{ secrets.IPR_TEST_PASSWORD }}
         EXCLUDE_INTEGRATION_TESTS: 1
-      if: matrix.python-version != 3.8
+      if: matrix.python-version != 3.8 || github.event_name != 'pull_request'
     - name: Full Tests with pytest
       run: pytest --junitxml=junit/test-results-${{ matrix.python-version }}.xml --cov ipr --cov-report term --cov-report xml
       env:
         IPR_USER: ${{ secrets.IPR_TEST_USER }}
         IPR_PASS: ${{ secrets.IPR_TEST_PASSWORD }}
-      if: matrix.python-version == 3.8
+      if: matrix.python-version == 3.8 && github.event_name == 'pull_request'
     - name: Upload pytest test results
       uses: actions/upload-artifact@master
       with:
         name: pytest-results-${{ matrix.python-version }}
         path: junit/test-results-${{ matrix.python-version }}.xml
         # Use always() to always run this step to publish test results when there are test failures
-      if: matrix.python-version == 3.8
+      if: matrix.python-version == 3.8 && github.event_name == 'pull_request'
     - name: Update code coverage report to CodeCov
       uses: codecov/codecov-action@v1
       with:
@@ -65,4 +69,4 @@ jobs:
         env_vars: OS,PYTHON
         name: codecov-umbrella
         fail_ci_if_error: true
-      if: matrix.python-version == 3.8
+      if: matrix.python-version == 3.8 && github.event_name == 'pull_request'
