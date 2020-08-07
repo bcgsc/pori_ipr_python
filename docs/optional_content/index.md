@@ -6,6 +6,9 @@ Beyond the standard variant input files, the IPR python adapter also accepts oth
 {
     "alternateIdentifier": "string",
     "biopsyName": "string",
-    "project": "string"
+    "project": "string",
+    "images": [],
+    "patientInformation": {},
+    "mutationSignature": []
 }
 ```
