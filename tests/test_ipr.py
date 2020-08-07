@@ -3,7 +3,7 @@ from unittest.mock import Mock
 import pytest
 from graphkb.types import Statement
 
-from genomic_report.ipr import convert_statements_to_alterations
+from ipr.ipr import convert_statements_to_alterations
 
 
 @pytest.fixture()
