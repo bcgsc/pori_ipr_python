@@ -3,7 +3,6 @@ from setuptools import find_packages, setup
 # Dependencies required to use your package
 INSTALL_REQS = [
     'graphkb>=1.4.0, <2',
-    'argparse-env>=0.1.0, <1',
     'biopython==1.76',
     'progressbar2>=3.51.0, <4',
     'pandas>=1.1.0, <2',
