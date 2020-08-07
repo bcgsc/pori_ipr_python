@@ -1,4 +1,4 @@
-# IPR Adapater User Manual
+# User Manual
 
 The IPR python package is a tool for generating an IPR report with GraphKB annotations.
 Lists of variants are parsed, annotated, and then uploaded as part of a report. See the
