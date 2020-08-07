@@ -10,7 +10,7 @@ from ipr.annotate import get_gene_information
 @pytest.fixture(scope='class')
 def genes() -> List[Dict]:
     graphkb_conn = GraphKBConnection()
-    graphkb_conn.login(os.environ['USER'], os.environ['PASSWORD'])
+    graphkb_conn.login(os.environ['IPR_USER'], os.environ['IPR_PASS'])
 
     return get_gene_information(graphkb_conn, ['kras', 'cdkn2a', 'blargh-monkeys', 'ewsr1'])
 
