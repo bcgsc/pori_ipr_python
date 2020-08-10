@@ -9,7 +9,9 @@ from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 
 from graphkb import GraphKBConnection
 
-from . import ipr
+from .constants import DEFAULT_URL
+from .ipr import create_key_alterations, filter_structural_variants, select_expression_plots
+from .connection import IprConnection
 from .annotate import annotate_category_variants, annotate_positional_variants, get_gene_information
 from .inputs import (
     check_variant_links,
@@ -57,7 +59,7 @@ def command_interface() -> None:
         required=True,
         help='Disease name to be used in matching to GraphKB',
     )
-    parser.add_argument('--ipr_url', default=ipr.DEFAULT_URL)
+    parser.add_argument('--ipr_url', default=DEFAULT_URL)
     parser.add_argument('--graphkb_url', default=None)
     parser.add_argument('--log_level', default='info', choices=LOG_LEVELS.keys())
     parser.add_argument('--patient_id', required=True, help='The patient ID for this report')
@@ -157,7 +159,7 @@ def create_report(
     patient_id: str,
     kb_disease_match: str,
     project: str = 'TEST',
-    ipr_url: str = ipr.DEFAULT_URL,
+    ipr_url: str = DEFAULT_URL,
     log_level: str = 'info',
     expression_variant_rows: Iterable[Dict] = [],
     structural_variant_rows: Iterable[Dict] = [],
@@ -200,7 +202,7 @@ def create_report(
     structural_variants = preprocess_structural_variants(structural_variant_rows)
     expression_variants = preprocess_expression_variants(expression_variant_rows)
 
-    ipr_conn = ipr.IprConnection(username, password, ipr_url)
+    ipr_conn = IprConnection(username, password, ipr_url)
     if graphkb_url:
         logger.info(f'connecting to graphkb: {graphkb_url}')
         graphkb_conn = GraphKBConnection(graphkb_url)
@@ -248,7 +250,7 @@ def create_report(
 
     output = optional_content or dict()
 
-    key_alterations, variant_counts = ipr.create_key_alterations(
+    key_alterations, variant_counts = create_key_alterations(
         alterations, expression_variants + copy_variants + structural_variants + small_mutations
     )
 
@@ -271,7 +273,7 @@ def create_report(
             'kbVersion': timestamp(),
             'structuralVariants': [
                 trim_empty_values(s)
-                for s in ipr.filter_structural_variants(
+                for s in filter_structural_variants(
                     structural_variants, alterations, gene_information
                 )
             ],
@@ -281,7 +283,7 @@ def create_report(
         }
     )
     output.setdefault('images', []).extend(
-        ipr.select_expression_plots(
+        select_expression_plots(
             alterations, expression_variants + copy_variants + structural_variants + small_mutations
         )
     )

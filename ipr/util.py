@@ -7,6 +7,9 @@ from graphkb.types import Record
 from graphkb.vocab import get_term_tree
 from graphkb import GraphKBConnection
 
+from .types import IprVariant
+
+
 # name the logger after the package to make it simple to disable for packages using this one as a dependency
 # https://stackoverflow.com/questions/11029717/how-do-i-disable-log-messages-from-the-requests-library
 VERBOSE_ERROR_CODE = (logging.INFO + logging.DEBUG) // 2
@@ -50,3 +53,13 @@ def trim_empty_values(obj: Dict, empty_values: List = ['', None]) -> Dict:
         if obj[key] in empty_values and key not in blacklist:
             del obj[key]
     return obj
+
+
+def find_variant(all_variants: List[IprVariant], variant_type: str, variant_key: str) -> IprVariant:
+    """
+    Find a variant in a list of variants by its key and type
+    """
+    for variant in all_variants:
+        if variant['key'] == variant_key and variant['variantType'] == variant_type:
+            return variant
+    raise KeyError(f'expected variant ({variant_key}, {variant_type}) does not exist')
