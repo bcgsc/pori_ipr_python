@@ -12,6 +12,7 @@ class KbMatch(TypedDict):
     approvedTherapy: bool
     category: str
     context: str
+    kbContextId: str
     disease: str
     evidenceLevel: str
     kbStatementId: str
@@ -20,6 +21,7 @@ class KbMatch(TypedDict):
     matchedCancer: bool
     reference: str
     relevance: str
+    kbRelevanceId: str
 
 
 class IprGeneVariant(TypedDict):
