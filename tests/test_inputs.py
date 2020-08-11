@@ -64,15 +64,16 @@ class TestPreProcessSmallMutations:
             'gene': 'A1BG',
             'proteinChange': 'p.V460M',
             'zygosity': 'het',
-            'tumourReads': '48/42',
-            'rnaReads': '26/0',
+            'tumourAltCount': '42',
+            'tumourRefCount': '48',
             'hgvsProtein': '',
             'transcript': 'ENST1000',
             'hgvsCds': '',
             'hgvsGenomic': '',
             'key': '02fe85a3477784b5ac0f8ecffb300d10',
             'variant': 'blargh',
-            'location': '2:1234',
+            'chromosome': '2',
+            'startPosition': '1234',
         }
         records = preprocess_small_mutations([original])
         record = records[0]
@@ -80,6 +81,10 @@ class TestPreProcessSmallMutations:
         for col in original:
             assert col in record
         assert record['variant'] == 'A1BG:p.V460M'
+        assert 'endPosition' in record
+        assert record['endPosition'] == record['startPosition']
+        assert 'tumourDepth' in record
+        assert record['tumourDepth'] == 90
 
 
 def test_load_small_mutations_probe() -> None:
