@@ -20,11 +20,13 @@ COPY_REQ = ['gene', 'kbCategory']
 COPY_KEY = ['gene']
 COPY_OPTIONAL = [
     'cnvState',
-    'ploidyCorrCpChange',
+    'copyChange',
     'lohState',  # Loss of Heterzygosity state - informative detail to analyst
     'chromosomeBand',
     'start',
     'end',
+    'log2cna',
+    'cna',
 ]
 
 SMALL_MUT_REQ = ['gene', 'proteinChange']
