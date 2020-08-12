@@ -10,7 +10,13 @@ from graphkb.vocab import get_term_tree
 from graphkb.util import convert_to_rid_list
 
 from .types import KbMatch, IprVariant
-from .util import convert_to_rid_set, get_terms_set
+from .util import (
+    convert_to_rid_set,
+    get_terms_set,
+    get_preferred_drug_representation,
+    get_preferred_gene_name,
+    generate_ontology_preference_key,
+)
 from .constants import (
     BASE_THERAPEUTIC_TERMS,
     BASE_PROGNOSTIC_TERM,
@@ -50,46 +56,6 @@ def natural_join(word_list: List[str]) -> str:
 def natural_join_records(records: List[Dict], covert_to_word=lambda x: x['displayName']) -> str:
     word_list = sorted(list({covert_to_word(rec) for rec in records}))
     return natural_join(word_list)
-
-
-def get_alternatives(graphkb_conn: GraphKBConnection, record_id: str) -> List[Dict]:
-    return graphkb_conn.query(
-        {'target': [record_id], 'queryType': 'similarTo', 'treeEdges': []}, ignore_cache=False
-    )
-
-
-def generate_ontology_preference_key(record: Dict, sources_sort: Dict[str, int] = {}) -> Tuple:
-    """
-    Generate a tuple key for comparing preferred ontology terms.
-    """
-    return (
-        record.get('name') == record.get('sourceId'),
-        record.get('deprecated', False),
-        record.get('alias', False),
-        bool(record.get('dependency', '')),
-        sources_sort.get(record['source'], 99999),
-        record['sourceId'],
-        record.get('sourceIdVersion', ''),
-        record['name'],
-    )
-
-
-def get_preferred_drug_representation(graphkb_conn: GraphKBConnection, drug_record_id: str) -> Dict:
-    """
-    Given a Drug record, follow its linked records to find the preferred
-    representation by following alias, deprecating, and cross reference links
-    """
-    source_preference = {
-        r['@rid']: r['sort']
-        for r in graphkb_conn.query(
-            {'target': 'Source', 'returnProperties': ['sort', '@rid']}, ignore_cache=False
-        )
-    }
-    drugs = sorted(
-        get_alternatives(graphkb_conn, drug_record_id),
-        key=lambda rec: generate_ontology_preference_key(rec, source_preference),
-    )
-    return drugs[0]
 
 
 def create_graphkb_link(record_ids: List[str], record_class: str = 'Statement',) -> str:
@@ -232,48 +198,6 @@ def aggregate_statements(
         for statement in group:
             result[statement['@rid']] = sentence
     return result
-
-
-def get_preferred_gene_name(graphkb_conn: GraphKBConnection, record_id: str) -> str:
-    """
-    Given some Feature record ID return the preferred gene name
-    """
-    record = graphkb_conn.get_record_by_id(record_id)
-    biotype = record.get('biotype', '')
-    genes = []
-    expanded = graphkb_conn.query({'target': [record_id], 'neighbors': 3}, ignore_cache=False)[0]
-
-    if biotype != 'gene':
-        for edge in expanded.get('out_ElementOf', []):
-            target = edge['in']
-            if target.get('biotype') == 'gene':
-                genes.append(target)
-
-    for edge_type in [
-        'out_AliasOf',
-        'in_AliasOf',
-        'in_DeprecatedBy',
-        'out_CrossReferenceOf',
-        'in_CrossReferenceOf',
-    ]:
-        target_name = 'out' if edge_type.startswith('in') else 'in'
-        for edge in expanded.get(edge_type, []):
-            target = edge[target_name]
-            if target.get('biotype') == 'gene':
-                genes.append(target)
-    genes = sorted(
-        genes,
-        key=lambda gene: (
-            gene['deprecated'],
-            bool(gene['dependency']),
-            '_' in gene['name'],
-            gene['name'].startswith('ens'),
-        ),
-    )
-    if genes:
-        return genes[0]['displayName']
-    # fallback to the input displayName
-    return record['displayName']
 
 
 def display_variants(gene_name: str, variants: List[IprVariant]):

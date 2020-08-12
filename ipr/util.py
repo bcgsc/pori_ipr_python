@@ -55,6 +55,44 @@ def trim_empty_values(obj: Dict, empty_values: List = ['', None]) -> Dict:
     return obj
 
 
+def create_variant_name(variant: IprVariant) -> str:
+    """
+    Given an IPR variant row, create the variant representation to be used as the name
+    of the variant
+    """
+    variant_type = variant['variantType']
+    if variant_type == 'exp':
+        gene = variant['gene']
+        return f'{gene} ({variant["expressionState"]})'
+    elif variant_type == 'cnv':
+        gene = variant['gene']
+        return f'{gene} ({variant["cnvState"]})'
+    return variant['variant']
+
+
+def create_variant_name_tuple(variant: IprVariant) -> Tuple[str, str]:
+    """
+    Given an IPR variant row, create the variant representation to be used as the name
+    of the variant
+    """
+    variant_type = variant['variantType']
+    gene = variant['gene'] if 'gene' in variant else variant['gene1']
+    if variant_type == 'exp':
+        gene = variant['gene']
+        return (gene, variant['expressionState'])
+    elif variant_type == 'cnv':
+        gene = variant['gene']
+        return (gene, variant['cnvState'])
+    variant_split = variant['variant'].split(':', 1)[1]
+    gene2 = variant.get('gene2')
+    if gene and gene2:
+        gene = f'{gene}, {gene2}'
+    elif gene2:
+        gene = gene2
+
+    return (gene, variant_split)
+
+
 def find_variant(all_variants: List[IprVariant], variant_type: str, variant_key: str) -> IprVariant:
     """
     Find a variant in a list of variants by its key and type
@@ -63,3 +101,85 @@ def find_variant(all_variants: List[IprVariant], variant_type: str, variant_key:
         if variant['key'] == variant_key and variant['variantType'] == variant_type:
             return variant
     raise KeyError(f'expected variant ({variant_key}, {variant_type}) does not exist')
+
+
+def generate_ontology_preference_key(record: Dict, sources_sort: Dict[str, int] = {}) -> Tuple:
+    """
+    Generate a tuple key for comparing preferred ontology terms.
+    """
+    return (
+        record.get('name') == record.get('sourceId'),
+        record.get('deprecated', False),
+        record.get('alias', False),
+        bool(record.get('dependency', '')),
+        sources_sort.get(record['source'], 99999),
+        record['sourceId'],
+        record.get('sourceIdVersion', ''),
+        record['name'],
+    )
+
+
+def get_alternatives(graphkb_conn: GraphKBConnection, record_id: str) -> List[Dict]:
+    return graphkb_conn.query(
+        {'target': [record_id], 'queryType': 'similarTo', 'treeEdges': []}, ignore_cache=False
+    )
+
+
+def get_preferred_drug_representation(graphkb_conn: GraphKBConnection, drug_record_id: str) -> Dict:
+    """
+    Given a Drug record, follow its linked records to find the preferred
+    representation by following alias, deprecating, and cross reference links
+    """
+    source_preference = {
+        r['@rid']: r['sort']
+        for r in graphkb_conn.query(
+            {'target': 'Source', 'returnProperties': ['sort', '@rid']}, ignore_cache=False
+        )
+    }
+    drugs = sorted(
+        get_alternatives(graphkb_conn, drug_record_id),
+        key=lambda rec: generate_ontology_preference_key(rec, source_preference),
+    )
+    return drugs[0]
+
+
+def get_preferred_gene_name(graphkb_conn: GraphKBConnection, record_id: str) -> str:
+    """
+    Given some Feature record ID return the preferred gene name
+    """
+    record = graphkb_conn.get_record_by_id(record_id)
+    biotype = record.get('biotype', '')
+    genes = []
+    expanded = graphkb_conn.query({'target': [record_id], 'neighbors': 3}, ignore_cache=False)[0]
+
+    if biotype != 'gene':
+        for edge in expanded.get('out_ElementOf', []):
+            target = edge['in']
+            if target.get('biotype') == 'gene':
+                genes.append(target)
+
+    for edge_type in [
+        'out_AliasOf',
+        'in_AliasOf',
+        'in_DeprecatedBy',
+        'out_CrossReferenceOf',
+        'in_CrossReferenceOf',
+    ]:
+        target_name = 'out' if edge_type.startswith('in') else 'in'
+        for edge in expanded.get(edge_type, []):
+            target = edge[target_name]
+            if target.get('biotype') == 'gene':
+                genes.append(target)
+    genes = sorted(
+        genes,
+        key=lambda gene: (
+            gene['deprecated'],
+            bool(gene['dependency']),
+            '_' in gene['name'],
+            gene['name'].startswith('ens'),
+        ),
+    )
+    if genes:
+        return genes[0]['displayName']
+    # fallback to the input displayName
+    return record['displayName']

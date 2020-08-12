@@ -152,6 +152,7 @@ def convert_statements_to_alterations(
                     'context': (
                         statement['subject']['displayName'] if statement['subject'] else None
                     ),
+                    'kbContextId': (statement['subject']['@rid'] if statement['subject'] else None),
                     'disease': ';'.join(sorted(d['displayName'] for d in diseases)),
                     'evidenceLevel': display_evidence_levels(statement),
                     'kbStatementId': statement['@rid'],
@@ -160,6 +161,7 @@ def convert_statements_to_alterations(
                     'matchedCancer': disease_match,
                     'reference': pmid,
                     'relevance': statement['relevance']['displayName'],
+                    'kbRelevanceId': statement['relevance']['@rid'],
                 }
             )
             rows.append(row)
