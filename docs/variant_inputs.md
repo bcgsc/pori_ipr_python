@@ -18,35 +18,29 @@ use a tab delimited format. The column names, types and example inputs are shown
 ### Optional Columns
 
 
-| Column        | Type    | Description                                                      |
-| ------------- | ------- | ---------------------------------------------------------------- |
-| rnaReads      | float   |                                                                  |
-| rpkm          | float   |                                                                  |
-| foldChange    | float   |                                                                  |
-| tcgaPerc      | float   | percentile value when compared to the primary disease comparator |
-| tcgaPercCol   | string  | primary disease comparator                                       |
-| tcgakIQR      | float   | kIQR value when compared to the primary disease comparator       |
-| tcgaQC        | float   |                                                                  |
-| tcgaQCCol     | string  |                                                                  |
-| tcgaAvgPerc   | float   |                                                                  |
-| tcgaAvgkIQR   | float   |                                                                  |
-| tcgaAvgQC     | float   |                                                                  |
-| tcgaAvgQCCol  | string  |                                                                  |
-| tcgaNormPerc  | float   |                                                                  |
-| tcgaNormkIQR  | float   |                                                                  |
-| ptxPerc       | float   |                                                                  |
-| ptxkIQR       | float   |                                                                  |
-| ptxQC         | float   |                                                                  |
-| ptxPercCol    | string  |                                                                  |
-| ptxTotSampObs | integer |                                                                  |
-| ptxPogPerc    | float   |                                                                  |
-| gtexComp      | string  |                                                                  |
-| gtexPerc      | float   |                                                                  |
-| gtexFC        | float   |                                                                  |
-| gtexkIQR      | float   |                                                                  |
-| gtexAvgPerc   | float   |                                                                  |
-| gtexAvgFC     | float   |                                                                  |
-| gtexAvgkIQR   | float   |                                                                  |
+| Column       | Type   | Description                                                      |
+| ------------ | ------ | ---------------------------------------------------------------- |
+| rnaReads     | float  |                                                                  |
+| rpkm         | float  |                                                                  |
+| foldChange   | float  |                                                                  |
+| tcgaPerc     | float  | percentile value when compared to the primary disease comparator |
+| tcgaPercCol  | string | primary disease comparator                                       |
+| tcgakIQR     | float  | kIQR value when compared to the primary disease comparator       |
+| tcgaQC       | float  |                                                                  |
+| tcgaQCCol    | string |                                                                  |
+| tcgaAvgPerc  | float  |                                                                  |
+| tcgaAvgkIQR  | float  |                                                                  |
+| tcgaAvgQC    | float  |                                                                  |
+| tcgaAvgQCCol | string |                                                                  |
+| tcgaNormPerc | float  |                                                                  |
+| tcgaNormkIQR | float  |                                                                  |
+| gtexComp     | string |                                                                  |
+| gtexPerc     | float  |                                                                  |
+| gtexFC       | float  |                                                                  |
+| gtexkIQR     | float  |                                                                  |
+| gtexAvgPerc  | float  |                                                                  |
+| gtexAvgFC    | float  |                                                                  |
+| gtexAvgkIQR  | float  |                                                                  |
 
 ## Small Mutation Data
 
@@ -54,26 +48,37 @@ Small mutations are composed of indels and single nucleotide variants.
 
 ### Required Columns
 
-| Column        | Type   | Example     | Description                          |
-| ------------- | ------ | ----------- | ------------------------------------ |
-| location      | string | 10:123456   | the genomic position of this variant |
-| refAlt        | string | A>T         | the genomic sequence change          |
-| gene          | string | KRAS        | the gene name                        |
-| proteinChange | string | p.G12D      | the HGVS protein notation            |
-| transcript    | string | ENST00001.2 | the transcript name                  |
+| Column        | Type    | Example     | Description                                |
+| ------------- | ------- | ----------- | ------------------------------------------ |
+| chromosome    | string  | X           | the chromosome                             |
+| startPostion  | integer | 1234        | the genomic start position of this variant |
+| endPosition   | integer | 1234        | the genomic end position of this variant   |
+| refSeq        | string  | A           | the reference sequence                     |
+| altSeq        | string  | C           | the alternate/new sequence                 |
+| gene          | string  | KRAS        | the gene name                              |
+| proteinChange | string  | p.G12D      | the HGVS protein notation                  |
+| transcript    | string  | ENST00001.2 | the transcript name                        |
 
 
 ### Optional Columns
 
-| Column      | Type   | Example               | Description                                                                                |
-| ----------- | ------ | --------------------- | ------------------------------------------------------------------------------------------ |
-| zygosity    | string | het                   |                                                                                            |
-| tumourReads | string | 4/8                   | the reference and alternate (supporting) read counts at this position in the genome        |
-| rnaReads    | string | 4/8                   | the reference and alternate (supporting) read counts at this position in the transcriptome |
-| detectedIn  | string | DNA/RNA               | the sample types this variant was detected in                                              |
-| hgvsCds     | string | `ENST0001:c.1234+3A>G` | HGVS coding sequence notation for this variant                                             |
-| hgvsGenomic | string | `1:g.1234A>G`         | HGVS genomic notation for this variant                                                     |
-| hgvsProtein | string | `KRAS:p.G12D`         | HGVS protein notation for this variant                                                     |
+| Column         | Type    | Example                | Description                                                                |
+| -------------- | ------- | ---------------------- | -------------------------------------------------------------------------- |
+| zygosity       | string  | het                    |                                                                            |
+| tumourRefCount | integer | 1                      | the number of reference reads in the tumour genome                         |
+| tumourAltCount | integer | 1                      | the number of alternate reads in the tumour genome supporting the mutation |
+| tumourDepth    | integer | 1                      | the total number of reads at this position in the tumour genome            |
+| rnaRefCount    | integer | 1                      | the number of reference reads in the rna                                   |
+| rnaAltCount    | integer | 1                      | the number of alternate reads in the rna  supporting the mutation          |
+| rnaDepth       | integer | 1                      | the total number of reads at this position in the rna                      |
+| normalRefCount | integer | 1                      | the number of reference reads in the normal genome                         |
+| normalAltCount | integer | 1                      | the number of alternate reads in the normal genome supporting the mutation |
+| normalDepth    | integer | 1                      | the total number of reads at this position in the normal genome            |
+| detectedIn     | string  | DNA/RNA                | the sample types this variant was detected in                              |
+| hgvsCds        | string  | `ENST0001:c.1234+3A>G` | HGVS coding sequence notation for this variant                             |
+| hgvsGenomic    | string  | `1:g.1234A>G`          | HGVS genomic notation for this variant                                     |
+| hgvsProtein    | string  | `KRAS:p.G12D`          | HGVS protein notation for this variant                                     |
+| ncbiBuild      | string  | GRCh37                 | the genome reference assembly build version                                |
 
 ## Copy Variant Data
 
@@ -88,13 +93,15 @@ Small mutations are composed of indels and single nucleotide variants.
 
 ### Optional Columns
 
-| Column              | Type    | Example | Description                                                                          |
-| ------------------- | ------- | ------- | ------------------------------------------------------------------------------------ |
-| ploidyCorrCpyChange | integer | -2      | the ploidy corrected copy change                                                     |
-| lohState            | string  | HET     | the loss-of-heterozygosity category for this gene region                             |
-| chromosomeBand      | string  |         |                                                                                      |
-| start               | integer |         | the genomic start position of the copy segment this gene copy number was called from |
-| end                 | integer |         | the genomic end position of the copy segment this gene copy number was called from   |
+| Column         | Type    | Example | Description                                                                          |
+| -------------- | ------- | ------- | ------------------------------------------------------------------------------------ |
+| copyChange     | integer | -2      | the ploidy corrected copy change                                                     |
+| lohState       | string  | HET     | the loss-of-heterozygosity category for this gene region                             |
+| chromosomeBand | string  | X:p12.2 |                                                                                      |
+| start          | integer |         | the genomic start position of the copy segment this gene copy number was called from |
+| end            | integer |         | the genomic end position of the copy segment this gene copy number was called from   |
+| cna            | float   | 1.22    | The copy number alteration (CNA) ratio                                               |
+| log2cna        | float   |         |                                                                                      |
 
 
 ## Structural Variant (Fusion) Data
@@ -104,7 +111,6 @@ Small mutations are composed of indels and single nucleotide variants.
 | Column          | Type    | Example               | Description                                                        |
 | --------------- | ------- | --------------------- | ------------------------------------------------------------------ |
 | eventType       | string  | deletion              | the type of underlying structural variant                          |
-|                 |
 | breakpoint      | string  | 12:123456\|14:1244662 | description of the breakpoints involved in this structural variant |
 | gene1           | string  | EWSR1                 | the 5' (n-terminal) gene name                                      |
 | gene2           | string  | FLI1                  | the 3' (c-terminal) gene name                                      |

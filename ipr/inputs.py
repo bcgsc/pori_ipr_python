@@ -20,26 +20,46 @@ COPY_REQ = ['gene', 'kbCategory']
 COPY_KEY = ['gene']
 COPY_OPTIONAL = [
     'cnvState',
-    'ploidyCorrCpChange',
+    'copyChange',
     'lohState',  # Loss of Heterzygosity state - informative detail to analyst
     'chromosomeBand',
     'start',
     'end',
+    'log2cna',
+    'cna',
 ]
 
 SMALL_MUT_REQ = ['gene', 'proteinChange']
 # alternate details in the key, can distinguish / subtype events.
-SMALL_MUT_KEY = SMALL_MUT_REQ + ['transcript', 'location', 'refAlt']
+SMALL_MUT_KEY = SMALL_MUT_REQ + [
+    'altSeq',
+    'chromosome',
+    'endPosition',
+    'refSeq',
+    'startPosition',
+    'transcript',
+]
 SMALL_MUT_OPTIONAL = [
-    'zygosity',
-    'tumourReads',
-    'rnaReads',
-    'hgvsProtein',
+    'altSeq',
+    'chromosome',
+    'endPosition',
     'hgvsCds',
     'hgvsGenomic',
-    'location',
-    'refAlt',
+    'hgvsProtein',
+    'ncbiBuild',
+    'normalAltCount',
+    'normalDepth',
+    'normalRefCount',
+    'refSeq',
+    'rnaAltCount',
+    'rnaDepth',
+    'rnaRefCount',
+    'startPosition',
     'transcript',
+    'tumourAltCount',
+    'tumourDepth',
+    'tumourRefCount',
+    'zygosity',
 ]
 
 EXP_REQ = ['gene', 'kbCategory']
@@ -60,12 +80,6 @@ EXP_OPTIONAL = [
     'tcgaAvgQCCol',
     'tcgaNormPerc',
     'tcgaNormkIQR',
-    'ptxPerc',
-    'ptxkIQR',
-    'ptxQC',
-    'ptxPercCol',
-    'ptxTotSampObs',
-    'ptxPogPerc',
     'gtexComp',
     'gtexPerc',
     'gtexFC',
@@ -227,8 +241,6 @@ def preprocess_small_mutations(rows: Iterable[Dict]) -> List[IprGeneVariant]:
 
     # 'location' and 'refAlt' are not currently used for matching; still optional and allowed blank
     patterns = {
-        'location': r'^(\w+:\d+(-\d+)?)?$',
-        'refAlt': r'^([A-Z]*>[A-Z]*)?$',
         'hgvsProtein': r'^(\S+:p\.\S+)?$',
         'hgvsCds': r'^(\S+:[crn]\.\S+)?$',
         'hgvsGenomic': r'^(\S+:g\.\S+)?$',
@@ -242,6 +254,37 @@ def preprocess_small_mutations(rows: Iterable[Dict]) -> List[IprGeneVariant]:
         hgvsp = '{}:{}'.format(row['gene'], row['proteinChange'])
         row['variant'] = hgvsp
         row['variantType'] = 'mut'
+
+        if row.get('startPosition') and not row.get('endPosition'):
+            row['endPosition'] = row['startPosition']
+
+        # check integer columns
+        for col in [
+            'endPosition',
+            'normalAltCount',
+            'normalDepth',
+            'normalRefCount',
+            'rnaAltCount',
+            'rnaDepth',
+            'rnaRefCount',
+            'startPosition',
+            'tumourAltCount',
+            'tumourDepth',
+            'tumourRefCount',
+        ]:
+            if row.get(col, ''):
+                row[col] = int(row[col])
+
+        # default depth to alt + ref if not given
+        for sample_type in ['normal', 'rna', 'tumour']:
+            if (
+                row.get(f'{sample_type}RefCount', '')
+                and row.get(f'{sample_type}AltCount', '')
+                and not row.get(f'{sample_type}Depth', '')
+            ):
+                row[f'{sample_type}Depth'] = (
+                    row[f'{sample_type}RefCount'] + row[f'{sample_type}AltCount']
+                )
 
     return result
 
