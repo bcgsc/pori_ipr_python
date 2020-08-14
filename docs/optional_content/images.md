@@ -9,7 +9,9 @@ The following are examples with their expected format and image key.
     "images": [
         {
             "key": "string",
-            "path": "/path/to/image/file"
+            "path": "/path/to/image/file",
+            "title": "",
+            "caption": ""
         }
     ]
 }

@@ -9,6 +9,9 @@ Beyond the standard variant input files, the IPR python adapter also accepts oth
     "project": "string",
     "images": [],
     "patientInformation": {},
-    "mutationSignature": []
+    "mutationSignature": [],
+    "tumourContent": 45,
+    "ploidy": "diploid",
+    "subtyping": "Luminal A"
 }
 ```

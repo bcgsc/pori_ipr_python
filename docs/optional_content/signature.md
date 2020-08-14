@@ -7,10 +7,18 @@ signatures. The nnls field is the non-negative least squares contribution of the
 {
     "mutationSignature": [
         {
-            "associations": "string",
-            "nnls": 0.0571,
-            "signature": "SBS1"
+            "signature": "SBS1",
+            "nnls": 0.344,
+            "associations": "Tobacco chewing",
+            "features": "D,T",
+            "numCancerTypes": 1,
+            "cancerTypes": "stomach cancer",
+            "selected": false,
+            "kbCategory": "strong signature"
         }
     ]
 }
 ```
+
+The `selected` field indicates if this signature should be shown on the front page of the report or
+not
