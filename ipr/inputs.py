@@ -65,29 +65,26 @@ SMALL_MUT_OPTIONAL = [
 EXP_REQ = ['gene', 'kbCategory']
 EXP_KEY = ['gene']
 EXP_OPTIONAL = [
+    'biopsySiteFoldChange',
+    'biopsySitePercentile',
+    'biopsySiteQC',
+    'biopsySiteZScore',
+    'biopsySiteKIQR',
+    'diseaseFoldChange',
+    'diseaseKIQR',
+    'diseasePercentile',
+    'diseaseQC',
+    'diseaseZScore',
     'expressionState',
+    'histogramImage',
+    'primarySiteFoldChange',
+    'primarySiteKIQR',
+    'primarySitePercentile',
+    'primarySiteQC',
+    'primarySiteZScore',
     'rnaReads',
     'rpkm',
-    'foldChange',
-    'tcgaPerc',
-    'tcgaPercCol',
-    'tcgakIQR',
-    'tcgaQC',
-    'tcgaQCCol',
-    'tcgaAvgPerc',
-    'tcgaAvgkIQR',
-    'tcgaAvgQC',
-    'tcgaAvgQCCol',
-    'tcgaNormPerc',
-    'tcgaNormkIQR',
-    'gtexComp',
-    'gtexPerc',
-    'gtexFC',
-    'gtexkIQR',
-    'gtexAvgPerc',
-    'gtexAvgFC',
-    'gtexAvgkIQR',
-    'histogramImage',
+    'tpm',
 ]
 
 SV_REQ = [
@@ -305,7 +302,12 @@ def preprocess_expression_variants(rows: Iterable[Dict]) -> List[IprGeneVariant]
     float_columns = [
         col
         for col in EXP_REQ + EXP_OPTIONAL
-        if col.endswith('kIQR') or col.endswith('Perc') or col.endswith('FC')
+        if col.endswith('KIQR')
+        or col.endswith('Percentile')
+        or col.endswith('FoldChange')
+        or col.endswith('QC')
+        or col.endswith('ZScore')
+        or col in ['tmp', 'rpkm']
     ]
     for col in float_columns:
         if col not in patterns:

@@ -18,29 +18,26 @@ use a tab delimited format. The column names, types and example inputs are shown
 ### Optional Columns
 
 
-| Column       | Type   | Description                                                      |
-| ------------ | ------ | ---------------------------------------------------------------- |
-| rnaReads     | float  |                                                                  |
-| rpkm         | float  |                                                                  |
-| foldChange   | float  |                                                                  |
-| tcgaPerc     | float  | percentile value when compared to the primary disease comparator |
-| tcgaPercCol  | string | primary disease comparator                                       |
-| tcgakIQR     | float  | kIQR value when compared to the primary disease comparator       |
-| tcgaQC       | float  |                                                                  |
-| tcgaQCCol    | string |                                                                  |
-| tcgaAvgPerc  | float  |                                                                  |
-| tcgaAvgkIQR  | float  |                                                                  |
-| tcgaAvgQC    | float  |                                                                  |
-| tcgaAvgQCCol | string |                                                                  |
-| tcgaNormPerc | float  |                                                                  |
-| tcgaNormkIQR | float  |                                                                  |
-| gtexComp     | string |                                                                  |
-| gtexPerc     | float  |                                                                  |
-| gtexFC       | float  |                                                                  |
-| gtexkIQR     | float  |                                                                  |
-| gtexAvgPerc  | float  |                                                                  |
-| gtexAvgFC    | float  |                                                                  |
-| gtexAvgkIQR  | float  |                                                                  |
+| Column                | Type  | Description                                                                                        |
+| --------------------- | ----- | -------------------------------------------------------------------------------------------------- |
+| rnaReads              | float |                                                                                                    |
+| rpkm                  | float | reads per kilobase of transcript, per million mapped reads                                         |
+| tpm                   | float | transcript per million                                                                             |
+| diseasePercentile     | float | the percentile with respect to the disease expression comparator cohort                            |
+| diseaseKIQR           | float | the kIQR with respect to the disease expression comparator cohort                                  |
+| diseaseZScore         | float | the zscore with respect to the disease expression comparator cohort                                |
+| diseaseFoldChange     | float | the fold change with respect to the median of the disease expression comparator cohort             |
+| diseaseQC             | float |                                                                                                    |
+| primarySitePercentile | float | the percentile with respect to the normal primary site expression comparator cohort                |
+| primarySiteKIQR       | float | the kIQR with respect to the normal primary site expression comparator cohort                      |
+| primarySiteZScore     | float | the zscore with respect to the normal primary site expression comparator cohort                    |
+| primarySiteFoldChange | float | the fold change with respect to the median of the normal primary site expression comparator cohort |
+| primarySiteQC         | float |                                                                                                    |
+| biopsySitePercentile  | float | the percentile with respect to the normal biopsy site expression comparator cohort                 |
+| biopsySiteKIQR        | float | the kIQR with respect to the normal biopsy site expression comparator cohort                       |
+| biopsySiteZScore      | float | the zscore with respect to the normal biopsy site expression comparator cohort                     |
+| biopsySiteFoldChange  | float | the fold change with respect to the median of the normal biopsy site expression comparator cohort  |
+| biopsySiteQC          | float |                                                                                                    |
 
 ## Small Mutation Data
 
