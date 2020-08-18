@@ -1,7 +1,6 @@
 from typing import Sequence, Dict, List, Set, Tuple
 import base64
 import json
-import logging
 from urllib.parse import urlencode
 
 
@@ -30,8 +29,6 @@ OTHER_DISEASES = 'other disease types'
 ENTREZ_GENE_URL = 'https://www.ncbi.nlm.nih.gov/gene'
 # TODO: https://www.bcgsc.ca/jira/browse/DEVSU-1181
 GRAPHKB_GUI = 'https://graphkb.bcgsc.ca'
-
-logger = logging.getLogger(__name__)
 
 
 def filter_by_record_class(
@@ -205,20 +202,14 @@ def aggregate_statements(
 
 def display_variants(gene_name: str, variants: List[IprVariant]):
     def display_variant(variant: IprVariant):
-        if 'proteinChange' in variant and variant['proteinChange']:
+        if 'gene' in variant and 'proteinChange' in variant:
             return f'{variant["gene"]}:{variant["proteinChange"]}'
         if 'gene1' in variant and 'gene2' in variant:
-            try:
-                return f'({variant["gene1"]},{variant["gene2"]}):fusion(e.{variant["exon1"]},e.{variant["exon2"]})'
-            except KeyError as err:
-                logger.error(f'Malformed fusion {err} in {variant}')
-                return f'({variant["gene1"]},{variant["gene2"]}):fusion(e.?,e.?)'
+            return f'({variant["gene1"]},{variant["gene2"]}):fusion(e.{variant.get("exon1", "?")},e.{variant.get("exon2", "?")})'
         if 'kbCategory' in variant and variant['kbCategory']:
             return f'{variant["kbCategory"]} of {variant["gene"]}'
-        if 'variant' in variant:
-            logger.warning(f'Unexpected format variant {variant["variant"]}: {variant}')
-            return variant['variant']
-        logger.error("Could not display {variant}")
+
+        raise ValueError(f'Unable to form display_variant of {variant["variant"]}: {variant}')
 
     result = sorted(list({v for v in [display_variant(e) for e in variants] if gene_name in v}))
     variants_text = natural_join(result)
