@@ -24,6 +24,7 @@ from .inputs import (
 from .types import KbMatch
 from .util import LOG_LEVELS, logger, trim_empty_values
 from .summary import summarize
+from .therapeutic_options import create_therapeutic_options
 
 CACHE_GENE_MINIMUM = 5000
 
@@ -150,6 +151,10 @@ def clean_unsupported_content(upload_content: Dict) -> Dict:
             for col in drop_columns:
                 if col in variant:
                     del variant[col]
+
+    for row in upload_content['kbMatches']:
+        del row['kbContextId']
+        del row['kbRelevanceId']
     return upload_content
 
 
@@ -250,9 +255,19 @@ def create_report(
 
     output = optional_content or dict()
 
-    key_alterations, variant_counts = create_key_alterations(
-        alterations, expression_variants + copy_variants + structural_variants + small_mutations
-    )
+    all_variants = expression_variants + copy_variants + structural_variants + small_mutations
+
+    key_alterations, variant_counts = create_key_alterations(alterations, all_variants)
+
+    logger.info('generating therapeutic options')
+    targets = create_therapeutic_options(graphkb_conn, alterations, all_variants)
+
+    logger.info('generating analyst comments')
+    comments = {
+        'comments': summarize(
+            graphkb_conn, alterations, disease_name=kb_disease_match, variants=all_variants,
+        )
+    }
 
     output.update(
         {
@@ -280,6 +295,8 @@ def create_report(
             'genes': gene_information,
             'genomicAlterationsIdentified': key_alterations,
             'variantCounts': variant_counts,
+            'analystComments': comments,
+            'therapeuticTarget': targets,
         }
     )
     output.setdefault('images', []).extend(
@@ -287,28 +304,15 @@ def create_report(
             alterations, expression_variants + copy_variants + structural_variants + small_mutations
         )
     )
-    for section in output:
-        section_content_type = 'rows' if not isinstance(output[section], str) else 'characters'
-        logger.info(f'section {section} has {len(output[section])} {section_content_type}')
 
-    ipr_result = None
-    comments = {
-        'comments': summarize(
-            graphkb_conn,
-            alterations,
-            disease_name=kb_disease_match,
-            variants=expression_variants + copy_variants + structural_variants + small_mutations,
-        )
-    }
     output = clean_unsupported_content(output)
-    report_id = None
+    ipr_result = None
+
     if ipr_upload:
         try:
             logger.info(f'Uploading to IPR {ipr_conn.url}')
             ipr_result = ipr_conn.upload_report(output)
-            report_id = ipr_result['ident']
             logger.info(ipr_result)
-            logger.info('adding analyst comments')
             output.update(ipr_result)
         except Exception as err:
             logger.error(f"ipr_conn.upload_report failed: {err}", exc_info=True)
@@ -317,13 +321,6 @@ def create_report(
             logger.info(f'Writing IPR upload json to: {output_json_path}')
             with open(output_json_path, 'w') as fh:
                 fh.write(json.dumps(output))
-
-    if report_id:
-        try:
-            ipr_conn.set_analyst_comments(report_id, comments)
-            logger.info(f'report {report_id} was annotated with generated comments')
-        except Exception as err:
-            logger.error(f"ipr_conn.set_analyst_comments failed: {err}", exc_info=True)
     logger.info(f'made {graphkb_conn.request_count} requests to graphkb')
     logger.info(f'average load {int(graphkb_conn.load or 0)} req/s')
     return output
