@@ -7,16 +7,12 @@ from typing import Dict, Iterable, List, Set, Tuple
 from graphkb import GraphKBConnection
 from graphkb.types import Ontology, Statement
 from graphkb.vocab import get_term_tree
+from graphkb.statement import categorize_relevance
 
 from .types import ImageDefinition, IprGene, IprStructuralVariant, IprVariant, KbMatch
-from .util import convert_to_rid_set, get_terms_set, find_variant
+from .util import convert_to_rid_set, find_variant
 from .constants import (
-    BASE_BIOLOGICAL_TERMS,
-    BASE_DIAGNOSTIC_TERM,
-    BASE_PROGNOSTIC_TERM,
-    BASE_THERAPEUTIC_TERMS,
     VARIANT_CLASSES,
-    REPORT_KB_SECTIONS,
     APPROVED_EVIDENCE_LEVELS,
 )
 
@@ -108,39 +104,26 @@ def convert_statements_to_alterations(
 
     approved = convert_to_rid_set(get_approved_evidence_levels(graphkb_conn))
 
-    therapeutic_terms = get_terms_set(graphkb_conn, BASE_THERAPEUTIC_TERMS)
-    diagnostic_terms = get_terms_set(graphkb_conn, [BASE_DIAGNOSTIC_TERM])
-    prognostic_terms = get_terms_set(graphkb_conn, [BASE_PROGNOSTIC_TERM])
-    biological_terms = get_terms_set(graphkb_conn, BASE_BIOLOGICAL_TERMS)
-
     for statement in statements:
         variants = [c for c in statement['conditions'] if c['@class'] in VARIANT_CLASSES]
         diseases = [c for c in statement['conditions'] if c['@class'] == 'Disease']
         pmid = ';'.join([e['displayName'] for e in statement['evidence']])
 
-        ipr_section = REPORT_KB_SECTIONS.unknown  # table this goes to in IPR
         relevance_id = statement['relevance']['@rid']
 
         approved_therapy = False
 
         disease_match = len(diseases) == 1 and diseases[0]['@rid'] in disease_matches
 
-        if relevance_id in therapeutic_terms:
-            ipr_section = REPORT_KB_SECTIONS.therapeutic
+        ipr_section = categorize_relevance(graphkb_conn, relevance_id)
 
+        if ipr_section == 'therapeutic':
             for level in statement['evidenceLevel'] or []:
                 if level['@rid'] in approved:
                     approved_therapy = True
                     break
-
-        elif relevance_id in diagnostic_terms:
-            ipr_section = REPORT_KB_SECTIONS.diagnostic
-        elif relevance_id in prognostic_terms:
-            ipr_section = REPORT_KB_SECTIONS.prognostic
-            if not disease_match:
-                continue  # GERO-72
-        elif relevance_id in biological_terms:
-            ipr_section = REPORT_KB_SECTIONS.biological
+        if ipr_section == 'diagnostic' and not disease_match:
+            continue  # GERO-72
 
         for variant in variants:
             if variant['@rid'] not in variant_matches:
@@ -148,7 +131,7 @@ def convert_statements_to_alterations(
             row = KbMatch(
                 {
                     'approvedTherapy': approved_therapy,
-                    'category': ipr_section,
+                    'category': ipr_section or 'unknown',
                     'context': (
                         statement['subject']['displayName'] if statement['subject'] else None
                     ),

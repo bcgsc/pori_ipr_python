@@ -16,10 +16,12 @@ from graphkb.match import (
 )
 from graphkb.types import Record, Statement
 from graphkb.util import FeatureNotFoundError, convert_to_rid_list
+from graphkb.constants import BASE_THERAPEUTIC_TERMS
+from graphkb.vocab import get_terms_set
 from progressbar import progressbar
 from requests.exceptions import HTTPError
 
-from .ipr import BASE_THERAPEUTIC_TERMS, convert_statements_to_alterations, get_terms_set
+from .ipr import convert_statements_to_alterations
 from .types import IprGene, IprGeneVariant, IprVariant, KbMatch
 from .util import convert_to_rid_set, logger
 

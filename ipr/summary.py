@@ -7,21 +7,16 @@ from urllib.parse import urlencode
 from graphkb.types import Statement, Record
 from graphkb import GraphKBConnection
 from graphkb.vocab import get_term_tree
+from graphkb.constants import RELEVANCE_BASE_TERMS
+from graphkb.statement import categorize_relevance
 from graphkb.util import convert_to_rid_list
 
 from .types import KbMatch, IprVariant
 from .util import (
     convert_to_rid_set,
-    get_terms_set,
     get_preferred_drug_representation,
     get_preferred_gene_name,
     generate_ontology_preference_key,
-)
-from .constants import (
-    BASE_THERAPEUTIC_TERMS,
-    BASE_PROGNOSTIC_TERM,
-    BASE_DIAGNOSTIC_TERM,
-    BASE_BIOLOGICAL_TERMS,
 )
 
 
@@ -230,28 +225,15 @@ def create_section_html(
     Generate HTML for a gene section of the comments
     """
     output = [f'<h2>{gene_name}</h2>']
-    therapeutic_terms = get_terms_set(graphkb_conn, BASE_THERAPEUTIC_TERMS)
-    diagnostic_terms = get_terms_set(graphkb_conn, [BASE_DIAGNOSTIC_TERM])
-    prognostic_terms = get_terms_set(graphkb_conn, [BASE_PROGNOSTIC_TERM])
-    biological_terms = get_terms_set(graphkb_conn, BASE_BIOLOGICAL_TERMS)
-    resistance_terms = get_terms_set(graphkb_conn, ['no sensitivity'])
 
-    therapeutic_sentences = set()
-    biological_sentences = set()
-    diagnostic_sentences = set()
-    resistance_sentences = set()
+    sentence_categories: Dict[str, str] = {}
 
     for statement_id, sentence in sentences_by_statement_id.items():
         relevance = statements[statement_id]['relevance']['@rid']
-
-        if relevance in therapeutic_terms or relevance in prognostic_terms:
-            therapeutic_sentences.add(sentence)
-        if relevance in biological_terms:
-            biological_sentences.add(sentence)
-        if relevance in diagnostic_terms:
-            diagnostic_sentences.add(sentence)
-        if relevance in resistance_terms:
-            resistance_sentences.add(sentence)
+        category = categorize_relevance(
+            graphkb_conn, relevance, RELEVANCE_BASE_TERMS + [('resistance', ['no sensitivity'])]
+        )
+        sentence_categories[sentence] = category
 
     # get the entrez gene description
     genes = sorted(
@@ -293,11 +275,15 @@ def create_section_html(
     sentences_used: Set[str] = set()
 
     for section in [
-        diagnostic_sentences - biological_sentences - therapeutic_sentences - resistance_sentences,
-        biological_sentences - therapeutic_sentences - resistance_sentences,
-        therapeutic_sentences - resistance_sentences,
-        set(sentences_by_statement_id.values()) - resistance_sentences,
-        resistance_sentences,
+        {s for (s, v) in sentence_categories.items() if v == 'diagnostic'},
+        {s for (s, v) in sentence_categories.items() if v == 'biological'},
+        {s for (s, v) in sentence_categories.items() if v in ['therapeutic', 'prognostic']},
+        {
+            s
+            for (s, v) in sentence_categories.items()
+            if v not in ['diagnostic', 'biological', 'therapeutic', 'prognostic', 'resistance']
+        },
+        {s for (s, v) in sentence_categories.items() if v == 'resistance'},
     ]:
 
         content = '. '.join(sorted(list(section - sentences_used)))
