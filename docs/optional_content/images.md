@@ -66,3 +66,29 @@ keys: `circosSv.genome`, `circosSv.transcriptome`
 ## Microbial Integration Circos Plots
 
 keys: `microbial.circos.genome`, `microbial.circos.transcriptome`
+
+## Immune Related Plots
+
+### Cibersort
+
+https://www.nature.com/articles/nmeth.3337
+
+key: `cibersort.cd8_positive_t-cell_scatter`
+
+![cd8+ T-cell scatter plot](../images/cibersort.cd8_positive_t-cell_scatter.png)
+
+key: `cibersort.combined_t-cell_scatter`
+
+![combined T-cell scatter plot](../images/cibersort.combined_t-cell_scatter.png)
+
+### MiXCR
+
+https://pubmed.ncbi.nlm.nih.gov/25924071/
+
+key: `mixcr.circos_trb_vj_gene_usage`
+
+![mixcr circos](../images/mixcr.circos_trb_vj_gene_usage)
+
+key: `mixcr.dominance_vs_alpha_beta_t-cells_scatter`
+
+![mixcr dominance](../images/mixcr.dominance_vs_alpha_beta_t-cells_scatter.png)
