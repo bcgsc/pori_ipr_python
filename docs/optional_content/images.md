@@ -71,7 +71,7 @@ keys: `microbial.circos.genome`, `microbial.circos.transcriptome`
 
 ### Cibersort
 
-https://www.nature.com/articles/nmeth.3337
+[Cibersort Publication](https://www.nature.com/articles/nmeth.3337)
 
 key: `cibersort.cd8_positive_t-cell_scatter`
 
@@ -83,7 +83,7 @@ key: `cibersort.combined_t-cell_scatter`
 
 ### MiXCR
 
-https://pubmed.ncbi.nlm.nih.gov/25924071/
+[MiXCR Publication](https://pubmed.ncbi.nlm.nih.gov/25924071/)
 
 key: `mixcr.circos_trb_vj_gene_usage`
 
