@@ -181,7 +181,7 @@ def validate_row_patterns(
     """
     for row in rows:
         for col, pattern in patterns.items():
-            if not re.match(pattern, '' if row.get(col, None) is None else row[col]):
+            if not re.match(pattern, '' if row.get(col, None) is None else str(row[col])):
                 row_repr_dict = dict((key, row.get(key, '')) for key in row_key_columns)
                 raise ValueError(
                     f'{row_repr_dict} column {col}: "{row[col]}" re pattern failure: "{pattern}"'
