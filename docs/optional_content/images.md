@@ -87,7 +87,7 @@ https://pubmed.ncbi.nlm.nih.gov/25924071/
 
 key: `mixcr.circos_trb_vj_gene_usage`
 
-![mixcr circos](../images/mixcr.circos_trb_vj_gene_usage)
+![mixcr circos](../images/mixcr.circos_trb_vj_gene_usage.png)
 
 key: `mixcr.dominance_vs_alpha_beta_t-cells_scatter`
 
