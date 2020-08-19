@@ -332,7 +332,6 @@ def summarize(
 
     for match in matches:
         rid = match['kbStatementId']
-        # kb_variant = match['kbVariantId']
         exp_variant = match['variant']
         variant_keys_by_statement_ids.setdefault(rid, set()).add(exp_variant)
 
