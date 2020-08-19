@@ -2,7 +2,7 @@
 
 ## HLA Types (OptiType)
 
-https://pubmed.ncbi.nlm.nih.gov/25143287/
+[OptiType publication](https://pubmed.ncbi.nlm.nih.gov/25143287/)
 
 ```json
 {
