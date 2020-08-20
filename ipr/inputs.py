@@ -25,6 +25,7 @@ COPY_OPTIONAL = [
     'chromosomeBand',
     'start',
     'end',
+    'size',
     'log2cna',
     'cna',
 ]

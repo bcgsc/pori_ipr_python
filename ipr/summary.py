@@ -202,11 +202,14 @@ def aggregate_statements(
 
 def display_variants(gene_name: str, variants: List[IprVariant]):
     def display_variant(variant: IprVariant):
-        if 'proteinChange' in variant:
+        if 'gene' in variant and 'proteinChange' in variant:
             return f'{variant["gene"]}:{variant["proteinChange"]}'
-        if 'gene1' in variant:
-            return f'({variant["gene1"]},{variant["gene2"]}):fusion(e.{variant["exon1"]},e.{variant["exon2"]})'
-        return f'{variant["kbCategory"]} of {variant["gene"]}'
+        if 'gene1' in variant and 'gene2' in variant:
+            return f'({variant["gene1"]},{variant["gene2"]}):fusion(e.{variant.get("exon1", "?")},e.{variant.get("exon2", "?")})'
+        if 'kbCategory' in variant and variant['kbCategory']:
+            return f'{variant["kbCategory"]} of {variant["gene"]}'
+
+        raise ValueError(f'Unable to form display_variant of {variant["variant"]}: {variant}')
 
     result = sorted(list({v for v in [display_variant(e) for e in variants] if gene_name in v}))
     variants_text = natural_join(result)
