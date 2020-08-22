@@ -31,7 +31,7 @@ def get_therapeutic_associated_genes(graphkb_conn: GraphKBConnection) -> Set[str
     statements = graphkb_conn.query(
         {
             'target': 'Statement',
-            'filters': {'relevance': list(therapeutic_relevance)},
+            'filters': {'relevance': sorted(list(therapeutic_relevance))},
             'returnProperties': [
                 'conditions.@rid',
                 'conditions.@class',
@@ -40,7 +40,7 @@ def get_therapeutic_associated_genes(graphkb_conn: GraphKBConnection) -> Set[str
                 'conditions.reference2.@class',
                 'conditions.reference2.@rid',
             ],
-        }
+        },
     )
     genes = set()
 
@@ -68,7 +68,7 @@ def get_gene_information(
     """
     logger.info('fetching variant related genes list')
     variants = graphkb_conn.query(
-        {'target': 'Variant', 'returnProperties': ['@class', 'reference1', 'reference2']}
+        {'target': 'Variant', 'returnProperties': ['@class', 'reference1', 'reference2']},
     )
 
     gene_flags: Dict[str, Set[str]] = {
@@ -144,7 +144,7 @@ def get_statements_from_variants(
             'target': 'Statement',
             'filters': {'conditions': convert_to_rid_list(variants), 'operator': 'CONTAINSANY'},
             'returnProperties': return_props,
-        }
+        },
     )
     return statements
 

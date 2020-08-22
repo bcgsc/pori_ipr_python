@@ -120,9 +120,7 @@ def generate_ontology_preference_key(record: Dict, sources_sort: Dict[str, int] 
 
 
 def get_alternatives(graphkb_conn: GraphKBConnection, record_id: str) -> List[Dict]:
-    return graphkb_conn.query(
-        {'target': [record_id], 'queryType': 'similarTo', 'treeEdges': []}, ignore_cache=False
-    )
+    return graphkb_conn.query({'target': [record_id], 'queryType': 'similarTo', 'treeEdges': []})
 
 
 def get_preferred_drug_representation(graphkb_conn: GraphKBConnection, drug_record_id: str) -> Dict:
@@ -132,9 +130,7 @@ def get_preferred_drug_representation(graphkb_conn: GraphKBConnection, drug_reco
     """
     source_preference = {
         r['@rid']: r['sort']
-        for r in graphkb_conn.query(
-            {'target': 'Source', 'returnProperties': ['sort', '@rid']}, ignore_cache=False
-        )
+        for r in graphkb_conn.query({'target': 'Source', 'returnProperties': ['sort', '@rid']})
     }
     drugs = sorted(
         get_alternatives(graphkb_conn, drug_record_id),
@@ -150,7 +146,7 @@ def get_preferred_gene_name(graphkb_conn: GraphKBConnection, record_id: str) -> 
     record = graphkb_conn.get_record_by_id(record_id)
     biotype = record.get('biotype', '')
     genes = []
-    expanded = graphkb_conn.query({'target': [record_id], 'neighbors': 3}, ignore_cache=False)[0]
+    expanded = graphkb_conn.query({'target': [record_id], 'neighbors': 3})[0]
 
     if biotype != 'gene':
         for edge in expanded.get('out_ElementOf', []):

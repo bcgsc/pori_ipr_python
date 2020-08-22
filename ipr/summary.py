@@ -248,7 +248,6 @@ def create_section_html(
                     ]
                 },
             },
-            ignore_cache=False,
         ),
         key=generate_ontology_preference_key,
     )
