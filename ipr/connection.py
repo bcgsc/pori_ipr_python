@@ -1,10 +1,13 @@
 import json
 import zlib
 from typing import Dict, List
+import os
 
 import requests
 
 from .constants import DEFAULT_URL
+
+IMAGE_MAX = 20  # cannot upload more than 20 images at a time
 
 
 class IprConnection:
@@ -33,8 +36,9 @@ class IprConnection:
         """
         url = f'{self.url}/{endpoint}'
         self.request_count += 1
+        headers = kwargs.pop('headers', self.headers)
         resp = requests.request(
-            method, url, headers=self.headers, auth=(self.username, self.password), **kwargs
+            method, url, headers=headers, auth=(self.username, self.password), **kwargs
         )
         try:
             resp.raise_for_status()
@@ -74,3 +78,36 @@ class IprConnection:
             method='PUT',
             data=zlib.compress(json.dumps(data, allow_nan=False).encode('utf-8')),
         )
+
+    def post_images(self, report_id: str, files: Dict[str, str], data: Dict[str, str] = {}) -> Dict:
+        """
+        Post images to the report
+        """
+        file_keys = list(files.keys())
+        start_index = 0
+        image_errors = set()
+        while start_index < len(file_keys):
+            current_files = {}
+            for key in file_keys[start_index : start_index + IMAGE_MAX]:
+                path = files[key]
+                if not os.path.exists(path):
+                    raise FileNotFoundError(path)
+                current_files[key] = path
+            open_files = {k: open(f, 'rb') for (k, f) in current_files.items()}
+            try:
+                resp = self.request(
+                    f'reports/{report_id}/image',
+                    method='POST',
+                    data=data,
+                    files=open_files,
+                    headers={},
+                )
+                for status in resp:
+                    if status['upload'] != 'successful':
+                        image_errors.add(status['key'])
+            finally:
+                for handler in open_files.values():
+                    handler.close()
+            start_index += IMAGE_MAX
+        if image_errors:
+            raise ValueError(f'Error uploading images ({", ".join(sorted(list(image_errors)))})')

@@ -13,7 +13,6 @@ from .util import (
     find_variant,
     create_variant_name_tuple,
 )
-from .constants import BASE_RESISTANCE_TERMS, REPORT_KB_SECTIONS
 
 
 def create_therapeutic_options(
@@ -23,14 +22,11 @@ def create_therapeutic_options(
     Generate therapeutic options summary from the list of kb-matches
     """
     options = []
-    resistance_markers = get_terms_set(graphkb_conn, BASE_RESISTANCE_TERMS)
+    resistance_markers = get_terms_set(graphkb_conn, ['no sensitivity'])
 
     for match in kb_matches:
         row_type = 'therapeutic'
-        if (
-            match['category'] != REPORT_KB_SECTIONS.therapeutic
-            or match['relevance'] == 'eligibility'
-        ):
+        if match['category'] != 'therapeutic' or match['relevance'] == 'eligibility':
             continue
         if match['kbRelevanceId'] in resistance_markers:
             row_type = 'chemoresistance'
@@ -53,6 +49,8 @@ def create_therapeutic_options(
                 'notes': match['kbStatementId'],
             }
         )
+    if not options:
+        return options
     options_df = pandas.DataFrame.from_records(options)
 
     def delimited_list(inputs, delimiter=' / ') -> str:
