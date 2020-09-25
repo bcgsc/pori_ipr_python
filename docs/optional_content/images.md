@@ -42,7 +42,7 @@ key: `cnvLoh.circos`
 
 ## Mutation Burden Plots
 
-key: `mutation_summary\.(barplot|density|legend)_(sv|snv|indel)(\.\w+)?`
+key: `mutationBurden\.(barplot|density|legend)_(sv|snv|indel)\.(primary|secondary|tertiary|quaternary)`
 
 ## Expression Density Plots
 
