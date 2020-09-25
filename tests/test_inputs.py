@@ -1,9 +1,9 @@
 import os
+import pytest
 from unittest import mock
 
-import pytest
-
 from ipr.inputs import (
+    check_comparators,
     check_variant_links,
     create_graphkb_sv_notation,
     preprocess_copy_variants,
@@ -234,3 +234,42 @@ class TestCreateGraphkbSvNotation:
             create_graphkb_sv_notation(
                 IprStructuralVariant({'gene1': '', 'gene2': '', 'exon1': 1, 'exon2': 2, 'key': 'x'})
             )
+
+
+class TestCheckComparators:
+    def test_missing_disease_expression_error(self):
+        content = {'comparators': [{'analysisRole': 'expression (primary site)'}]}
+        variants = [{}]
+
+        with pytest.raises(ValueError):
+            check_comparators(content, variants)
+
+    def test_missing_primary_expression_error(self):
+        content = {'comparators': [{'analysisRole': 'expression (disease)'}]}
+        variants = [{'primarySiteFoldChange': 1}]
+
+        with pytest.raises(ValueError):
+            check_comparators(content, variants)
+
+    def test_missing_biopsy_expression_error(self):
+        content = {'comparators': [{'analysisRole': 'expression (disease)'}]}
+        variants = [{'biopsySitePercentile': 1}]
+
+        with pytest.raises(ValueError):
+            check_comparators(content, variants)
+
+    def test_expression_not_required_without_variants(self):
+        content = {'comparators': []}
+        variants = []
+
+        assert check_comparators(content, variants) is None
+
+    def test_missing_mutation_burden(self):
+        content = {
+            'comparators': [{'analysisRole': 'mutation burden (secondary)'}],
+            'images': [{'key': 'mutationBurden.density_snv.primary'}],
+        }
+        variants = []
+
+        with pytest.raises(ValueError):
+            check_comparators(content, variants)
