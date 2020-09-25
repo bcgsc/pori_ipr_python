@@ -188,7 +188,8 @@ def select_expression_plots(
 
 
 def create_key_alterations(
-    kb_matches: List[KbMatch], all_variants: List[IprVariant],
+    kb_matches: List[KbMatch],
+    all_variants: List[IprVariant],
 ) -> Tuple[List[Dict], Dict]:
     """
     Creates the list of genomic key alterations which summarizes all the variants matched by the KB
