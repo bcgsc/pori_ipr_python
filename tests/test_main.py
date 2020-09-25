@@ -1,12 +1,11 @@
 import os
+import pytest
 from typing import Dict
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from ipr.connection import IprConnection
-from ipr.main import create_report
 from ipr.inputs import read_tabbed_file
+from ipr.main import create_report
 
 from .constants import EXCLUDE_INTEGRATION_TESTS
 
@@ -31,7 +30,14 @@ def report_upload_content() -> Dict:
             log_level='info',
             ipr_url='http://fake.url.ca',
             kb_disease_match='colorectal cancer',
-            optional_content={'blargh': 'some fake content'},
+            optional_content={
+                'blargh': 'some fake content',
+                'comparators': [
+                    {'analysisRole': 'expression (disease)'},
+                    {'analysisRole': 'expression (primary site)'},
+                    {'analysisRole': 'expression (biopsy site)'},
+                ],
+            },
         )
 
     assert mock.called

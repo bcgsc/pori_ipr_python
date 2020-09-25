@@ -209,7 +209,7 @@ def create_report(
     copy_variants = preprocess_copy_variants(copy_variant_rows)
     structural_variants = preprocess_structural_variants(structural_variant_rows)
     expression_variants = preprocess_expression_variants(expression_variant_rows)
-    check_comparators(optional_content, expression_variants)
+    check_comparators(optional_content or {}, expression_variants)
 
     ipr_conn = IprConnection(username, password, ipr_url)
     if graphkb_url:

@@ -3,11 +3,10 @@ Read/Validate the variant input files
 """
 import os
 import re
-from csv import DictReader
-from typing import Callable, Dict, List, Set, Tuple, cast, Iterable
-
 from Bio.Data.IUPACData import protein_letters_3to1
+from csv import DictReader
 from graphkb.match import INPUT_COPY_CATEGORIES, INPUT_EXPRESSION_CATEGORIES
+from typing import Callable, Dict, Iterable, List, Set, Tuple, cast
 
 from .types import IprGeneVariant, IprStructuralVariant, IprVariant
 from .util import hash_key, logger
@@ -497,7 +496,7 @@ def check_variant_links(
     return genes_with_variants
 
 
-def check_comparators(content: Dict, expresssionVariants: List[Dict] = []) -> None:
+def check_comparators(content: Dict, expresssionVariants: Iterable[Dict] = []) -> None:
     """
     Given the optional content dictionary, check that based on the analyses present the
     correct/sufficient comparators have also been specified
