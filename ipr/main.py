@@ -48,7 +48,9 @@ def command_interface() -> None:
         help='username to use connecting to graphkb/ipr',
     )
     parser.add_argument(
-        '--password', required=True, help='password to use connecting to graphkb/ipr',
+        '--password',
+        required=True,
+        help='password to use connecting to graphkb/ipr',
     )
     parser.add_argument('-c', '--copy_variants', required=False, type=file_path)
     parser.add_argument('-m', '--small_mutations', required=False, type=file_path)
@@ -66,7 +68,9 @@ def command_interface() -> None:
     parser.add_argument('--patient_id', required=True, help='The patient ID for this report')
     parser.add_argument('--project', default='TEST', help='The project to upload this report to')
     parser.add_argument(
-        '-o', '--output_json_path', help='path to a JSON to output the report upload body',
+        '-o',
+        '--output_json_path',
+        help='path to a JSON to output the report upload body',
     )
     parser.add_argument(
         '-w',
@@ -265,7 +269,10 @@ def create_report(
     logger.info('generating analyst comments')
     comments = {
         'comments': summarize(
-            graphkb_conn, alterations, disease_name=kb_disease_match, variants=all_variants,
+            graphkb_conn,
+            alterations,
+            disease_name=kb_disease_match,
+            variants=all_variants,
         )
     }
 

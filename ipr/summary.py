@@ -53,7 +53,10 @@ def natural_join_records(records: List[Dict], covert_to_word=lambda x: x['displa
     return natural_join(word_list)
 
 
-def create_graphkb_link(record_ids: List[str], record_class: str = 'Statement',) -> str:
+def create_graphkb_link(
+    record_ids: List[str],
+    record_class: str = 'Statement',
+) -> str:
     """
     Create a link for a set of statements to the GraphKB client
     """

@@ -190,7 +190,10 @@ def get_ipr_statements_from_variants(
     ]
 
     for ipr_row in convert_statements_to_alterations(
-        graphkb_conn, inferred_statements, disease_name, convert_to_rid_set(inferred_matches),
+        graphkb_conn,
+        inferred_statements,
+        disease_name,
+        convert_to_rid_set(inferred_matches),
     ):
         new_row = KbMatch({'kbData': {'inferred': True}})
         new_row.update(ipr_row)
