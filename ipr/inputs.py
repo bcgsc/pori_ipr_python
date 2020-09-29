@@ -3,11 +3,10 @@ Read/Validate the variant input files
 """
 import os
 import re
-from csv import DictReader
-from typing import Callable, Dict, List, Set, Tuple, cast, Iterable
-
 from Bio.Data.IUPACData import protein_letters_3to1
+from csv import DictReader
 from graphkb.match import INPUT_COPY_CATEGORIES, INPUT_EXPRESSION_CATEGORIES
+from typing import Callable, Dict, Iterable, List, Set, Tuple, cast
 
 from .types import IprGeneVariant, IprStructuralVariant, IprVariant
 from .util import hash_key, logger
@@ -495,3 +494,58 @@ def check_variant_links(
         )
         logger.warning(link_err_msg)
     return genes_with_variants
+
+
+def check_comparators(content: Dict, expresssionVariants: Iterable[Dict] = []) -> None:
+    """
+    Given the optional content dictionary, check that based on the analyses present the
+    correct/sufficient comparators have also been specified
+    """
+    mutation_burden = 'mutationBurden'
+    comparator_roles = {c['analysisRole'] for c in content.get('comparators', [])}
+
+    for image in content.get('images', []):
+        key = image['key']
+        if key.startswith(mutation_burden):
+            comp_type = key.split('.')[-1]
+            role = f'mutation burden ({comp_type})'
+            if role in comparator_roles:
+                continue
+            if '_sv.' in key:
+                sv_role = f'mutation burden SV ({comp_type})'
+                if sv_role in comparator_roles:
+                    continue
+            raise ValueError('missing required comparator definition ({role})')
+
+    if expresssionVariants:
+        required_comparators = {'expression (disease)'}
+
+        def all_none(row: Dict, columns: List[str]) -> bool:
+            return all([row.get(col) is None for col in columns])
+
+        for exp in expresssionVariants:
+            if not all_none(
+                exp,
+                [
+                    'primarySitekIQR',
+                    'primarySitePercentile',
+                    'primarySiteZScore',
+                    'primarySiteFoldChange',
+                ],
+            ):
+                required_comparators.add('expression (primary site)')
+
+            if not all_none(
+                exp,
+                [
+                    'biopsySitekIQR',
+                    'biopsySitePercentile',
+                    'biopsySiteZScore',
+                    'biopsySiteFoldChange',
+                ],
+            ):
+                required_comparators.add('expression (biopsy site)')
+
+        if required_comparators - comparator_roles:
+            missing = '; '.join(sorted(list(required_comparators - comparator_roles)))
+            raise ValueError(f'missing required comparator definitions ({missing})')

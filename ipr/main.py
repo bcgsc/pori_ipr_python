@@ -3,17 +3,15 @@ import datetime
 import json
 import logging
 import os
-from typing import Dict, List, Optional, Iterable
-
-from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
-
+from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
 from graphkb import GraphKBConnection
+from typing import Dict, Iterable, List, Optional
 
-from .constants import DEFAULT_URL
-from .ipr import create_key_alterations, filter_structural_variants, select_expression_plots
-from .connection import IprConnection
 from .annotate import annotate_category_variants, annotate_positional_variants, get_gene_information
+from .connection import IprConnection
+from .constants import DEFAULT_URL
 from .inputs import (
+    check_comparators,
     check_variant_links,
     preprocess_copy_variants,
     preprocess_expression_variants,
@@ -21,10 +19,11 @@ from .inputs import (
     preprocess_structural_variants,
     read_tabbed_file,
 )
-from .types import KbMatch
-from .util import LOG_LEVELS, logger, trim_empty_values
+from .ipr import create_key_alterations, filter_structural_variants, select_expression_plots
 from .summary import summarize
 from .therapeutic_options import create_therapeutic_options
+from .types import KbMatch
+from .util import LOG_LEVELS, logger, trim_empty_values
 
 CACHE_GENE_MINIMUM = 5000
 
@@ -210,6 +209,7 @@ def create_report(
     copy_variants = preprocess_copy_variants(copy_variant_rows)
     structural_variants = preprocess_structural_variants(structural_variant_rows)
     expression_variants = preprocess_expression_variants(expression_variant_rows)
+    check_comparators(optional_content or {}, expression_variants)
 
     ipr_conn = IprConnection(username, password, ipr_url)
     if graphkb_url:
