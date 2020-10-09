@@ -1,9 +1,9 @@
 import os
+import pytest
 from unittest import mock
 
-import pytest
-
 from ipr.inputs import (
+    check_comparators,
     check_variant_links,
     create_graphkb_sv_notation,
     preprocess_copy_variants,
@@ -64,15 +64,16 @@ class TestPreProcessSmallMutations:
             'gene': 'A1BG',
             'proteinChange': 'p.V460M',
             'zygosity': 'het',
-            'tumourReads': '48/42',
-            'rnaReads': '26/0',
+            'tumourAltCount': '42',
+            'tumourRefCount': '48',
             'hgvsProtein': '',
             'transcript': 'ENST1000',
             'hgvsCds': '',
             'hgvsGenomic': '',
             'key': '02fe85a3477784b5ac0f8ecffb300d10',
             'variant': 'blargh',
-            'location': '2:1234',
+            'chromosome': '2',
+            'startPosition': '1234',
         }
         records = preprocess_small_mutations([original])
         record = records[0]
@@ -80,6 +81,10 @@ class TestPreProcessSmallMutations:
         for col in original:
             assert col in record
         assert record['variant'] == 'A1BG:p.V460M'
+        assert 'endPosition' in record
+        assert record['endPosition'] == record['startPosition']
+        assert 'tumourDepth' in record
+        assert record['tumourDepth'] == 90
 
 
 def test_load_small_mutations_probe() -> None:
@@ -142,7 +147,7 @@ class TestCheckVariantLinks:
         assert genes == {'KRAS'}
 
     def test_sm_missing_copy(self) -> None:
-        with mock.patch.object(logger, 'warning') as mock_debug:
+        with mock.patch.object(logger, 'verbose') as mock_debug:
             check_variant_links(
                 small_mutations=[IprGeneVariant({'gene': 'KRAS'})],
                 copy_variants=[IprGeneVariant({'gene': 'CDK', 'variant': ''})],
@@ -152,7 +157,7 @@ class TestCheckVariantLinks:
             assert mock_debug.called
 
     def test_sm_missing_exp(self) -> None:
-        with mock.patch.object(logger, 'warning') as mock_debug:
+        with mock.patch.object(logger, 'verbose') as mock_debug:
             check_variant_links(
                 small_mutations=[IprGeneVariant({'gene': 'KRAS'})],
                 copy_variants=[IprGeneVariant({'gene': 'KRAS', 'variant': ''})],
@@ -174,7 +179,7 @@ class TestCheckVariantLinks:
         assert genes == {'KRAS'}
 
     def test_copy_missing_exp(self) -> None:
-        with mock.patch.object(logger, 'warning') as mock_debug:
+        with mock.patch.object(logger, 'verbose') as mock_debug:
             check_variant_links(
                 small_mutations=[],
                 copy_variants=[
@@ -187,7 +192,7 @@ class TestCheckVariantLinks:
             assert mock_debug.called
 
     def test_exp_missing_copy(self) -> None:
-        with mock.patch.object(logger, 'warning') as mock_debug:
+        with mock.patch.object(logger, 'verbose') as mock_debug:
             check_variant_links(
                 small_mutations=[],
                 copy_variants=[IprGeneVariant({'gene': 'KRAS', 'variant': ''})],
@@ -229,3 +234,42 @@ class TestCreateGraphkbSvNotation:
             create_graphkb_sv_notation(
                 IprStructuralVariant({'gene1': '', 'gene2': '', 'exon1': 1, 'exon2': 2, 'key': 'x'})
             )
+
+
+class TestCheckComparators:
+    def test_missing_disease_expression_error(self):
+        content = {'comparators': [{'analysisRole': 'expression (primary site)'}]}
+        variants = [{}]
+
+        with pytest.raises(ValueError):
+            check_comparators(content, variants)
+
+    def test_missing_primary_expression_error(self):
+        content = {'comparators': [{'analysisRole': 'expression (disease)'}]}
+        variants = [{'primarySiteFoldChange': 1}]
+
+        with pytest.raises(ValueError):
+            check_comparators(content, variants)
+
+    def test_missing_biopsy_expression_error(self):
+        content = {'comparators': [{'analysisRole': 'expression (disease)'}]}
+        variants = [{'biopsySitePercentile': 1}]
+
+        with pytest.raises(ValueError):
+            check_comparators(content, variants)
+
+    def test_expression_not_required_without_variants(self):
+        content = {'comparators': []}
+        variants = []
+
+        assert check_comparators(content, variants) is None
+
+    def test_missing_mutation_burden(self):
+        content = {
+            'comparators': [{'analysisRole': 'mutation burden (secondary)'}],
+            'images': [{'key': 'mutationBurden.density_snv.primary'}],
+        }
+        variants = []
+
+        with pytest.raises(ValueError):
+            check_comparators(content, variants)

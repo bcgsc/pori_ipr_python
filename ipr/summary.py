@@ -7,15 +7,16 @@ from urllib.parse import urlencode
 from graphkb.types import Statement, Record
 from graphkb import GraphKBConnection
 from graphkb.vocab import get_term_tree
+from graphkb.constants import RELEVANCE_BASE_TERMS
+from graphkb.statement import categorize_relevance
 from graphkb.util import convert_to_rid_list
 
 from .types import KbMatch, IprVariant
-from .util import convert_to_rid_set, get_terms_set
-from .constants import (
-    BASE_THERAPEUTIC_TERMS,
-    BASE_PROGNOSTIC_TERM,
-    BASE_DIAGNOSTIC_TERM,
-    BASE_BIOLOGICAL_TERMS,
+from .util import (
+    convert_to_rid_set,
+    get_preferred_drug_representation,
+    get_preferred_gene_name,
+    generate_ontology_preference_key,
 )
 
 
@@ -52,47 +53,10 @@ def natural_join_records(records: List[Dict], covert_to_word=lambda x: x['displa
     return natural_join(word_list)
 
 
-def get_alternatives(graphkb_conn: GraphKBConnection, record_id: str) -> List[Dict]:
-    return graphkb_conn.query(
-        {'target': [record_id], 'queryType': 'similarTo', 'treeEdges': []}, ignore_cache=False
-    )
-
-
-def generate_ontology_preference_key(record: Dict, sources_sort: Dict[str, int] = {}) -> Tuple:
-    """
-    Generate a tuple key for comparing preferred ontology terms.
-    """
-    return (
-        record.get('name') == record.get('sourceId'),
-        record.get('deprecated', False),
-        record.get('alias', False),
-        bool(record.get('dependency', '')),
-        sources_sort.get(record['source'], 99999),
-        record['sourceId'],
-        record.get('sourceIdVersion', ''),
-        record['name'],
-    )
-
-
-def get_preferred_drug_representation(graphkb_conn: GraphKBConnection, drug_record_id: str) -> Dict:
-    """
-    Given a Drug record, follow its linked records to find the preferred
-    representation by following alias, deprecating, and cross reference links
-    """
-    source_preference = {
-        r['@rid']: r['sort']
-        for r in graphkb_conn.query(
-            {'target': 'Source', 'returnProperties': ['sort', '@rid']}, ignore_cache=False
-        )
-    }
-    drugs = sorted(
-        get_alternatives(graphkb_conn, drug_record_id),
-        key=lambda rec: generate_ontology_preference_key(rec, source_preference),
-    )
-    return drugs[0]
-
-
-def create_graphkb_link(record_ids: List[str], record_class: str = 'Statement',) -> str:
+def create_graphkb_link(
+    record_ids: List[str],
+    record_class: str = 'Statement',
+) -> str:
     """
     Create a link for a set of statements to the GraphKB client
     """
@@ -234,55 +198,16 @@ def aggregate_statements(
     return result
 
 
-def get_preferred_gene_name(graphkb_conn: GraphKBConnection, record_id: str) -> str:
-    """
-    Given some Feature record ID return the preferred gene name
-    """
-    record = graphkb_conn.get_record_by_id(record_id)
-    biotype = record.get('biotype', '')
-    genes = []
-    expanded = graphkb_conn.query({'target': [record_id], 'neighbors': 3}, ignore_cache=False)[0]
-
-    if biotype != 'gene':
-        for edge in expanded.get('out_ElementOf', []):
-            target = edge['in']
-            if target.get('biotype') == 'gene':
-                genes.append(target)
-
-    for edge_type in [
-        'out_AliasOf',
-        'in_AliasOf',
-        'in_DeprecatedBy',
-        'out_CrossReferenceOf',
-        'in_CrossReferenceOf',
-    ]:
-        target_name = 'out' if edge_type.startswith('in') else 'in'
-        for edge in expanded.get(edge_type, []):
-            target = edge[target_name]
-            if target.get('biotype') == 'gene':
-                genes.append(target)
-    genes = sorted(
-        genes,
-        key=lambda gene: (
-            gene['deprecated'],
-            bool(gene['dependency']),
-            '_' in gene['name'],
-            gene['name'].startswith('ens'),
-        ),
-    )
-    if genes:
-        return genes[0]['displayName']
-    # fallback to the input displayName
-    return record['displayName']
-
-
 def display_variants(gene_name: str, variants: List[IprVariant]):
     def display_variant(variant: IprVariant):
-        if 'proteinChange' in variant:
+        if 'gene' in variant and 'proteinChange' in variant:
             return f'{variant["gene"]}:{variant["proteinChange"]}'
-        if 'gene1' in variant:
-            return f'({variant["gene1"]},{variant["gene2"]}):fusion(e.{variant["exon1"]},e.{variant["exon2"]})'
-        return f'{variant["kbCategory"]} of {variant["gene"]}'
+        if 'gene1' in variant and 'gene2' in variant:
+            return f'({variant["gene1"]},{variant["gene2"]}):fusion(e.{variant.get("exon1", "?")},e.{variant.get("exon2", "?")})'
+        if 'kbCategory' in variant and variant['kbCategory']:
+            return f'{variant["kbCategory"]} of {variant["gene"]}'
+
+        raise ValueError(f'Unable to form display_variant of {variant["variant"]}: {variant}')
 
     result = sorted(list({v for v in [display_variant(e) for e in variants] if gene_name in v}))
     variants_text = natural_join(result)
@@ -306,28 +231,15 @@ def create_section_html(
     Generate HTML for a gene section of the comments
     """
     output = [f'<h2>{gene_name}</h2>']
-    therapeutic_terms = get_terms_set(graphkb_conn, BASE_THERAPEUTIC_TERMS)
-    diagnostic_terms = get_terms_set(graphkb_conn, [BASE_DIAGNOSTIC_TERM])
-    prognostic_terms = get_terms_set(graphkb_conn, [BASE_PROGNOSTIC_TERM])
-    biological_terms = get_terms_set(graphkb_conn, BASE_BIOLOGICAL_TERMS)
-    resistance_terms = get_terms_set(graphkb_conn, ['no sensitivity'])
 
-    therapeutic_sentences = set()
-    biological_sentences = set()
-    diagnostic_sentences = set()
-    resistance_sentences = set()
+    sentence_categories: Dict[str, str] = {}
 
     for statement_id, sentence in sentences_by_statement_id.items():
         relevance = statements[statement_id]['relevance']['@rid']
-
-        if relevance in therapeutic_terms or relevance in prognostic_terms:
-            therapeutic_sentences.add(sentence)
-        if relevance in biological_terms:
-            biological_sentences.add(sentence)
-        if relevance in diagnostic_terms:
-            diagnostic_sentences.add(sentence)
-        if relevance in resistance_terms:
-            resistance_sentences.add(sentence)
+        category = categorize_relevance(
+            graphkb_conn, relevance, RELEVANCE_BASE_TERMS + [('resistance', ['no sensitivity'])]
+        )
+        sentence_categories[sentence] = category
 
     # get the entrez gene description
     genes = sorted(
@@ -342,7 +254,6 @@ def create_section_html(
                     ]
                 },
             },
-            ignore_cache=False,
         ),
         key=generate_ontology_preference_key,
     )
@@ -369,11 +280,15 @@ def create_section_html(
     sentences_used: Set[str] = set()
 
     for section in [
-        diagnostic_sentences - biological_sentences - therapeutic_sentences - resistance_sentences,
-        biological_sentences - therapeutic_sentences - resistance_sentences,
-        therapeutic_sentences - resistance_sentences,
-        set(sentences_by_statement_id.values()) - resistance_sentences,
-        resistance_sentences,
+        {s for (s, v) in sentence_categories.items() if v == 'diagnostic'},
+        {s for (s, v) in sentence_categories.items() if v == 'biological'},
+        {s for (s, v) in sentence_categories.items() if v in ['therapeutic', 'prognostic']},
+        {
+            s
+            for (s, v) in sentence_categories.items()
+            if v not in ['diagnostic', 'biological', 'therapeutic', 'prognostic', 'resistance']
+        },
+        {s for (s, v) in sentence_categories.items() if v == 'resistance'},
     ]:
 
         content = '. '.join(sorted(list(section - sentences_used)))
@@ -422,7 +337,6 @@ def summarize(
 
     for match in matches:
         rid = match['kbStatementId']
-        # kb_variant = match['kbVariantId']
         exp_variant = match['variant']
         variant_keys_by_statement_ids.setdefault(rid, set()).add(exp_variant)
 

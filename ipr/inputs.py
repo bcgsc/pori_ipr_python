@@ -3,11 +3,10 @@ Read/Validate the variant input files
 """
 import os
 import re
-from csv import DictReader
-from typing import Callable, Dict, List, Set, Tuple, cast, Iterable
-
 from Bio.Data.IUPACData import protein_letters_3to1
+from csv import DictReader
 from graphkb.match import INPUT_COPY_CATEGORIES, INPUT_EXPRESSION_CATEGORIES
+from typing import Callable, Dict, Iterable, List, Set, Tuple, cast
 
 from .types import IprGeneVariant, IprStructuralVariant, IprVariant
 from .util import hash_key, logger
@@ -20,61 +19,72 @@ COPY_REQ = ['gene', 'kbCategory']
 COPY_KEY = ['gene']
 COPY_OPTIONAL = [
     'cnvState',
-    'ploidyCorrCpChange',
+    'copyChange',
     'lohState',  # Loss of Heterzygosity state - informative detail to analyst
     'chromosomeBand',
     'start',
     'end',
     'size',
+    'log2cna',
+    'cna',
 ]
 
 SMALL_MUT_REQ = ['gene', 'proteinChange']
 # alternate details in the key, can distinguish / subtype events.
-SMALL_MUT_KEY = SMALL_MUT_REQ + ['transcript', 'location', 'refAlt']
+SMALL_MUT_KEY = SMALL_MUT_REQ + [
+    'altSeq',
+    'chromosome',
+    'endPosition',
+    'refSeq',
+    'startPosition',
+    'transcript',
+]
 SMALL_MUT_OPTIONAL = [
-    'zygosity',
-    'tumourReads',
-    'rnaReads',
-    'hgvsProtein',
+    'altSeq',
+    'chromosome',
+    'endPosition',
     'hgvsCds',
     'hgvsGenomic',
-    'location',
-    'refAlt',
+    'hgvsProtein',
+    'ncbiBuild',
+    'normalAltCount',
+    'normalDepth',
+    'normalRefCount',
+    'refSeq',
+    'rnaAltCount',
+    'rnaDepth',
+    'rnaRefCount',
+    'startPosition',
     'transcript',
+    'tumourAltCount',
+    'tumourDepth',
+    'tumourRefCount',
+    'zygosity',
 ]
 
 EXP_REQ = ['gene', 'kbCategory']
 EXP_KEY = ['gene']
 EXP_OPTIONAL = [
+    'biopsySiteFoldChange',
+    'biopsySitePercentile',
+    'biopsySiteQC',
+    'biopsySiteZScore',
+    'biopsySiteKIQR',
+    'diseaseFoldChange',
+    'diseaseKIQR',
+    'diseasePercentile',
+    'diseaseQC',
+    'diseaseZScore',
     'expressionState',
+    'histogramImage',
+    'primarySiteFoldChange',
+    'primarySiteKIQR',
+    'primarySitePercentile',
+    'primarySiteQC',
+    'primarySiteZScore',
     'rnaReads',
     'rpkm',
-    'foldChange',
-    'tcgaPerc',
-    'tcgaPercCol',
-    'tcgakIQR',
-    'tcgaQC',
-    'tcgaQCCol',
-    'tcgaAvgPerc',
-    'tcgaAvgkIQR',
-    'tcgaAvgQC',
-    'tcgaAvgQCCol',
-    'tcgaNormPerc',
-    'tcgaNormkIQR',
-    'ptxPerc',
-    'ptxkIQR',
-    'ptxQC',
-    'ptxPercCol',
-    'ptxTotSampObs',
-    'ptxPogPerc',
-    'gtexComp',
-    'gtexPerc',
-    'gtexFC',
-    'gtexkIQR',
-    'gtexAvgPerc',
-    'gtexAvgFC',
-    'gtexAvgkIQR',
-    'histogramImage',
+    'tpm',
 ]
 
 SV_REQ = [
@@ -171,7 +181,7 @@ def validate_row_patterns(
     """
     for row in rows:
         for col, pattern in patterns.items():
-            if not re.match(pattern, '' if row.get(col, None) is None else row[col]):
+            if not re.match(pattern, '' if row.get(col, None) is None else str(row[col])):
                 row_repr_dict = dict((key, row.get(key, '')) for key in row_key_columns)
                 raise ValueError(
                     f'{row_repr_dict} column {col}: "{row[col]}" re pattern failure: "{pattern}"'
@@ -195,6 +205,11 @@ def preprocess_copy_variants(rows: Iterable[Dict]) -> List[IprVariant]:
         return tuple(['cnv'] + [row[key] for key in COPY_KEY])
 
     result = validate_variant_rows(rows, COPY_REQ, COPY_OPTIONAL, row_key)
+
+    patterns = {
+        'chromosomeBand': r'^(\S+:\S+?)?$',
+    }
+    validate_row_patterns(result, patterns, COPY_KEY)
 
     for row in result:
         if row['kbCategory']:
@@ -223,10 +238,8 @@ def preprocess_small_mutations(rows: Iterable[Dict]) -> List[IprGeneVariant]:
 
     # 'location' and 'refAlt' are not currently used for matching; still optional and allowed blank
     patterns = {
-        'location': r'^(\w+:\d+(-\d+)?)?$',
-        'refAlt': r'^([A-Z]*>[A-Z]*)?$',
         'hgvsProtein': r'^(\S+:p\.\S+)?$',
-        'hgvsCds': r'^(\S+:c\.\S+)?$',
+        'hgvsCds': r'^(\S+:[crn]\.\S+)?$',
         'hgvsGenomic': r'^(\S+:g\.\S+)?$',
     }
     validate_row_patterns(result, patterns, SMALL_MUT_KEY)
@@ -238,6 +251,37 @@ def preprocess_small_mutations(rows: Iterable[Dict]) -> List[IprGeneVariant]:
         hgvsp = '{}:{}'.format(row['gene'], row['proteinChange'])
         row['variant'] = hgvsp
         row['variantType'] = 'mut'
+
+        if row.get('startPosition') and not row.get('endPosition'):
+            row['endPosition'] = row['startPosition']
+
+        # check integer columns
+        for col in [
+            'endPosition',
+            'normalAltCount',
+            'normalDepth',
+            'normalRefCount',
+            'rnaAltCount',
+            'rnaDepth',
+            'rnaRefCount',
+            'startPosition',
+            'tumourAltCount',
+            'tumourDepth',
+            'tumourRefCount',
+        ]:
+            if row.get(col, ''):
+                row[col] = int(row[col])
+
+        # default depth to alt + ref if not given
+        for sample_type in ['normal', 'rna', 'tumour']:
+            if (
+                row.get(f'{sample_type}RefCount', '')
+                and row.get(f'{sample_type}AltCount', '')
+                and not row.get(f'{sample_type}Depth', '')
+            ):
+                row[f'{sample_type}Depth'] = (
+                    row[f'{sample_type}RefCount'] + row[f'{sample_type}AltCount']
+                )
 
     return result
 
@@ -258,7 +302,12 @@ def preprocess_expression_variants(rows: Iterable[Dict]) -> List[IprGeneVariant]
     float_columns = [
         col
         for col in EXP_REQ + EXP_OPTIONAL
-        if col.endswith('kIQR') or col.endswith('Perc') or col.endswith('FC')
+        if col.endswith('KIQR')
+        or col.endswith('Percentile')
+        or col.endswith('FoldChange')
+        or col.endswith('QC')
+        or col.endswith('ZScore')
+        or col in ['tmp', 'rpkm']
     ]
     for col in float_columns:
         if col not in patterns:
@@ -439,7 +488,64 @@ def check_variant_links(
 
     if missing_information_genes:
         for err_msg in sorted(missing_information_errors):
-            logger.warning(err_msg)
-        link_err_msg = f"Missing information variant links on {len(missing_information_genes)} genes: {sorted(missing_information_genes)}"
-        logger.error(link_err_msg)
+            logger.verbose(err_msg)  # type: ignore
+        link_err_msg = (
+            f'Missing information variant links on {len(missing_information_genes)} genes'
+        )
+        logger.warning(link_err_msg)
     return genes_with_variants
+
+
+def check_comparators(content: Dict, expresssionVariants: Iterable[Dict] = []) -> None:
+    """
+    Given the optional content dictionary, check that based on the analyses present the
+    correct/sufficient comparators have also been specified
+    """
+    mutation_burden = 'mutationBurden'
+    comparator_roles = {c['analysisRole'] for c in content.get('comparators', [])}
+
+    for image in content.get('images', []):
+        key = image['key']
+        if key.startswith(mutation_burden):
+            comp_type = key.split('.')[-1]
+            role = f'mutation burden ({comp_type})'
+            if role in comparator_roles:
+                continue
+            if '_sv.' in key:
+                sv_role = f'mutation burden SV ({comp_type})'
+                if sv_role in comparator_roles:
+                    continue
+            raise ValueError('missing required comparator definition ({role})')
+
+    if expresssionVariants:
+        required_comparators = {'expression (disease)'}
+
+        def all_none(row: Dict, columns: List[str]) -> bool:
+            return all([row.get(col) is None for col in columns])
+
+        for exp in expresssionVariants:
+            if not all_none(
+                exp,
+                [
+                    'primarySitekIQR',
+                    'primarySitePercentile',
+                    'primarySiteZScore',
+                    'primarySiteFoldChange',
+                ],
+            ):
+                required_comparators.add('expression (primary site)')
+
+            if not all_none(
+                exp,
+                [
+                    'biopsySitekIQR',
+                    'biopsySitePercentile',
+                    'biopsySiteZScore',
+                    'biopsySiteFoldChange',
+                ],
+            ):
+                required_comparators.add('expression (biopsy site)')
+
+        if required_comparators - comparator_roles:
+            missing = '; '.join(sorted(list(required_comparators - comparator_roles)))
+            raise ValueError(f'missing required comparator definitions ({missing})')

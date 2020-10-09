@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from ipr.ipr import IprConnection
+from ipr.connection import IprConnection
 from ipr.main import create_report
 from ipr.inputs import read_tabbed_file
 

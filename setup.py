@@ -2,9 +2,10 @@ from setuptools import find_packages, setup
 
 # Dependencies required to use your package
 INSTALL_REQS = [
-    'graphkb>=1.4.0, <2',
+    'graphkb>=1.5.1, <2',
     'biopython==1.76',
-    'progressbar2==3.51.0',
+    'progressbar2>=3.51.0, <4',
+    'pandas>=1.1.0, <2',
 ]
 
 # Dependencies required for development
@@ -29,7 +30,7 @@ except Exception:
 
 setup(
     name='ipr',
-    version='1.0.1',
+    version='2.0.0',
     packages=find_packages(),
     install_requires=INSTALL_REQS,
     extras_require={

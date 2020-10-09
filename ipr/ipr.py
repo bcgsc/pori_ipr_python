@@ -1,51 +1,20 @@
 """
-upload variant and report information to IPR
+Contains functions specific to formatting reports for IPR that are unlikely to be used
+by other reporting systems
 """
-import json
-import zlib
 from typing import Dict, Iterable, List, Set, Tuple
 
-import requests
 from graphkb import GraphKBConnection
 from graphkb.types import Ontology, Statement
-from graphkb.util import IterableNamespace
 from graphkb.vocab import get_term_tree
+from graphkb.statement import categorize_relevance
 
 from .types import ImageDefinition, IprGene, IprStructuralVariant, IprVariant, KbMatch
-from .util import convert_to_rid_set, get_terms_set
+from .util import convert_to_rid_set, find_variant
 from .constants import (
-    BASE_BIOLOGICAL_TERMS,
-    BASE_DIAGNOSTIC_TERM,
-    BASE_PROGNOSTIC_TERM,
-    BASE_THERAPEUTIC_TERMS,
     VARIANT_CLASSES,
+    APPROVED_EVIDENCE_LEVELS,
 )
-
-
-REPORT_KB_SECTIONS = IterableNamespace(
-    therapeutic='therapeutic',
-    prognostic='prognostic',
-    biological='biological',
-    unknown='unknown',
-    novel='novel',
-    diagnostic='diagnostic',
-)
-
-APPROVED_EVIDENCE_LEVELS = {
-    # sourceIds of levels by source name
-    'oncokb': ['1', 'r1'],
-    'profyle': ['t1'],
-    'cancer genome interpreter': [
-        'cpic guidelines',
-        'european leukemianet guidelines',
-        'fda guidelines',
-        'nccn guidelines',
-        'nccn/cap guidelines',
-    ],
-}
-
-DEFAULT_URL = 'https://iprstaging-api.bcgsc.ca/api'
-DEFAULT_LIMIT = 1000
 
 
 def display_evidence_levels(statement: Statement) -> str:
@@ -135,39 +104,26 @@ def convert_statements_to_alterations(
 
     approved = convert_to_rid_set(get_approved_evidence_levels(graphkb_conn))
 
-    therapeutic_terms = get_terms_set(graphkb_conn, BASE_THERAPEUTIC_TERMS)
-    diagnostic_terms = get_terms_set(graphkb_conn, [BASE_DIAGNOSTIC_TERM])
-    prognostic_terms = get_terms_set(graphkb_conn, [BASE_PROGNOSTIC_TERM])
-    biological_terms = get_terms_set(graphkb_conn, BASE_BIOLOGICAL_TERMS)
-
     for statement in statements:
         variants = [c for c in statement['conditions'] if c['@class'] in VARIANT_CLASSES]
         diseases = [c for c in statement['conditions'] if c['@class'] == 'Disease']
         pmid = ';'.join([e['displayName'] for e in statement['evidence']])
 
-        ipr_section = REPORT_KB_SECTIONS.unknown  # table this goes to in IPR
         relevance_id = statement['relevance']['@rid']
 
         approved_therapy = False
 
         disease_match = len(diseases) == 1 and diseases[0]['@rid'] in disease_matches
 
-        if relevance_id in therapeutic_terms:
-            ipr_section = REPORT_KB_SECTIONS.therapeutic
+        ipr_section = categorize_relevance(graphkb_conn, relevance_id)
 
+        if ipr_section == 'therapeutic':
             for level in statement['evidenceLevel'] or []:
                 if level['@rid'] in approved:
                     approved_therapy = True
                     break
-
-        elif relevance_id in diagnostic_terms:
-            ipr_section = REPORT_KB_SECTIONS.diagnostic
-        elif relevance_id in prognostic_terms:
-            ipr_section = REPORT_KB_SECTIONS.prognostic
-            if not disease_match:
-                continue  # GERO-72
-        elif relevance_id in biological_terms:
-            ipr_section = REPORT_KB_SECTIONS.biological
+        if ipr_section == 'diagnostic' and not disease_match:
+            continue  # GERO-72
 
         for variant in variants:
             if variant['@rid'] not in variant_matches:
@@ -175,10 +131,11 @@ def convert_statements_to_alterations(
             row = KbMatch(
                 {
                     'approvedTherapy': approved_therapy,
-                    'category': ipr_section,
+                    'category': ipr_section or 'unknown',
                     'context': (
                         statement['subject']['displayName'] if statement['subject'] else None
                     ),
+                    'kbContextId': (statement['subject']['@rid'] if statement['subject'] else None),
                     'disease': ';'.join(sorted(d['displayName'] for d in diseases)),
                     'evidenceLevel': display_evidence_levels(statement),
                     'kbStatementId': statement['@rid'],
@@ -187,20 +144,11 @@ def convert_statements_to_alterations(
                     'matchedCancer': disease_match,
                     'reference': pmid,
                     'relevance': statement['relevance']['displayName'],
+                    'kbRelevanceId': statement['relevance']['@rid'],
                 }
             )
             rows.append(row)
     return rows
-
-
-def find_variant(all_variants: List[IprVariant], variant_type: str, variant_key: str) -> IprVariant:
-    """
-    Find a variant in a list of variants by its key and type
-    """
-    for variant in all_variants:
-        if variant['key'] == variant_key and variant['variantType'] == variant_type:
-            return variant
-    raise KeyError(f'expected variant ({variant_key}, {variant_type}) does not exist')
 
 
 def select_expression_plots(
@@ -240,7 +188,8 @@ def select_expression_plots(
 
 
 def create_key_alterations(
-    kb_matches: List[KbMatch], all_variants: List[IprVariant],
+    kb_matches: List[KbMatch],
+    all_variants: List[IprVariant],
 ) -> Tuple[List[Dict], Dict]:
     """
     Creates the list of genomic key alterations which summarizes all the variants matched by the KB
@@ -288,72 +237,3 @@ def create_key_alterations(
         [{'geneVariant': alt} for alt in set(alterations)],
         {k: len(v) for k, v in counts.items()},
     )
-
-
-class IprConnection:
-    def __init__(self, username: str, password: str, url: str = DEFAULT_URL):
-        self.token = None
-        self.url = url
-        self.username = username
-        self.password = password
-        self.headers = {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-            'Content-Encoding': 'deflate',
-        }
-        self.cache: Dict[str, List[Dict]] = {}
-        self.request_count = 0
-
-    def request(self, endpoint: str, method: str = 'GET', **kwargs) -> Dict:
-        """Request wrapper to handle adding common headers and logging
-
-        Args:
-            endpoint (string): api endpoint, excluding the base uri
-            method (str, optional): the http method. Defaults to 'GET'.
-
-        Returns:
-            dict: the json response as a python dict
-        """
-        url = f'{self.url}/{endpoint}'
-        self.request_count += 1
-        resp = requests.request(
-            method, url, headers=self.headers, auth=(self.username, self.password), **kwargs
-        )
-        try:
-            resp.raise_for_status()
-        except requests.exceptions.HTTPError as err:
-            # try to get more error details
-            message = str(err)
-            try:
-                message += ' ' + resp.json()['error']['message']
-            except Exception:
-                pass
-
-            raise requests.exceptions.HTTPError(message)
-        return resp.json()
-
-    def post(self, uri: str, data: Dict = {}, **kwargs) -> Dict:
-        """Convenience method for making post requests"""
-        return self.request(
-            uri,
-            method='POST',
-            data=zlib.compress(json.dumps(data, allow_nan=False).encode('utf-8')),
-            **kwargs,
-        )
-
-    def upload_report(self, content: Dict) -> Dict:
-        return self.post('/reports', content)
-
-    def set_analyst_comments(self, report_id: str, data: Dict) -> Dict:
-        """
-        Update report comments to an existing report
-
-        TODO:
-            Add to main upload.
-            Pending: https://www.bcgsc.ca/jira/browse/DEVSU-1177
-        """
-        return self.request(
-            f'/reports/{report_id}/summary/analyst-comments',
-            method='PUT',
-            data=zlib.compress(json.dumps(data, allow_nan=False).encode('utf-8')),
-        )
