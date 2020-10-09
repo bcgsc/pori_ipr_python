@@ -1,9 +1,9 @@
+import requests
+
 import json
+import os
 import zlib
 from typing import Dict, List
-import os
-
-import requests
 
 from .constants import DEFAULT_URL
 
@@ -79,7 +79,7 @@ class IprConnection:
             data=zlib.compress(json.dumps(data, allow_nan=False).encode('utf-8')),
         )
 
-    def post_images(self, report_id: str, files: Dict[str, str], data: Dict[str, str] = {}) -> Dict:
+    def post_images(self, report_id: str, files: Dict[str, str], data: Dict[str, str] = {}) -> None:
         """
         Post images to the report
         """
@@ -103,7 +103,7 @@ class IprConnection:
                     headers={},
                 )
                 for status in resp:
-                    if status['upload'] != 'successful':
+                    if status.get('upload') != 'successful':
                         image_errors.add(status['key'])
             finally:
                 for handler in open_files.values():
