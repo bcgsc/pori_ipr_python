@@ -69,16 +69,16 @@ EXP_OPTIONAL = [
     'biopsySitePercentile',
     'biopsySiteQC',
     'biopsySiteZScore',
-    'biopsySiteKIQR',
+    'biopsySitekIQR',
     'diseaseFoldChange',
-    'diseaseKIQR',
+    'diseasekIQR',
     'diseasePercentile',
     'diseaseQC',
     'diseaseZScore',
     'expressionState',
     'histogramImage',
     'primarySiteFoldChange',
-    'primarySiteKIQR',
+    'primarySitekIQR',
     'primarySitePercentile',
     'primarySiteQC',
     'primarySiteZScore',
@@ -302,7 +302,7 @@ def preprocess_expression_variants(rows: Iterable[Dict]) -> List[IprGeneVariant]
     float_columns = [
         col
         for col in EXP_REQ + EXP_OPTIONAL
-        if col.endswith('KIQR')
+        if col.endswith('kIQR')
         or col.endswith('Percentile')
         or col.endswith('FoldChange')
         or col.endswith('QC')
