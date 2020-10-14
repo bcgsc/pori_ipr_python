@@ -307,7 +307,7 @@ def preprocess_expression_variants(rows: Iterable[Dict]) -> List[IprGeneVariant]
         or col.endswith('FoldChange')
         or col.endswith('QC')
         or col.endswith('ZScore')
-        or col in ['tmp', 'rpkm']
+        or col in ['tpm', 'rpkm']
     ]
     for col in float_columns:
         if col not in patterns:
