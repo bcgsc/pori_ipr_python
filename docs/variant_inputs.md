@@ -98,7 +98,7 @@ Small mutations are composed of indels and single nucleotide variants.
 | start          | integer |         | the genomic start position of the copy segment this gene copy number was called from |
 | end            | integer |         | the genomic end position of the copy segment this gene copy number was called from   |
 | cna            | float   | 1.22    | The copy number alteration (CNA) ratio                                               |
-| log2cna        | float   |         |                                                                                      |
+| log2Cna        | float   |         |                                                                                      |
 
 
 ## Structural Variant (Fusion) Data
