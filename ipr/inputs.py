@@ -25,7 +25,7 @@ COPY_OPTIONAL = [
     'start',
     'end',
     'size',
-    'log2cna',
+    'log2Cna',
     'cna',
 ]
 
