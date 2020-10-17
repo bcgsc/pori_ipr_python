@@ -515,7 +515,7 @@ def check_comparators(content: Dict, expresssionVariants: Iterable[Dict] = []) -
                 sv_role = f'mutation burden SV ({comp_type})'
                 if sv_role in comparator_roles:
                     continue
-            raise ValueError('missing required comparator definition ({role})')
+            raise ValueError(f'missing required comparator definition ({role})')
 
     if expresssionVariants:
         required_comparators = {'expression (disease)'}
