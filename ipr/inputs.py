@@ -25,7 +25,7 @@ COPY_OPTIONAL = [
     'start',
     'end',
     'size',
-    'log2cna',
+    'log2Cna',
     'cna',
 ]
 
@@ -69,16 +69,16 @@ EXP_OPTIONAL = [
     'biopsySitePercentile',
     'biopsySiteQC',
     'biopsySiteZScore',
-    'biopsySiteKIQR',
+    'biopsySitekIQR',
     'diseaseFoldChange',
-    'diseaseKIQR',
+    'diseasekIQR',
     'diseasePercentile',
     'diseaseQC',
     'diseaseZScore',
     'expressionState',
     'histogramImage',
     'primarySiteFoldChange',
-    'primarySiteKIQR',
+    'primarySitekIQR',
     'primarySitePercentile',
     'primarySiteQC',
     'primarySiteZScore',
@@ -302,12 +302,12 @@ def preprocess_expression_variants(rows: Iterable[Dict]) -> List[IprGeneVariant]
     float_columns = [
         col
         for col in EXP_REQ + EXP_OPTIONAL
-        if col.endswith('KIQR')
+        if col.endswith('kIQR')
         or col.endswith('Percentile')
         or col.endswith('FoldChange')
         or col.endswith('QC')
         or col.endswith('ZScore')
-        or col in ['tmp', 'rpkm']
+        or col in ['tpm', 'rpkm']
     ]
     for col in float_columns:
         if col not in patterns:
@@ -515,7 +515,7 @@ def check_comparators(content: Dict, expresssionVariants: Iterable[Dict] = []) -
                 sv_role = f'mutation burden SV ({comp_type})'
                 if sv_role in comparator_roles:
                     continue
-            raise ValueError('missing required comparator definition ({role})')
+            raise ValueError(f'missing required comparator definition ({role})')
 
     if expresssionVariants:
         required_comparators = {'expression (disease)'}

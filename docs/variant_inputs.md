@@ -24,17 +24,17 @@ use a tab delimited format. The column names, types and example inputs are shown
 | rpkm                  | float | reads per kilobase of transcript, per million mapped reads                                         |
 | tpm                   | float | transcript per million                                                                             |
 | diseasePercentile     | float | the percentile with respect to the disease expression comparator cohort                            |
-| diseaseKIQR           | float | the kIQR with respect to the disease expression comparator cohort                                  |
+| diseasekIQR           | float | the kIQR with respect to the disease expression comparator cohort                                  |
 | diseaseZScore         | float | the zscore with respect to the disease expression comparator cohort                                |
 | diseaseFoldChange     | float | the fold change with respect to the median of the disease expression comparator cohort             |
 | diseaseQC             | float |                                                                                                    |
 | primarySitePercentile | float | the percentile with respect to the normal primary site expression comparator cohort                |
-| primarySiteKIQR       | float | the kIQR with respect to the normal primary site expression comparator cohort                      |
+| primarySitekIQR       | float | the kIQR with respect to the normal primary site expression comparator cohort                      |
 | primarySiteZScore     | float | the zscore with respect to the normal primary site expression comparator cohort                    |
 | primarySiteFoldChange | float | the fold change with respect to the median of the normal primary site expression comparator cohort |
 | primarySiteQC         | float |                                                                                                    |
 | biopsySitePercentile  | float | the percentile with respect to the normal biopsy site expression comparator cohort                 |
-| biopsySiteKIQR        | float | the kIQR with respect to the normal biopsy site expression comparator cohort                       |
+| biopsySitekIQR        | float | the kIQR with respect to the normal biopsy site expression comparator cohort                       |
 | biopsySiteZScore      | float | the zscore with respect to the normal biopsy site expression comparator cohort                     |
 | biopsySiteFoldChange  | float | the fold change with respect to the median of the normal biopsy site expression comparator cohort  |
 | biopsySiteQC          | float |                                                                                                    |
@@ -98,7 +98,7 @@ Small mutations are composed of indels and single nucleotide variants.
 | start          | integer |         | the genomic start position of the copy segment this gene copy number was called from |
 | end            | integer |         | the genomic end position of the copy segment this gene copy number was called from   |
 | cna            | float   | 1.22    | The copy number alteration (CNA) ratio                                               |
-| log2cna        | float   |         |                                                                                      |
+| log2Cna        | float   |         |                                                                                      |
 
 
 ## Structural Variant (Fusion) Data
