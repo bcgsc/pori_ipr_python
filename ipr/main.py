@@ -67,6 +67,9 @@ def command_interface() -> None:
     parser.add_argument('--patient_id', required=True, help='The patient ID for this report')
     parser.add_argument('--project', default='TEST', help='The project to upload this report to')
     parser.add_argument(
+        '--therapeutics', default=False, help='Generate therapeutic options', action='store_true'
+    )
+    parser.add_argument(
         '-o',
         '--output_json_path',
         help='path to a JSON to output the report upload body',
@@ -127,6 +130,7 @@ def command_interface() -> None:
         small_mutation_rows=small_mutations,
         output_json_path=args.output_json_path,
         always_write_output_json=args.always_write_output_json,
+        generate_therapeutics=args.therapeutics,
     )
 
 
@@ -179,6 +183,7 @@ def create_report(
     ipr_upload: bool = True,
     interactive: bool = False,
     graphkb_url: str = '',
+    generate_therapeutics: bool = False,
 ) -> Optional[Dict]:
     """
     Run the matching and create the report JSON for upload to IPR
@@ -195,6 +200,8 @@ def create_report(
         ipr_upload: upload report to ipr
         interactive: progressbars for interactive users
         cache_gene_minimum: minimum number of genes required for gene name caching optimization
+        generate_therapeutics: create therapeutic options for upload with the report
+
     Returns:
         ipr_conn.upload_report return dictionary
     """
@@ -263,8 +270,11 @@ def create_report(
 
     key_alterations, variant_counts = create_key_alterations(alterations, all_variants)
 
-    logger.info('generating therapeutic options')
-    targets = create_therapeutic_options(graphkb_conn, alterations, all_variants)
+    if generate_therapeutics:
+        logger.info('generating therapeutic options')
+        targets = create_therapeutic_options(graphkb_conn, alterations, all_variants)
+    else:
+        targets = []
 
     logger.info('generating analyst comments')
     comments = {
