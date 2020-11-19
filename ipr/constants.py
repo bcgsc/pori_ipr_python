@@ -15,3 +15,6 @@ APPROVED_EVIDENCE_LEVELS = {
 }
 
 DEFAULT_URL = 'https://iprstaging-api.bcgsc.ca/api'
+
+# all possible values for review status are: ['pending', 'not required', 'passed', 'failed', 'initial']
+FAILED_REVIEW_STATUS = 'failed'
