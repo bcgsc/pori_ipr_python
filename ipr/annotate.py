@@ -1,10 +1,14 @@
 """
 handles annotating variants with annotation information from graphkb
 """
-from typing import Dict, Iterable, List, Set
+from requests.exceptions import HTTPError
 
 from graphkb import GraphKBConnection
-from graphkb.constants import BASE_RETURN_PROPERTIES, GENERIC_RETURN_PROPERTIES
+from graphkb.constants import (
+    BASE_RETURN_PROPERTIES,
+    BASE_THERAPEUTIC_TERMS,
+    GENERIC_RETURN_PROPERTIES,
+)
 from graphkb.genes import get_oncokb_oncogenes, get_oncokb_tumour_supressors
 from graphkb.match import (
     INPUT_COPY_CATEGORIES,
@@ -16,11 +20,11 @@ from graphkb.match import (
 )
 from graphkb.types import Record, Statement
 from graphkb.util import FeatureNotFoundError, convert_to_rid_list
-from graphkb.constants import BASE_THERAPEUTIC_TERMS
 from graphkb.vocab import get_terms_set
 from progressbar import progressbar
-from requests.exceptions import HTTPError
+from typing import Dict, Iterable, List, Set
 
+from .constants import FAILED_REVIEW_STATUS
 from .ipr import convert_statements_to_alterations
 from .types import IprGene, IprGeneVariant, IprVariant, KbMatch
 from .util import convert_to_rid_set, logger
@@ -39,12 +43,15 @@ def get_therapeutic_associated_genes(graphkb_conn: GraphKBConnection) -> Set[str
                 'conditions.reference1.@rid',
                 'conditions.reference2.@class',
                 'conditions.reference2.@rid',
+                'reviewStatus',
             ],
         },
     )
     genes = set()
 
     for statement in statements:
+        if statement['reviewStatus'] == FAILED_REVIEW_STATUS:
+            continue
         for condition in statement['conditions']:
             if condition['@class'] == 'Feature':
                 genes.add(condition['@rid'])
@@ -137,6 +144,7 @@ def get_statements_from_variants(
         + [f'evidence.{p}' for p in GENERIC_RETURN_PROPERTIES]
         + [f'relevance.{p}' for p in GENERIC_RETURN_PROPERTIES]
         + [f'evidenceLevel.{p}' for p in GENERIC_RETURN_PROPERTIES]
+        + ['reviewStatus']
     )
 
     statements = graphkb_conn.query(
@@ -146,7 +154,7 @@ def get_statements_from_variants(
             'returnProperties': return_props,
         },
     )
-    return statements
+    return [s for s in statements if s['reviewStatus'] != FAILED_REVIEW_STATUS]
 
 
 def get_ipr_statements_from_variants(
