@@ -2,16 +2,15 @@
 upload variant and report information to IPR
 """
 import pandas
+from graphkb import GraphKBConnection
 from typing import Dict, List
 
-from graphkb import GraphKBConnection
-
-from .types import KbMatch, IprVariant
+from .types import IprVariant, KbMatch
 from .util import (
-    get_terms_set,
-    get_preferred_drug_representation,
-    find_variant,
     create_variant_name_tuple,
+    find_variant,
+    get_preferred_drug_representation,
+    get_terms_set,
 )
 
 
@@ -46,7 +45,7 @@ def create_therapeutic_options(
                 'variantGraphkbId': match['kbVariantId'],
                 'variant': variant_string,
                 'evidenceLevel': match['evidenceLevel'],
-                'notes': match['kbStatementId'],
+                'kbStatementIds': match['kbStatementId'],
             }
         )
     if not options:
