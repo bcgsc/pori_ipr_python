@@ -4,14 +4,8 @@
 name: build
 
 on:
-  push:
-    paths-ignore:
-    - docs
-    - README
-  pull_request:
-    paths-ignore:
-    - docs
-    - README
+  - push
+  - pull_request
 
 jobs:
   build:
@@ -58,7 +52,6 @@ jobs:
       with:
         name: pytest-results-${{ matrix.python-version }}
         path: junit/test-results-${{ matrix.python-version }}.xml
-        # Use always() to always run this step to publish test results when there are test failures
       if: matrix.python-version == 3.8 && github.event_name == 'pull_request'
     - name: Update code coverage report to CodeCov
       uses: codecov/codecov-action@v1
