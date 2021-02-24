@@ -8,36 +8,34 @@ use a tab delimited format. The column names, types and example inputs are shown
 
 ### Required Columns
 
-| Column          | Type   | Description                                                            |
-| --------------- | ------ | ---------------------------------------------------------------------- |
-| gene            | string | the gene name (or source identifier)                                   |
-| kbCategory      | string | the graphkb expression variant vocabulary term this variant belongs to |
-| expressionState | string | the variant used for display in the report                             |
-
+| Column     | Type   | Example              | Description                                                                                                              |
+| ---------- | ------ | -------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| gene       | string | KRAS                 | the gene name (or source identifier)                                                                                     |
+| kbCategory | string | increased expression | the graphkb expression variant vocabulary term this variant belongs to. One of: increased expression, reduced expression |
 
 ### Optional Columns
 
-
-| Column                | Type  | Description                                                                                        |
-| --------------------- | ----- | -------------------------------------------------------------------------------------------------- |
-| rnaReads              | float |                                                                                                    |
-| rpkm                  | float | reads per kilobase of transcript, per million mapped reads                                         |
-| tpm                   | float | transcript per million                                                                             |
-| diseasePercentile     | float | the percentile with respect to the disease expression comparator cohort                            |
-| diseasekIQR           | float | the kIQR with respect to the disease expression comparator cohort                                  |
-| diseaseZScore         | float | the zscore with respect to the disease expression comparator cohort                                |
-| diseaseFoldChange     | float | the fold change with respect to the median of the disease expression comparator cohort             |
-| diseaseQC             | float |                                                                                                    |
-| primarySitePercentile | float | the percentile with respect to the normal primary site expression comparator cohort                |
-| primarySitekIQR       | float | the kIQR with respect to the normal primary site expression comparator cohort                      |
-| primarySiteZScore     | float | the zscore with respect to the normal primary site expression comparator cohort                    |
-| primarySiteFoldChange | float | the fold change with respect to the median of the normal primary site expression comparator cohort |
-| primarySiteQC         | float |                                                                                                    |
-| biopsySitePercentile  | float | the percentile with respect to the normal biopsy site expression comparator cohort                 |
-| biopsySitekIQR        | float | the kIQR with respect to the normal biopsy site expression comparator cohort                       |
-| biopsySiteZScore      | float | the zscore with respect to the normal biopsy site expression comparator cohort                     |
-| biopsySiteFoldChange  | float | the fold change with respect to the median of the normal biopsy site expression comparator cohort  |
-| biopsySiteQC          | float |                                                                                                    |
+| Column                | Type   | Description                                                                                        |
+| --------------------- | ------ | -------------------------------------------------------------------------------------------------- |
+| expressionState       | string |                                                                                                    | the variant used for display in the report. Will default to the kbCategory value if not specified |
+| rnaReads              | float  |                                                                                                    |
+| rpkm                  | float  | reads per kilobase of transcript, per million mapped reads                                         |
+| tpm                   | float  | transcript per million                                                                             |
+| diseasePercentile     | float  | the percentile with respect to the disease expression comparator cohort                            |
+| diseasekIQR           | float  | the kIQR with respect to the disease expression comparator cohort                                  |
+| diseaseZScore         | float  | the zscore with respect to the disease expression comparator cohort                                |
+| diseaseFoldChange     | float  | the fold change with respect to the median of the disease expression comparator cohort             |
+| diseaseQC             | float  |                                                                                                    |
+| primarySitePercentile | float  | the percentile with respect to the normal primary site expression comparator cohort                |
+| primarySitekIQR       | float  | the kIQR with respect to the normal primary site expression comparator cohort                      |
+| primarySiteZScore     | float  | the zscore with respect to the normal primary site expression comparator cohort                    |
+| primarySiteFoldChange | float  | the fold change with respect to the median of the normal primary site expression comparator cohort |
+| primarySiteQC         | float  |                                                                                                    |
+| biopsySitePercentile  | float  | the percentile with respect to the normal biopsy site expression comparator cohort                 |
+| biopsySitekIQR        | float  | the kIQR with respect to the normal biopsy site expression comparator cohort                       |
+| biopsySiteZScore      | float  | the zscore with respect to the normal biopsy site expression comparator cohort                     |
+| biopsySiteFoldChange  | float  | the fold change with respect to the median of the normal biopsy site expression comparator cohort  |
+| biopsySiteQC          | float  |                                                                                                    |
 
 ## Small Mutation Data
 
@@ -55,7 +53,6 @@ Small mutations are composed of indels and single nucleotide variants.
 | gene          | string  | KRAS        | the gene name                              |
 | proteinChange | string  | p.G12D      | the HGVS protein notation                  |
 | transcript    | string  | ENST00001.2 | the transcript name                        |
-
 
 ### Optional Columns
 
@@ -79,14 +76,12 @@ Small mutations are composed of indels and single nucleotide variants.
 
 ## Copy Variant Data
 
-
 ### Required Columns
 
-| Column     | Type   | Example | Description                                                      |
-| ---------- | ------ | ------- | ---------------------------------------------------------------- |
-| gene       | string | KRAS    | the gene name                                                    |
-| kbCategory | string |         | the graphkb copy variant vocabulary term this variant belongs to |
-
+| Column     | Type   | Example       | Description                                                                                                                                                                                                      |
+| ---------- | ------ | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| gene       | string | KRAS          | the gene name                                                                                                                                                                                                    |
+| kbCategory | string | deep deletion | the graphkb copy variant vocabulary term this variant belongs to. One of: amplification, deep deletion, low level copy gain, and shallow deletion. By default only amplifications and deep deletions are matched |
 
 ### Optional Columns
 
@@ -99,7 +94,6 @@ Small mutations are composed of indels and single nucleotide variants.
 | end            | integer |         | the genomic end position of the copy segment this gene copy number was called from   |
 | cna            | float   | 1.22    | The copy number alteration (CNA) ratio                                               |
 | log2Cna        | float   |         |                                                                                      |
-
 
 ## Structural Variant (Fusion) Data
 
@@ -117,7 +111,6 @@ Small mutations are composed of indels and single nucleotide variants.
 | ctermTranscript | string  | ENST004.5             | the 5' transcript name                                             |
 
 ### Optional Columns
-
 
 | Column           | Type    | Example | Description                                                             |
 | ---------------- | ------- | ------- | ----------------------------------------------------------------------- |

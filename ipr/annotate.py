@@ -18,7 +18,7 @@ from graphkb.match import (
     match_expression_variant,
     match_positional_variant,
 )
-from graphkb.types import Record, Statement
+from graphkb.types import Record, Statement, Variant
 from graphkb.util import FeatureNotFoundError, convert_to_rid_list
 from graphkb.vocab import get_terms_set
 from progressbar import progressbar
@@ -157,6 +157,30 @@ def get_statements_from_variants(
     return [s for s in statements if s['reviewStatus'] != FAILED_REVIEW_STATUS]
 
 
+def get_second_pass_variants(
+    graphkb_conn: GraphKBConnection, statements: List[Statement]
+) -> List[Variant]:
+    """
+    Given a list of statements that have been matched. Convert these to
+    new category variants to be used in a second-pass matching
+    """
+    # second-pass matching
+    all_inferred_matches: Dict[str, Record] = {}
+    inferred_variants = {
+        (s['subject']['@rid'], s['relevance']['name'])
+        for s in statements
+        if s['subject'] and s['subject']['@class'] in ('Feature', 'Signature')
+    }
+
+    for (reference1, variant_type) in inferred_variants:
+        variants = match_category_variant(graphkb_conn, reference1, variant_type)
+
+        for variant in variants:
+            all_inferred_matches[variant['@rid']] = variant
+    inferred_matches: List[Record] = list(all_inferred_matches.values())
+    return inferred_matches
+
+
 def get_ipr_statements_from_variants(
     graphkb_conn: GraphKBConnection, matches: List[Record], disease_name: str
 ) -> List[KbMatch]:
@@ -177,19 +201,7 @@ def get_ipr_statements_from_variants(
         rows.append(ipr_row)
 
     # second-pass matching
-    all_inferred_matches: Dict[str, Record] = {}
-    inferred_variants = {
-        (s['subject']['@rid'], s['relevance']['name'])
-        for s in statements
-        if s['subject'] and s['subject']['@class'] in ('Feature', 'Signature')
-    }
-
-    for (reference1, variantType) in inferred_variants:
-        variants = match_category_variant(graphkb_conn, reference1, variantType)
-
-        for variant in variants:
-            all_inferred_matches[variant['@rid']] = variant
-    inferred_matches: List[Record] = list(all_inferred_matches.values())
+    inferred_matches = get_second_pass_variants(graphkb_conn, statements)
 
     inferred_statements = [
         s
