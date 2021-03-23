@@ -91,7 +91,7 @@ def convert_statements_to_alterations(
         IPR graphkb row representations
 
     Notes:
-        - only report disease matched prognostic markers https://www.bcgsc.ca/jira/browse/GERO-72
+        - only report disease matched prognostic markers https://www.bcgsc.ca/jira/browse/GERO-72 and GERO-196
     """
     disease_matches = {
         r['@rid'] for r in get_term_tree(graphkb_conn, disease_name, ontology_class='Disease')
@@ -122,8 +122,8 @@ def convert_statements_to_alterations(
                 if level['@rid'] in approved:
                     approved_therapy = True
                     break
-        if ipr_section == 'diagnostic' and not disease_match:
-            continue  # GERO-72
+        if ipr_section == 'prognostic' and not disease_match:
+            continue  # GERO-72 / GERO-196
 
         for variant in variants:
             if variant['@rid'] not in variant_matches:

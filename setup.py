@@ -30,7 +30,7 @@ except Exception:
 
 setup(
     name='ipr',
-    version='2.0.4',
+    version='2.0.5',
     packages=find_packages(),
     install_requires=INSTALL_REQS,
     extras_require={
