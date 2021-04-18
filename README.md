@@ -3,6 +3,8 @@
 
 ![build](https://github.com/bcgsc/pori_ipr_python/workflows/build/badge.svg) [![PyPi](https://img.shields.io/pypi/v/ipr.svg)](https://pypi.org/project/ipr) [![codecov](https://codecov.io/gh/bcgsc/pori_ipr_python/branch/master/graph/badge.svg)](https://codecov.io/gh/bcgsc/pori_ipr_python) [![PyPI - Downloads](https://img.shields.io/pypi/dm/ipr)](https://pypistats.org/packages/ipr)
 
+This repository is part of the [platform for oncogenomic reporting and interpretation](https://github.com/bcgsc/pori).
+
 This python tool takes in variant inputs as tab-delimited files and annotates them using GraphKB.
 The resulting output is uploaded to IPR as a report. Additional report content such as images and
 metadata can be passed to be included in the report upload.
