@@ -6,6 +6,7 @@ INSTALL_REQS = [
     'biopython==1.76',
     'progressbar2>=3.51.0, <4',
     'pandas>=1.1.0, <2',
+    'jsonschema',
 ]
 
 # Dependencies required for development
@@ -51,4 +52,6 @@ setup(
     test_suite='tests',
     tests_require=TEST_REQS,
     entry_points={'console_scripts': ['ipr = ipr.main:command_interface']},
+    include_package_data=True,
+    data_files=[('ipr', ['ipr/content.spec.json'])],
 )
