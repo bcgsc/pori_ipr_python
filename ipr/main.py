@@ -5,7 +5,7 @@ import logging
 import os
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
 from graphkb import GraphKBConnection
-from typing import Dict, Iterable, List, Optional
+from typing import Dict, List, Optional
 
 from .annotate import annotate_category_variants, annotate_positional_variants, get_gene_information
 from .connection import IprConnection
@@ -17,7 +17,7 @@ from .inputs import (
     preprocess_expression_variants,
     preprocess_small_mutations,
     preprocess_structural_variants,
-    read_tabbed_file,
+    validate_report_content,
 )
 from .ipr import create_key_alterations, filter_structural_variants, select_expression_plots
 from .summary import summarize
@@ -51,21 +51,12 @@ def command_interface() -> None:
         required=True,
         help='password to use connecting to graphkb/ipr',
     )
-    parser.add_argument('-c', '--copy_variants', required=False, type=file_path)
-    parser.add_argument('-m', '--small_mutations', required=False, type=file_path)
-    parser.add_argument('-s', '--structural_variants', required=False, type=file_path)
-    parser.add_argument('-e', '--expression_variants', required=False, type=file_path)
     parser.add_argument(
-        '-d',
-        '--kb_disease_match',
-        required=True,
-        help='Disease name to be used in matching to GraphKB',
+        '-c', '--content', required=False, type=file_path, help="Report Content as JSON"
     )
     parser.add_argument('--ipr_url', default=DEFAULT_URL)
     parser.add_argument('--graphkb_url', default=None)
     parser.add_argument('--log_level', default='info', choices=LOG_LEVELS.keys())
-    parser.add_argument('--patient_id', required=True, help='The patient ID for this report')
-    parser.add_argument('--project', default='TEST', help='The project to upload this report to')
     parser.add_argument(
         '--therapeutics', default=False, help='Generate therapeutic options', action='store_true'
     )
@@ -83,51 +74,16 @@ def command_interface() -> None:
 
     args = parser.parse_args()
 
-    if args.copy_variants:
-        logger.info(f'loading copy variants from: {args.copy_variants}')
-        copy_variants = read_tabbed_file(args.copy_variants)
-        logger.info(f'loaded {len(copy_variants)}')
-    else:
-        copy_variants = []
-
-    if args.small_mutations:
-        logger.info(f'loading small mutations from: {args.small_mutations}')
-        small_mutations = read_tabbed_file(args.small_mutations)
-        logger.info(f'loaded {len(small_mutations)} small mutations from: {args.small_mutations}')
-    else:
-        small_mutations = []
-
-    if args.expression_variants:
-        logger.info(f'loading expression variants from: {args.expression_variants}')
-        expression_variants = read_tabbed_file(args.expression_variants)
-        logger.info(
-            f'loaded {len(expression_variants)} expression variants from: {args.expression_variants}'
-        )
-    else:
-        expression_variants = []
-
-    if args.structural_variants:
-        f'loading structural variants from: {args.structural_variants}'
-        structural_variants = read_tabbed_file(args.structural_variants)
-        logger.info(
-            f'loaded {len(structural_variants)} structural variants from: {args.structural_variants}'
-        )
-    else:
-        structural_variants = []
+    with open(args.content, 'r') as fh:
+        content = json.load(fh)
 
     create_report(
         username=args.username,
         password=args.password,
-        patient_id=args.patient_id,
-        project=args.project,
-        kb_disease_match=args.kb_disease_match,
+        content=content,
         ipr_url=args.ipr_url,
         graphkb_url=args.graphkb_url,
         log_level=args.log_level,
-        expression_variant_rows=expression_variants,
-        structural_variant_rows=structural_variants,
-        copy_variant_rows=copy_variants,
-        small_mutation_rows=small_mutations,
         output_json_path=args.output_json_path,
         always_write_output_json=args.always_write_output_json,
         generate_therapeutics=args.therapeutics,
@@ -168,16 +124,9 @@ def clean_unsupported_content(upload_content: Dict) -> Dict:
 def create_report(
     username: str,
     password: str,
-    patient_id: str,
-    kb_disease_match: str,
-    project: str = 'TEST',
+    content: Dict,
     ipr_url: str = DEFAULT_URL,
     log_level: str = 'info',
-    expression_variant_rows: Iterable[Dict] = [],
-    structural_variant_rows: Iterable[Dict] = [],
-    copy_variant_rows: Iterable[Dict] = [],
-    small_mutation_rows: Iterable[Dict] = [],
-    optional_content: Optional[Dict] = None,
     output_json_path: str = None,
     always_write_output_json: bool = False,
     ipr_upload: bool = True,
@@ -191,10 +140,9 @@ def create_report(
     Args:
         username: the username for connecting to GraphKB and IPR
         password: the password for connecting to GraphKB and IPR
-        kb_disease_match: disease name to be used in matching to GraphKB
         ipr_url: base URL to use in connecting to IPR
         log_level: the logging level
-        optional_content: pass-through content to include in the JSON upload
+        content: report content
         output_json_path: path to a JSON file to output the report upload body.
         always_write_output_json: with successful IPR upload
         ipr_upload: upload report to ipr
@@ -211,12 +159,15 @@ def create_report(
         format='%(asctime)s %(name)s %(levelname)s %(message)s',
         datefmt='%m-%d-%y %H:%M:%S',
     )
+    # validate the JSON content follows the specification
+    validate_report_content(content)
+    kb_disease_match = content['kbDiseaseMatch']
     # validate the input variants
-    small_mutations = preprocess_small_mutations(small_mutation_rows)
-    copy_variants = preprocess_copy_variants(copy_variant_rows)
-    structural_variants = preprocess_structural_variants(structural_variant_rows)
-    expression_variants = preprocess_expression_variants(expression_variant_rows)
-    check_comparators(optional_content or {}, expression_variants)
+    small_mutations = preprocess_small_mutations(content.get('smallMutations', []))
+    copy_variants = preprocess_copy_variants(content.get('copyVariants', []))
+    structural_variants = preprocess_structural_variants(content.get('structuralVariants', []))
+    expression_variants = preprocess_expression_variants(content.get('expressionVariants', []))
+    check_comparators(content, expression_variants)
 
     ipr_conn = IprConnection(username, password, ipr_url)
     if graphkb_url:
@@ -264,8 +215,6 @@ def create_report(
     logger.info('fetching gene annotations')
     gene_information = get_gene_information(graphkb_conn, genes_with_variants)
 
-    output = optional_content or dict()
-
     all_variants = expression_variants + copy_variants + structural_variants + small_mutations
 
     key_alterations, variant_counts = create_key_alterations(alterations, all_variants)
@@ -285,11 +234,10 @@ def create_report(
             variants=all_variants,
         )
     }
-
+    # thread safe deep-copy the original content
+    output = json.loads(json.dumps(content))
     output.update(
         {
-            'patientId': patient_id,
-            'project': project,
             'kbMatches': [trim_empty_values(a) for a in alterations],
             'copyVariants': [
                 trim_empty_values(c) for c in copy_variants if c['gene'] in genes_with_variants

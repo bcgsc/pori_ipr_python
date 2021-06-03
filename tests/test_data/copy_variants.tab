@@ -3552,7 +3552,7 @@ chr1:q13.41	ZNF816-ZNF321P	Neutral		0	53361485	59118193	HET
 chr1:q13.41	ZNF880	Neutral		0	27733203	53323762	HET	
 chr1:q24.2	HEPN1	Neutral		0	122769	134945293	HET	
 chr1:q13.12	FXYD7	Neutral		0	27733203	53323762	HET	
-chr1:q21.1	POTEJ	Amplification	amplification	2	131154496	131477465	HET	Amplification	amplification
+chr1:q21.1	POTEJ	Amplification	amplification	2	131154496	131477465	HET	amplification
 chr1:q14.3	TRIM49D1	Neutral		0	122769	134945293	HET	
 chr1:p23.1	USP17L2	Neutral		0	8070131	12246015	HET	
 chr1:p21.32	HTATSF1P1	Neutral		0	26932091	58206309	HET	
@@ -3576,7 +3576,7 @@ chr1:q27	TUBB4BP5	Neutral		0	119592663	191043572	HET
 chr1:q24.21	MTRF1LP2	Neutral		0	12404985	146300942	HET	
 chr1:q36.1	ATG12P2	Neutral		0	216457705	236319281	HET	
 chr1:q23	AMMECR1-IT1	Loss	shallow deletion	-1	98102136	111954581	DLOH	shallow deletion
-chr1:q37.3	CICP10	Amplification	amplification	2	243048753	243183803	HET	Amplification	amplification
+chr1:q37.3	CICP10	Amplification	amplification	2	243048753	243183803	HET	amplification
 chr1:q11.21	UQCRHP3	Neutral		0	42388260	46170933	HET	
 chr1:p25.2	CYCSP12	Neutral		0	60001	129860130	HET	
 chr1:p21.33	MDC1-AS1	Neutral		0	26932091	58206309	HET	
@@ -3722,7 +3722,7 @@ chr1:q14.3	ISCA1P6	Neutral		0	114420456	131154495	HET
 chr1:q22.3	SERPINA7P1	Loss	shallow deletion	-1	98102136	111954581	DLOH	shallow deletion
 chr1:q25.1	UST-AS1	Neutral		0	71649047	170938184	HET	
 chr1:q22.32	CYCSP24	Neutral		0	71031161	97076471	HET	
-chr1:p36.13	CROCCP4	Amplification	amplification	2	17054644	17207524	HET	Amplification	amplification
+chr1:p36.13	CROCCP4	Amplification	amplification	2	17054644	17207524	HET	amplification
 chr1:p11.2	SRP68P2	Gain	low level copy gain	1	18276001	18751542	HET	low level copy gain
 chr1:q24.2	DNMBP-AS1	Neutral		0	89658148	135524059	HET	
 chr1:q44	CYCSP5	Neutral		0	243263969	249230838	HET	
@@ -4187,7 +4187,7 @@ chr1:q21.2	ITGB5-AS1	Neutral		0	60001	129860130	HET
 chr1:p21.33	LY6G6D	Neutral		0	26932091	58206309	HET	
 chr1:p25.1	HDAC11-AS1	Neutral		0	60001	129860130	HET	
 chr1:q13.1	APOBEC3C	Neutral		0	16848080	51230286	HET	
-chr1:q37.3	SEPT14P2	Amplification	amplification	2	243048753	243183803	HET	Amplification	amplification
+chr1:q37.3	SEPT14P2	Amplification	amplification	2	243048753	243183803	HET	amplification
 chr1:q13.12	KCNK15-AS1	Neutral		0	41668079	62917929	HET	
 chr1:q12.1	MIATNB	Neutral		0	16848080	51230286	HET	
 chr1:q32.32	RPL10AP1	Neutral		0	20417553	107288718	HET	

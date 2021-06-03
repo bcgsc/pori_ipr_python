@@ -1,11 +1,13 @@
+import json
 import os
+import pandas as pd
 import pytest
+import sys
 from typing import Dict
 from unittest.mock import MagicMock, patch
 
 from ipr.connection import IprConnection
-from ipr.inputs import read_tabbed_file
-from ipr.main import create_report
+from ipr.main import command_interface
 
 from .constants import EXCLUDE_INTEGRATION_TESTS
 
@@ -15,30 +17,55 @@ def get_test_file(name: str) -> str:
 
 
 @pytest.fixture(scope='module')
-def report_upload_content() -> Dict:
+def report_upload_content(tmp_path_factory) -> Dict:
     mock = MagicMock()
-    with patch.object(IprConnection, 'upload_report', new=mock):
-        create_report(
-            patient_id='PATIENT001',
-            project='TEST',
-            expression_variant_rows=read_tabbed_file(get_test_file('expression.tab')),
-            small_mutation_rows=read_tabbed_file(get_test_file('small_mutations.short.tab')),
-            copy_variant_rows=read_tabbed_file(get_test_file('copy_variants.tab')),
-            structural_variant_rows=read_tabbed_file(get_test_file('fusions.tab')),
-            username=os.environ['IPR_USER'],
-            password=os.environ['IPR_PASS'],
-            log_level='info',
-            ipr_url='http://fake.url.ca',
-            kb_disease_match='colorectal cancer',
-            optional_content={
+    json_file = tmp_path_factory.mktemp('inputs') / 'content.json'
+    json_file.write_text(
+        json.dumps(
+            {
                 'blargh': 'some fake content',
                 'comparators': [
-                    {'analysisRole': 'expression (disease)'},
-                    {'analysisRole': 'expression (primary site)'},
-                    {'analysisRole': 'expression (biopsy site)'},
+                    {'analysisRole': 'expression (disease)', 'name': '1'},
+                    {'analysisRole': 'expression (primary site)', 'name': '2'},
+                    {'analysisRole': 'expression (biopsy site)', 'name': '3'},
                 ],
-            },
+                'patientId': 'PATIENT001',
+                'project': 'TEST',
+                'expressionVariants': pd.read_csv(
+                    get_test_file('expression.tab'), sep='\t'
+                ).to_dict('records'),
+                'smallMutations': pd.read_csv(
+                    get_test_file('small_mutations.short.tab'), sep='\t'
+                ).to_dict('records'),
+                'copyVariants': pd.read_csv(get_test_file('copy_variants.tab'), sep='\t').to_dict(
+                    'records'
+                ),
+                'structuralVariants': pd.read_csv(get_test_file('fusions.tab'), sep='\t').to_dict(
+                    'records'
+                ),
+                'kbDiseaseMatch': 'colorectal cancer',
+            }
         )
+    )
+
+    with patch.object(
+        sys,
+        'argv',
+        [
+            'ipr',
+            '--username',
+            os.environ.get('IPR_USER', os.environ['USER']),
+            '--password',
+            os.environ['IPR_PASS'],
+            '--ipr_url',
+            'http://fake.url.ca',
+            '--content',
+            str(json_file),
+            '--therapeutics',
+        ],
+    ):
+        with patch.object(IprConnection, 'upload_report', new=mock):
+            command_interface()
 
     assert mock.called
 

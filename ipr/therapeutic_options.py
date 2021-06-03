@@ -46,6 +46,7 @@ def create_therapeutic_options(
                 'variant': variant_string,
                 'evidenceLevel': match['evidenceLevel'],
                 'kbStatementIds': match['kbStatementId'],
+                'notes': '',
             }
         )
     if not options:

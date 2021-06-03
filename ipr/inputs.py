@@ -1,10 +1,11 @@
 """
 Read/Validate the variant input files
 """
+import json
+import jsonschema
 import os
-import re
+import pandas as pd
 from Bio.Data.IUPACData import protein_letters_3to1
-from csv import DictReader
 from graphkb.match import INPUT_COPY_CATEGORIES, INPUT_EXPRESSION_CATEGORIES
 from typing import Callable, Dict, Iterable, List, Set, Tuple, cast
 
@@ -13,7 +14,8 @@ from .util import hash_key, logger
 
 protein_letters_3to1.setdefault('Ter', '*')
 
-NULLABLE_FLOAT_REGEX = r'^-?((inf)|(\d+(\.\d+)?)|)$'
+SPECIFICATION = os.path.join(os.path.dirname(__file__), 'content.spec.json')
+
 # 'cnvState' is for display
 COPY_REQ = ['gene', 'kbCategory']
 COPY_KEY = ['gene']
@@ -157,37 +159,6 @@ def validate_variant_rows(
     return result
 
 
-def read_tabbed_file(filename: str) -> List[Dict]:
-    """
-    Load a tab delimited file as dictionary rows
-    """
-    with open(filename, 'r') as fh:
-        reader = DictReader(fh, delimiter='\t')
-        return [row for row in reader]
-
-
-def validate_row_patterns(
-    rows: List[IprVariant], patterns: Dict, row_key_columns: List[str]
-) -> None:
-    """
-    Validate rows against a regex for some set of columns
-
-    Args:
-        rows (List.<dict>): input rows read from a delimited file
-        patterns (dict.<str,str>): mapping of column names to regex patterns the column are expected to match
-
-    Raises:
-        ValueError: A row does not match the expected pattern for a given column
-    """
-    for row in rows:
-        for col, pattern in patterns.items():
-            if not re.match(pattern, '' if row.get(col, None) is None else str(row[col])):
-                row_repr_dict = dict((key, row.get(key, '')) for key in row_key_columns)
-                raise ValueError(
-                    f'{row_repr_dict} column {col}: "{row[col]}" re pattern failure: "{pattern}"'
-                )
-
-
 def preprocess_copy_variants(rows: Iterable[Dict]) -> List[IprVariant]:
     """
     Validate the input rows contain the minimum required fields and
@@ -206,13 +177,8 @@ def preprocess_copy_variants(rows: Iterable[Dict]) -> List[IprVariant]:
 
     result = validate_variant_rows(rows, COPY_REQ, COPY_OPTIONAL, row_key)
 
-    patterns = {
-        'chromosomeBand': r'^(\S+:\S+?)?$',
-    }
-    validate_row_patterns(result, patterns, COPY_KEY)
-
     for row in result:
-        if row['kbCategory']:
+        if not pd.isnull(row['kbCategory']):
             if row['kbCategory'] not in INPUT_COPY_CATEGORIES.values():
                 raise ValueError(f'invalid copy variant kbCategory value ({row["kbCategory"]})')
             if not row['cnvState']:  # apply default short display name
@@ -237,12 +203,6 @@ def preprocess_small_mutations(rows: Iterable[Dict]) -> List[IprGeneVariant]:
         return result
 
     # 'location' and 'refAlt' are not currently used for matching; still optional and allowed blank
-    patterns = {
-        'hgvsProtein': r'^(\S+:p\.\S+)?$',
-        'hgvsCds': r'^(\S+:[crn]\.\S+)?$',
-        'hgvsGenomic': r'^(\S+:g\.\S+)?$',
-    }
-    validate_row_patterns(result, patterns, SMALL_MUT_KEY)
 
     # change 3 letter AA to 1 letter AA notation
     for row in result:
@@ -254,23 +214,6 @@ def preprocess_small_mutations(rows: Iterable[Dict]) -> List[IprGeneVariant]:
 
         if row.get('startPosition') and not row.get('endPosition'):
             row['endPosition'] = row['startPosition']
-
-        # check integer columns
-        for col in [
-            'endPosition',
-            'normalAltCount',
-            'normalDepth',
-            'normalRefCount',
-            'rnaAltCount',
-            'rnaDepth',
-            'rnaRefCount',
-            'startPosition',
-            'tumourAltCount',
-            'tumourDepth',
-            'tumourRefCount',
-        ]:
-            if row.get(col, ''):
-                row[col] = int(row[col])
 
         # default depth to alt + ref if not given
         for sample_type in ['normal', 'rna', 'tumour']:
@@ -296,9 +239,6 @@ def preprocess_expression_variants(rows: Iterable[Dict]) -> List[IprGeneVariant]
         return tuple(['expression'] + [row[key] for key in EXP_KEY])
 
     result = validate_variant_rows(rows, EXP_REQ, EXP_OPTIONAL, row_key)
-
-    patterns = {}
-
     float_columns = [
         col
         for col in EXP_REQ + EXP_OPTIONAL
@@ -309,10 +249,6 @@ def preprocess_expression_variants(rows: Iterable[Dict]) -> List[IprGeneVariant]
         or col.endswith('ZScore')
         or col in ['tpm', 'rpkm']
     ]
-    for col in float_columns:
-        if col not in patterns:
-            patterns[col] = NULLABLE_FLOAT_REGEX
-    validate_row_patterns(result, patterns, EXP_KEY)
 
     errors = []
     for row in result:
@@ -320,7 +256,7 @@ def preprocess_expression_variants(rows: Iterable[Dict]) -> List[IprGeneVariant]
         if not row['expressionState'] and row['kbCategory']:
             row['expressionState'] = row['kbCategory']
 
-        if row['variant']:
+        if not pd.isnull(row['variant']):
             if row['variant'] not in INPUT_EXPRESSION_CATEGORIES.values():
                 err_msg = f"{row['gene']} variant '{row['variant']}' not in {INPUT_EXPRESSION_CATEGORIES.values()}"
                 errors.append(err_msg)
@@ -370,32 +306,17 @@ def preprocess_structural_variants(rows: Iterable[Dict]) -> List[IprVariant]:
 
     result = validate_variant_rows(rows, SV_REQ, SV_OPTIONAL, row_key)
     # genes are optional for structural variants
-    EXON_PATTERN = r'^(\d+)?$'
-    patterns = {
-        'gene1': r'^((\w|-)+)?$',
-        'gene2': r'^((\w|-)+)?$',
-        'breakpoint': r'^(\w+:\d+\|\w+:\d+)?$',
-        'exon1': EXON_PATTERN,
-        'exon2': EXON_PATTERN,
-    }
-    validate_row_patterns(result, patterns, SV_KEY)
 
     for row in result:
         row['variant'] = create_graphkb_sv_notation(row)
         row['variantType'] = 'sv'
 
         # check and load the svg file where applicable
-        if row['svg']:
+        if not pd.isnull(row['svg']):
             if not os.path.exists(row['svg']):
                 raise FileNotFoundError(row['svg'])
             with open(row['svg'], 'r') as fh:
                 row['svg'] = fh.read()
-
-        for bool_col in ['highQuality', 'omicSupport']:
-            if row[bool_col]:
-                if row[bool_col].lower() not in ['true', 'false']:
-                    raise ValueError(f'{bool_col} flag must be true or false if given')
-                row[bool_col] = bool(row[bool_col].lower() == 'true')
 
     return result
 
@@ -549,3 +470,46 @@ def check_comparators(content: Dict, expresssionVariants: Iterable[Dict] = []) -
         if required_comparators - comparator_roles:
             missing = '; '.join(sorted(list(required_comparators - comparator_roles)))
             raise ValueError(f'missing required comparator definitions ({missing})')
+
+
+def extend_with_default(validator_class):
+    # https://python-jsonschema.readthedocs.io/en/latest/faq/#why-doesn-t-my-schema-s-default-property-set-the-default-on-my-instance
+    validate_properties = validator_class.VALIDATORS["properties"]
+
+    def set_defaults(validator, properties, instance, schema):
+        for property, subschema in properties.items():
+            if "default" in subschema:
+                instance.setdefault(property, subschema["default"])
+
+        for error in validate_properties(
+            validator,
+            properties,
+            instance,
+            schema,
+        ):
+            yield error
+
+    def check_null(checker, instance):
+        return validator_class.TYPE_CHECKER.is_type(instance, "null") or pd.isnull(instance)
+
+    type_checker = validator_class.TYPE_CHECKER.redefine("null", check_null)
+
+    return jsonschema.validators.extend(
+        validator_class, validators={"properties": set_defaults}, type_checker=type_checker
+    )
+
+
+# Customize the default jsonschema behaviour to add default values and treat np.nan as null
+DefaultValidatingDraft7Validator = extend_with_default(jsonschema.Draft7Validator)
+
+
+def validate_report_content(content: Dict, schema_file: str = SPECIFICATION) -> None:
+    """
+    Validate a report content input JSON object against the schema specification
+
+    Adds defaults as reccommended by: https://python-jsonschema.readthedocs.io/en/latest/faq/#why-doesn-t-my-schema-s-default-property-set-the-default-on-my-instance
+    """
+    with open(schema_file, 'r') as fh:
+        schema = json.load(fh)
+
+    return DefaultValidatingDraft7Validator(schema).validate(content)
