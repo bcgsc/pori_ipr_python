@@ -11,8 +11,25 @@
             "default": [
             ],
             "items": {
+                "examples": [
+                    {
+                        "analysisRole": "mutation burden (primary)",
+                        "name": "average"
+                    },
+                    {
+                        "analysisRole": "expression (disease QC)",
+                        "name": "qc_tcga_comp_TARGET_RHD_percentile_median_(6)",
+                        "size": 6
+                    },
+                    {
+                        "analysisRole": "expression (primary site)",
+                        "name": "average",
+                        "size": 1024
+                    }
+                ],
                 "properties": {
                     "analysisRole": {
+                        "description": "key indicating which analysis this comparator was used for",
                         "enum": [
                             "cibersort (primary)",
                             "cibersort (secondary)",
@@ -40,9 +57,15 @@
                         "type": "string"
                     },
                     "name": {
+                        "description": "comparator name",
+                        "examples": [
+                            "TCGA BRCA",
+                            "GTEX breast"
+                        ],
                         "type": "string"
                     },
                     "size": {
+                        "description": "the number of samples included in the cohort/reference distribution",
                         "type": "number"
                     }
                 },
@@ -121,7 +144,8 @@
                     }
                 },
                 "required": [
-                    "gene"
+                    "gene",
+                    "kbCategory"
                 ],
                 "type": "object"
             },
@@ -325,7 +349,8 @@
                     }
                 },
                 "required": [
-                    "gene"
+                    "gene",
+                    "kbCategory"
                 ],
                 "type": "object"
             },
@@ -365,10 +390,12 @@
                         "type": "string"
                     },
                     "pathology": {
+                        "description": "the disease state of this sample",
                         "example": "normal",
                         "type": "string"
                     },
                     "protocol": {
+                        "description": "the sequencing protocol used for ths sample",
                         "example": "DNA",
                         "type": "string"
                     }
@@ -379,14 +406,22 @@
         },
         "images": {
             "items": {
+                "example": {
+                    "caption": "",
+                    "key": "string",
+                    "path": "/path/to/image/file",
+                    "title": ""
+                },
                 "properties": {
                     "caption": {
                         "type": "string"
                     },
                     "key": {
+                        "description": "image key, used by IPR to identify both the type of image and where to place it in the report",
                         "type": "string"
                     },
                     "path": {
+                        "description": "file path to the image",
                         "type": "string"
                     },
                     "title": {
@@ -442,12 +477,16 @@
             "items": {
                 "properties": {
                     "indelPercentile": {
+                        "description": "Percentile of the count of indels in the current sample relative to a reference distribution",
+                        "example": 1,
                         "type": "number"
                     },
                     "indels": {
+                        "description": "Absolute number of indels in the current sample",
                         "type": "integer"
                     },
                     "indelsFrameshift": {
+                        "description": "Absolute number of indels which result in a frameshift in the current sample",
                         "type": "integer"
                     },
                     "role": {
@@ -460,21 +499,27 @@
                         "type": "string"
                     },
                     "snv": {
+                        "description": "Absolute number of single nucleotide variants in the current sample",
                         "type": "integer"
                     },
                     "snvPercentile": {
+                        "description": "Percentile of the count of single nucleotide variants in the current sample relative to a reference distribution",
                         "type": "number"
                     },
                     "snvTruncating": {
+                        "description": "Absolute number of single nucleotide variants which are truncating in the current sample",
                         "type": "integer"
                     },
                     "sv": {
+                        "description": "Absolute number of structural variants in the current sample",
                         "type": "integer"
                     },
                     "svExpressed": {
+                        "description": "Absolute number of expressed (support in RNA) structural variants in the current sample",
                         "type": "integer"
                     },
                     "svPercentile": {
+                        "description": "Percentile of the count of structural variants in the current sample relative to a reference distribution",
                         "type": "number"
                     }
                 },
@@ -489,6 +534,7 @@
             "items": {
                 "properties": {
                     "associations": {
+                        "description": "known behaviours, processes, or phenotypes that are associated with the current signature",
                         "example": "Tobacco chewing",
                         "type": "string"
                     },
@@ -506,6 +552,7 @@
                         "type": "string"
                     },
                     "nnls": {
+                        "description": "non-negative lease squares",
                         "example": 0.344,
                         "type": "number"
                     },
@@ -520,6 +567,7 @@
                         "type": "boolean"
                     },
                     "signature": {
+                        "description": "name of the signature",
                         "example": "SBS1",
                         "type": "string"
                     }
@@ -533,16 +581,27 @@
         },
         "pairwiseExpressionCorrelation": {
             "items": {
+                "example": {
+                    "correlation": 0.99,
+                    "library": "LIB0002",
+                    "patientId": "UPLOADPAT02",
+                    "tissueType": "liver",
+                    "tumourContent": 15,
+                    "tumourType": "pancreatic cancer"
+                },
                 "properties": {
                     "correlation": {
+                        "description": "The RNA correlation between this sample and the report sample",
                         "example": 0.99,
                         "type": "number"
                     },
                     "library": {
+                        "description": "The library name of this sample",
                         "example": "LIB002",
                         "type": "string"
                     },
                     "patientId": {
+                        "description": "The patient ID of this sample",
                         "example": "UPLOADPAT02",
                         "type": "string"
                     },
@@ -551,10 +610,12 @@
                         "type": "string"
                     },
                     "tumourContent": {
+                        "description": "the tumour content or purity of this sample",
                         "example": 15,
                         "type": "number"
                     },
                     "tumourType": {
+                        "description": "the diagnosis of this sample",
                         "example": "pancreatic cancer",
                         "type": "string"
                     }
@@ -935,6 +996,7 @@
             "type": "string"
         },
         "tumourContent": {
+            "description": "the tumour content or purity of the current sample",
             "example": 45,
             "type": "number"
         }
