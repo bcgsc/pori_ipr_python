@@ -1,6 +1,14 @@
 {
     "properties": {
+        "ageOfConsent": {
+            "type": "number"
+        },
         "alternateIdentifier": {
+            "type": "string"
+        },
+        "biopsyDate": {
+            "description": "the date the biopsy/sample was taken/collected",
+            "example": "2021-06-04T16:36:37.279Z",
             "type": "string"
         },
         "biopsyName": {
@@ -438,6 +446,23 @@
             "example": "colorectal cancer",
             "type": "string"
         },
+        "msi": {
+            "items": {
+                "properties": {
+                    "kbCategory": {
+                        "type": "string"
+                    },
+                    "score": {
+                        "type": "number"
+                    }
+                },
+                "required": [
+                    "score"
+                ],
+                "type": "object"
+            },
+            "type": "array"
+        },
         "mutationBurden": {
             "items": {
                 "properties": {
@@ -621,6 +646,10 @@
         "ploidy": {
             "description": "The ploidy model used for calling copy variants and determining mutation affected alleles",
             "example": "diploid",
+            "type": "string"
+        },
+        "presentationDate": {
+            "description": "date this case is scheduled to be presented to the molecular tumour board",
             "type": "string"
         },
         "project": {
@@ -934,6 +963,12 @@
             "example": "Luminal A",
             "type": "string"
         },
+        "template": {
+            "default": "genomic",
+            "description": "the type of report the user is uploading. This must match the name of one of the template types in the database. These are configurable via the IPR client interface but the default values in the demo database are genomic and probe",
+            "example": "genomic",
+            "type": "string"
+        },
         "tumourContent": {
             "example": 45,
             "type": "number"
@@ -942,7 +977,8 @@
     "required": [
         "patientId",
         "project",
-        "kbDiseaseMatch"
+        "kbDiseaseMatch",
+        "template"
     ],
     "type": "object"
 }
