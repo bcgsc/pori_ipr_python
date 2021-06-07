@@ -1,4 +1,5 @@
 import os
+import pandas as pd
 import pytest
 from unittest import mock
 
@@ -10,7 +11,6 @@ from ipr.inputs import (
     preprocess_expression_variants,
     preprocess_small_mutations,
     preprocess_structural_variants,
-    read_tabbed_file,
 )
 from ipr.types import IprGeneVariant, IprStructuralVariant
 from ipr.util import logger
@@ -18,54 +18,25 @@ from ipr.util import logger
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'test_data')
 
 
+def read_data_file(filename):
+    pass
+
+
 class TestPreProcessSmallMutations:
     def test_load_test_file(self) -> None:
         records = preprocess_small_mutations(
-            read_tabbed_file(os.path.join(DATA_DIR, 'small_mutations.tab'))
+            pd.read_csv(os.path.join(DATA_DIR, 'small_mutations.tab'), sep='\t').to_dict('records')
         )
         assert records
         assert len(records) == 2614
-
-    def test_error_on_missing_gene(self):
-        original = {
-            'proteinChange': 'p.V460M',
-            'zygosity': 'het',
-            'tumourReads': '48/42',
-            'rnaReads': '26/0',
-            'hgvsProtein': '',
-            'transcript': 'ENST1000',
-            'hgvsCds': '',
-            'hgvsGenomic': '',
-            'key': '02fe85a3477784b5ac0f8ecffb300d10',
-            'variant': 'A1BG:p.V460M',
-            'location': '2:1234',
-        }
-        with pytest.raises(ValueError):
-            preprocess_small_mutations([original])
-
-    def test_error_on_missing_change(self):
-        original = {
-            'zygosity': 'het',
-            'tumourReads': '48/42',
-            'rnaReads': '26/0',
-            'hgvsProtein': '',
-            'transcript': 'ENST1000',
-            'hgvsCds': '',
-            'hgvsGenomic': '',
-            'key': '02fe85a3477784b5ac0f8ecffb300d10',
-            'location': '2:1234',
-            'gene': 'KRAS',
-        }
-        with pytest.raises(ValueError):
-            preprocess_small_mutations([original])
 
     def test_maintains_optional_fields(self):
         original = {
             'gene': 'A1BG',
             'proteinChange': 'p.V460M',
             'zygosity': 'het',
-            'tumourAltCount': '42',
-            'tumourRefCount': '48',
+            'tumourAltCount': 42,
+            'tumourRefCount': 48,
             'hgvsProtein': '',
             'transcript': 'ENST1000',
             'hgvsCds': '',
@@ -73,7 +44,7 @@ class TestPreProcessSmallMutations:
             'key': '02fe85a3477784b5ac0f8ecffb300d10',
             'variant': 'blargh',
             'chromosome': '2',
-            'startPosition': '1234',
+            'startPosition': 1234,
         }
         records = preprocess_small_mutations([original])
         record = records[0]
@@ -89,7 +60,9 @@ class TestPreProcessSmallMutations:
 
 def test_load_small_mutations_probe() -> None:
     records = preprocess_small_mutations(
-        read_tabbed_file(os.path.join(DATA_DIR, 'small_mutations_probe.tab'))
+        pd.read_csv(os.path.join(DATA_DIR, 'small_mutations_probe.tab'), sep='\t').to_dict(
+            'records'
+        )
     )
     assert records
     assert len(records) == 4
@@ -99,7 +72,7 @@ def test_load_small_mutations_probe() -> None:
 
 def test_load_copy_variants() -> None:
     records = preprocess_copy_variants(
-        read_tabbed_file(os.path.join(DATA_DIR, 'copy_variants.tab'))
+        pd.read_csv(os.path.join(DATA_DIR, 'copy_variants.tab'), sep='\t').to_dict('records')
     )
     assert records
     assert len(records) == 4603
@@ -109,7 +82,7 @@ def test_load_copy_variants() -> None:
 
 def test_load_structural_variants() -> None:
     records = preprocess_structural_variants(
-        read_tabbed_file(os.path.join(DATA_DIR, 'fusions.tab'))
+        pd.read_csv(os.path.join(DATA_DIR, 'fusions.tab'), sep='\t').to_dict('records')
     )
     assert records
     assert len(records) == 5
@@ -119,7 +92,7 @@ def test_load_structural_variants() -> None:
 
 def test_load_expression_variants() -> None:
     records = preprocess_expression_variants(
-        read_tabbed_file(os.path.join(DATA_DIR, 'expression.tab'))
+        pd.read_csv(os.path.join(DATA_DIR, 'expression.tab'), sep='\t').to_dict('records')
     )
     assert records
     assert len(records) == 4603

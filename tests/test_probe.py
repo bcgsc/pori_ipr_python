@@ -1,12 +1,11 @@
 import os
+import pandas as pd
+import pytest
 from typing import Dict
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from ipr.connection import IprConnection
 from ipr.main import create_report
-from ipr.inputs import read_tabbed_file
 
 from .constants import EXCLUDE_INTEGRATION_TESTS
 
@@ -20,16 +19,24 @@ def probe_upload_content() -> Dict:
     mock = MagicMock()
     with patch.object(IprConnection, 'upload_report', new=mock):
         create_report(
-            patient_id='PATIENT001',
-            project='TEST',
-            small_mutation_rows=read_tabbed_file(get_test_file('small_mutations_probe.tab')),
-            structural_variant_rows=read_tabbed_file(get_test_file('fusions.tab')),
+            content={
+                'patientId': 'PATIENT001',
+                'project': 'TEST',
+                'smallMutations': pd.read_csv(
+                    get_test_file('small_mutations_probe.tab'),
+                    sep='\t',
+                    dtype={'chromosome': 'string'},
+                ).to_dict('records'),
+                'structuralVariants': pd.read_csv(get_test_file('fusions.tab'), sep='\t').to_dict(
+                    'records'
+                ),
+                'blargh': 'some fake content',
+                'kbDiseaseMatch': 'colorectal cancer',
+            },
             username=os.environ['IPR_USER'],
             password=os.environ['IPR_PASS'],
             log_level='info',
             ipr_url='http://fake.url.ca',
-            kb_disease_match='colorectal cancer',
-            optional_content={'blargh': 'some fake content'},
         )
 
     assert mock.called
