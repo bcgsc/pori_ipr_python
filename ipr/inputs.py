@@ -490,12 +490,18 @@ def extend_with_default(validator_class):
             yield error
 
     def check_null(checker, instance):
-        return validator_class.TYPE_CHECKER.is_type(instance, "null") or pd.isnull(instance) or instance == ""
+        return (
+            validator_class.TYPE_CHECKER.is_type(instance, "null")
+            or pd.isnull(instance)
+            or instance == ""
+        )
 
     type_checker = validator_class.TYPE_CHECKER.redefine("null", check_null)
 
     return jsonschema.validators.extend(
-        validator_class, validators={"properties": set_defaults}, type_checker=type_checker
+        validator_class,
+        validators={"properties": set_defaults},
+        type_checker=type_checker,
     )
 
 
