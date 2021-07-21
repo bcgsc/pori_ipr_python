@@ -40,19 +40,20 @@ def timestamp() -> str:
 
 def command_interface() -> None:
     parser = ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter)
-    parser.add_argument(
+    req = parser.add_argument_group('required arguments')
+    (req if not os.environ.get('USER') else parser).add_argument(
         '--username',
         required=not os.environ.get('USER'),
         default=os.environ.get('USER'),
         help='username to use connecting to graphkb/ipr',
     )
-    parser.add_argument(
+    req.add_argument(
         '--password',
         required=True,
         help='password to use connecting to graphkb/ipr',
     )
-    parser.add_argument(
-        '-c', '--content', required=False, type=file_path, help="Report Content as JSON"
+    req.add_argument(
+        '-c', '--content', required=True, type=file_path, help="Report Content as JSON"
     )
     parser.add_argument('--ipr_url', default=DEFAULT_URL)
     parser.add_argument('--graphkb_url', default=None)
@@ -69,7 +70,7 @@ def command_interface() -> None:
         '-w',
         '--always_write_output_json',
         action="store_true",
-        help='Write to output_json_path on successful IPR uploads',
+        help='Write to output_json_path on successful IPR uploads instead of just when the upload fails',
     )
 
     args = parser.parse_args()

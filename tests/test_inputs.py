@@ -1,3 +1,4 @@
+import json
 import os
 import pandas as pd
 import pytest
@@ -11,6 +12,7 @@ from ipr.inputs import (
     preprocess_expression_variants,
     preprocess_small_mutations,
     preprocess_structural_variants,
+    validate_report_content,
 )
 from ipr.types import IprGeneVariant, IprStructuralVariant
 from ipr.util import logger
@@ -246,3 +248,10 @@ class TestCheckComparators:
 
         with pytest.raises(ValueError):
             check_comparators(content, variants)
+
+
+@pytest.mark.parametrize("example_name", ['no_variants', 'sm_and_exp', 'sm_only'])
+def test_valid_json_inputs(example_name: str):
+    with open(os.path.join(DATA_DIR, 'json_examples', f'{example_name}.json'), 'r') as fh:
+        content = json.load(fh)
+    validate_report_content(content)
