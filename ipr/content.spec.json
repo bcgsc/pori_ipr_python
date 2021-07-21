@@ -166,7 +166,7 @@
                 "properties": {
                     "biopsySiteFoldChange": {
                         "description": "the fold change with respect to the median of the biopsy site expression comparator cohort",
-                        "pattern": "^[-+]?inf$",
+                        "pattern": "^[-+]?inf$|",
                         "type": [
                             "number",
                             "null",
@@ -175,7 +175,7 @@
                     },
                     "biopsySitePercentile": {
                         "description": "the percentile with respect to the biopsy site expression comparator cohort",
-                        "pattern": "^[-+]?inf$",
+                        "pattern": "^[-+]?inf$|",
                         "type": [
                             "number",
                             "null",
@@ -183,7 +183,7 @@
                         ]
                     },
                     "biopsySiteQC": {
-                        "pattern": "^[-+]?inf$",
+                        "pattern": "^[-+]?inf$|",
                         "type": [
                             "number",
                             "null",
@@ -192,7 +192,7 @@
                     },
                     "biopsySiteZScore": {
                         "description": "the zscore with respect to the biopsy site expression comparator cohort",
-                        "pattern": "^[-+]?inf$",
+                        "pattern": "^[-+]?inf$|",
                         "type": [
                             "number",
                             "null",
@@ -201,7 +201,7 @@
                     },
                     "biopsySitekIQR": {
                         "description": "the kIQR with respect to the biopsy site expression comparator cohort",
-                        "pattern": "^[-+]?inf$",
+                        "pattern": "^[-+]?inf$|",
                         "type": [
                             "number",
                             "null",
@@ -210,7 +210,7 @@
                     },
                     "diseaseFoldChange": {
                         "description": "the fold change with respect to the median of the disease expression comparator cohort",
-                        "pattern": "^[-+]?inf$",
+                        "pattern": "^[-+]?inf$|",
                         "type": [
                             "number",
                             "null",
@@ -219,7 +219,7 @@
                     },
                     "diseasePercentile": {
                         "description": "the percentile with respect to the disease expression comparator cohort",
-                        "pattern": "^[-+]?inf$",
+                        "pattern": "^[-+]?inf$|",
                         "type": [
                             "number",
                             "null",
@@ -227,7 +227,7 @@
                         ]
                     },
                     "diseaseQC": {
-                        "pattern": "^[-+]?inf$",
+                        "pattern": "^[-+]?inf$|",
                         "type": [
                             "number",
                             "null",
@@ -236,7 +236,7 @@
                     },
                     "diseaseZScore": {
                         "description": "the zscore with respect to the disease expression comparator cohort",
-                        "pattern": "^[-+]?inf$",
+                        "pattern": "^[-+]?inf$|",
                         "type": [
                             "number",
                             "null",
@@ -245,7 +245,7 @@
                     },
                     "diseasekIQR": {
                         "description": "the kIQR with respect to the disease expression comparator cohort",
-                        "pattern": "^[-+]?inf$",
+                        "pattern": "^[-+]?inf$|",
                         "type": [
                             "number",
                             "null",
@@ -287,7 +287,7 @@
                     },
                     "primarySiteFoldChange": {
                         "description": "the fold change with respect to the median of the primary site expression comparator cohort",
-                        "pattern": "^[-+]?inf$",
+                        "pattern": "^[-+]?inf$|",
                         "type": [
                             "number",
                             "null",
@@ -296,7 +296,7 @@
                     },
                     "primarySitePercentile": {
                         "description": "the percentile with respect to the primary site expression comparator cohort",
-                        "pattern": "^[-+]?inf$",
+                        "pattern": "^[-+]?inf$|",
                         "type": [
                             "number",
                             "null",
@@ -304,7 +304,7 @@
                         ]
                     },
                     "primarySiteQC": {
-                        "pattern": "^[-+]?inf$",
+                        "pattern": "^[-+]?inf$|",
                         "type": [
                             "number",
                             "null",
@@ -313,7 +313,7 @@
                     },
                     "primarySiteZScore": {
                         "description": "the zscore with respect to the primary site expression comparator cohort",
-                        "pattern": "^[-+]?inf$",
+                        "pattern": "^[-+]?inf$|",
                         "type": [
                             "number",
                             "null",
@@ -322,7 +322,7 @@
                     },
                     "primarySitekIQR": {
                         "description": "the kIQR with respect to the primary site expression comparator cohort",
-                        "pattern": "^[-+]?inf$",
+                        "pattern": "^[-+]?inf$|",
                         "type": [
                             "number",
                             "null",
@@ -330,7 +330,7 @@
                         ]
                     },
                     "rnaReads": {
-                        "pattern": "^[-+]?inf$",
+                        "pattern": "^[-+]?inf$|",
                         "type": [
                             "number",
                             "null",
@@ -339,7 +339,7 @@
                     },
                     "rpkm": {
                         "description": "reads per kilobase of transcript, per million mapped reads",
-                        "pattern": "^[-+]?inf$",
+                        "pattern": "^[-+]?inf$|",
                         "type": [
                             "number",
                             "null",
@@ -348,7 +348,7 @@
                     },
                     "tpm": {
                         "description": "transcript per million",
-                        "pattern": "^[-+]?inf$",
+                        "pattern": "^[-+]?inf$|",
                         "type": [
                             "number",
                             "null",
@@ -742,7 +742,10 @@
                     "endPosition": {
                         "description": "the genomic end poition of this variant",
                         "example": 1234,
-                        "type": "integer"
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
                     },
                     "gene": {
                         "description": "the gene name",
@@ -851,7 +854,10 @@
                     "startPosition": {
                         "description": "the genomic start position of this variant",
                         "example": 1234,
-                        "type": "integer"
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
                     },
                     "transcript": {
                         "description": "the transcript name",
@@ -991,7 +997,10 @@
                     },
                     "omicSupport": {
                         "description": "flag to indicate this SV has supprt from both genome and transcriptome",
-                        "type": "boolean"
+                        "type": [
+                            "boolean",
+                            "null"
+                        ]
                     },
                     "svg": {
                         "description": "svg image file content for this SV",

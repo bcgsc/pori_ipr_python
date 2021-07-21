@@ -279,8 +279,8 @@ def annotate_category_variants(
     if skipped:
         logger.info(f'skipped matching {skipped} non variant information rows')
     if problem_genes:
-        logger.debug(f'gene finding failures for {sorted(problem_genes)}')
-        logger.error(f'gene finding falure for {len(problem_genes)} genes')
+        logger.error(f'gene finding failures for {sorted(problem_genes)}')
+        logger.error(f'gene finding falure for {len(problem_genes)} category genes')
     logger.info(
         f'matched {len(variants)} category variants to {len(alterations)} graphkb annotations'
     )

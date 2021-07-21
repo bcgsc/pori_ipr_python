@@ -178,7 +178,7 @@ def preprocess_copy_variants(rows: Iterable[Dict]) -> List[IprVariant]:
     result = validate_variant_rows(rows, COPY_REQ, COPY_OPTIONAL, row_key)
 
     for row in result:
-        if not pd.isnull(row['kbCategory']):
+        if row['kbCategory'] and not pd.isnull(row['kbCategory']):
             if row['kbCategory'] not in INPUT_COPY_CATEGORIES.values():
                 raise ValueError(f'invalid copy variant kbCategory value ({row["kbCategory"]})')
             if not row['cnvState']:  # apply default short display name
@@ -256,7 +256,7 @@ def preprocess_expression_variants(rows: Iterable[Dict]) -> List[IprGeneVariant]
         if not row['expressionState'] and row['kbCategory']:
             row['expressionState'] = row['kbCategory']
 
-        if not pd.isnull(row['variant']):
+        if row['variant'] and not pd.isnull(row['variant']):
             if row['variant'] not in INPUT_EXPRESSION_CATEGORIES.values():
                 err_msg = f"{row['gene']} variant '{row['variant']}' not in {INPUT_EXPRESSION_CATEGORIES.values()}"
                 errors.append(err_msg)
@@ -312,7 +312,7 @@ def preprocess_structural_variants(rows: Iterable[Dict]) -> List[IprVariant]:
         row['variantType'] = 'sv'
 
         # check and load the svg file where applicable
-        if not pd.isnull(row['svg']):
+        if row['svg'] and not pd.isnull(row['svg']):
             if not os.path.exists(row['svg']):
                 raise FileNotFoundError(row['svg'])
             with open(row['svg'], 'r') as fh:
@@ -490,12 +490,18 @@ def extend_with_default(validator_class):
             yield error
 
     def check_null(checker, instance):
-        return validator_class.TYPE_CHECKER.is_type(instance, "null") or pd.isnull(instance)
+        return (
+            validator_class.TYPE_CHECKER.is_type(instance, "null")
+            or pd.isnull(instance)
+            or instance == ""
+        )
 
     type_checker = validator_class.TYPE_CHECKER.redefine("null", check_null)
 
     return jsonschema.validators.extend(
-        validator_class, validators={"properties": set_defaults}, type_checker=type_checker
+        validator_class,
+        validators={"properties": set_defaults},
+        type_checker=type_checker,
     )
 
 
