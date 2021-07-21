@@ -59,7 +59,7 @@ def command_interface() -> None:
     parser.add_argument('--graphkb_url', default=None)
     parser.add_argument('--log_level', default='info', choices=LOG_LEVELS.keys())
     parser.add_argument(
-        '--therapeutics', default=False, help='Generate therapeutic parserions', action='store_true'
+        '--therapeutics', default=False, help='Generate therapeutic options', action='store_true'
     )
     parser.add_argument(
         '-o',
