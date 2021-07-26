@@ -442,7 +442,7 @@ def check_comparators(content: Dict, expresssionVariants: Iterable[Dict] = []) -
         required_comparators = {'expression (disease)'}
 
         def all_none(row: Dict, columns: List[str]) -> bool:
-            return all([row.get(col) is None for col in columns])
+            return all([row.get(col) is None or row[col] == '' for col in columns])
 
         for exp in expresssionVariants:
             if not all_none(

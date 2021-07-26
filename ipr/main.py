@@ -5,7 +5,7 @@ import logging
 import os
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
 from graphkb import GraphKBConnection
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 from .annotate import annotate_category_variants, annotate_positional_variants, get_gene_information
 from .connection import IprConnection
@@ -134,7 +134,7 @@ def create_report(
     interactive: bool = False,
     graphkb_url: str = '',
     generate_therapeutics: bool = False,
-) -> Optional[Dict]:
+) -> Dict:
     """
     Run the matching and create the report JSON for upload to IPR
 
