@@ -48,7 +48,9 @@ def command_interface() -> None:
         help='username to use connecting to graphkb/ipr',
     )
     req.add_argument(
-        '--password', required=True, help='password to use connecting to graphkb/ipr',
+        '--password',
+        required=True,
+        help='password to use connecting to graphkb/ipr',
     )
     req.add_argument(
         '-c', '--content', required=True, type=file_path, help="Report Content as JSON"
@@ -60,7 +62,9 @@ def command_interface() -> None:
         '--therapeutics', default=False, help='Generate therapeutic options', action='store_true'
     )
     parser.add_argument(
-        '-o', '--output_json_path', help='path to a JSON to output the report upload body',
+        '-o',
+        '--output_json_path',
+        help='path to a JSON to output the report upload body',
     )
     parser.add_argument(
         '-w',
@@ -225,7 +229,10 @@ def create_report(
     logger.info('generating analyst comments')
     comments = {
         'comments': summarize(
-            graphkb_conn, alterations, disease_name=kb_disease_match, variants=all_variants,
+            graphkb_conn,
+            alterations,
+            disease_name=kb_disease_match,
+            variants=all_variants,
         )
     }
     # thread safe deep-copy the original content
