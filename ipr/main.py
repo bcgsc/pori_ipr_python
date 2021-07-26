@@ -48,9 +48,7 @@ def command_interface() -> None:
         help='username to use connecting to graphkb/ipr',
     )
     req.add_argument(
-        '--password',
-        required=True,
-        help='password to use connecting to graphkb/ipr',
+        '--password', required=True, help='password to use connecting to graphkb/ipr',
     )
     req.add_argument(
         '-c', '--content', required=True, type=file_path, help="Report Content as JSON"
@@ -62,9 +60,7 @@ def command_interface() -> None:
         '--therapeutics', default=False, help='Generate therapeutic options', action='store_true'
     )
     parser.add_argument(
-        '-o',
-        '--output_json_path',
-        help='path to a JSON to output the report upload body',
+        '-o', '--output_json_path', help='path to a JSON to output the report upload body',
     )
     parser.add_argument(
         '-w',
@@ -229,10 +225,7 @@ def create_report(
     logger.info('generating analyst comments')
     comments = {
         'comments': summarize(
-            graphkb_conn,
-            alterations,
-            disease_name=kb_disease_match,
-            variants=all_variants,
+            graphkb_conn, alterations, disease_name=kb_disease_match, variants=all_variants,
         )
     }
     # thread safe deep-copy the original content
@@ -273,6 +266,7 @@ def create_report(
 
     output = clean_unsupported_content(output)
     ipr_result = None
+    upload_error = None
 
     if ipr_upload:
         try:
@@ -281,6 +275,7 @@ def create_report(
             logger.info(ipr_result)
             output.update(ipr_result)
         except Exception as err:
+            upload_error = err
             logger.error(f"ipr_conn.upload_report failed: {err}", exc_info=True)
     if output_json_path:
         if always_write_output_json or not ipr_result:
@@ -289,4 +284,6 @@ def create_report(
                 fh.write(json.dumps(output))
     logger.info(f'made {graphkb_conn.request_count} requests to graphkb')
     logger.info(f'average load {int(graphkb_conn.load or 0)} req/s')
+    if upload_error:
+        raise upload_error
     return output
