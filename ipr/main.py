@@ -273,6 +273,7 @@ def create_report(
 
     output = clean_unsupported_content(output)
     ipr_result = None
+    upload_error = None
 
     if ipr_upload:
         try:
@@ -281,6 +282,7 @@ def create_report(
             logger.info(ipr_result)
             output.update(ipr_result)
         except Exception as err:
+            upload_error = err
             logger.error(f"ipr_conn.upload_report failed: {err}", exc_info=True)
     if output_json_path:
         if always_write_output_json or not ipr_result:
@@ -289,4 +291,6 @@ def create_report(
                 fh.write(json.dumps(output))
     logger.info(f'made {graphkb_conn.request_count} requests to graphkb')
     logger.info(f'average load {int(graphkb_conn.load or 0)} req/s')
+    if upload_error:
+        raise upload_error
     return output
