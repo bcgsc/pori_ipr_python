@@ -153,6 +153,9 @@ def validate_variant_rows(
             raise ValueError(f'duplicate row key ({row_key}) from ({row_to_key(row)})')
         row['key'] = row_key
         keys.add(row_key)
+        for k, v in row.items():
+            if v is pd.NA:
+                row[k] = ''
 
         result.append(cast(IprVariant, {col: row.get(col, '') for col in header}))
 
@@ -171,6 +174,7 @@ def preprocess_copy_variants(rows: Iterable[Dict]) -> List[IprVariant]:
         INPUT_COPY_CATEGORIES.GAIN: "copy gain",
         INPUT_COPY_CATEGORIES.LOSS: "copy loss",
     }
+    display_name_mapping.update(dict([(v, v) for v in display_name_mapping.values()]))
 
     def row_key(row: Dict) -> Tuple[str, ...]:
         return tuple(['cnv'] + [row[key] for key in COPY_KEY])
@@ -196,7 +200,10 @@ def preprocess_small_mutations(rows: Iterable[Dict]) -> List[IprGeneVariant]:
     """
 
     def row_key(row: Dict) -> Tuple[str, ...]:
-        return tuple(['small mutation'] + [row.get(key, '') for key in SMALL_MUT_KEY])
+        key_vals = []
+        for kval in [row.get(key, '') for key in SMALL_MUT_KEY]:
+            key_vals.append('' if kval is pd.NA else kval)
+        return tuple(['small mutation'] + key_vals)
 
     result = validate_variant_rows(rows, SMALL_MUT_REQ, SMALL_MUT_OPTIONAL, row_key)
     if not result:
