@@ -202,7 +202,7 @@ def preprocess_small_mutations(rows: Iterable[Dict]) -> List[IprGeneVariant]:
     def row_key(row: Dict) -> Tuple[str, ...]:
         key_vals = []
         for kval in [row.get(key, '') for key in SMALL_MUT_KEY]:
-            key_vals.append('' if kval is pd.NA else kval)
+            key_vals.append(kval if pd.notnull(kval) else '')
         return tuple(['small mutation'] + key_vals)
 
     result = validate_variant_rows(rows, SMALL_MUT_REQ, SMALL_MUT_OPTIONAL, row_key)
