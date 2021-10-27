@@ -63,7 +63,7 @@ class IprConnection:
         )
 
     def upload_report(self, content: Dict) -> Dict:
-        return self.post('/reports', content)
+        return self.post('reports', content)
 
     def set_analyst_comments(self, report_id: str, data: Dict) -> Dict:
         """
