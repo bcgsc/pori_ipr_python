@@ -2,19 +2,15 @@
 Contains functions specific to formatting reports for IPR that are unlikely to be used
 by other reporting systems
 """
-from typing import Dict, Iterable, List, Set, Tuple
-
 from graphkb import GraphKBConnection
+from graphkb.statement import categorize_relevance
 from graphkb.types import Ontology, Statement
 from graphkb.vocab import get_term_tree
-from graphkb.statement import categorize_relevance
+from typing import Dict, Iterable, List, Set, Tuple
 
+from .constants import APPROVED_EVIDENCE_LEVELS, VARIANT_CLASSES
 from .types import ImageDefinition, IprGene, IprStructuralVariant, IprVariant, KbMatch
 from .util import convert_to_rid_set, find_variant
-from .constants import (
-    VARIANT_CLASSES,
-    APPROVED_EVIDENCE_LEVELS,
-)
 
 
 def display_evidence_levels(statement: Statement) -> str:
@@ -145,6 +141,10 @@ def convert_statements_to_alterations(
                     'reference': pmid,
                     'relevance': statement['relevance']['displayName'],
                     'kbRelevanceId': statement['relevance']['@rid'],
+                    'externalSource': statement['source']['displayName']
+                    if statement['source']
+                    else None,
+                    'externalStatementId': statement.get('sourceId'),
                 }
             )
             rows.append(row)
