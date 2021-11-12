@@ -213,7 +213,9 @@ def preprocess_small_mutations(rows: Iterable[Dict]) -> List[IprGeneVariant]:
             if not pandas_falsy(row[field]):
                 return row[field]
 
-        raise ValueError('Variant field cannot be empty. Must include proteinChange or one of the hgvs fields (hgvsProtein, hgvsCds, hgvsGenomic) to build the variant string')
+        raise ValueError(
+            'Variant field cannot be empty. Must include proteinChange or one of the hgvs fields (hgvsProtein, hgvsCds, hgvsGenomic) to build the variant string'
+        )
 
     # 'location' and 'refAlt' are not currently used for matching; still optional and allowed blank
 
