@@ -10,7 +10,7 @@ from graphkb.match import INPUT_COPY_CATEGORIES, INPUT_EXPRESSION_CATEGORIES
 from typing import Callable, Dict, Iterable, List, Set, Tuple, cast
 
 from .types import IprGeneVariant, IprStructuralVariant, IprVariant
-from .util import hash_key, logger
+from .util import hash_key, logger, pandas_falsy
 
 protein_letters_3to1.setdefault('Ter', '*')
 
@@ -202,14 +202,24 @@ def preprocess_small_mutations(rows: Iterable[Dict]) -> List[IprGeneVariant]:
     if not result:
         return result
 
+    def pick_variant(row):
+        if not pandas_falsy(row['proteinChange']):
+            for longAA, shortAA in protein_letters_3to1.items():
+                row['proteinChange'] = row['proteinChange'].replace(longAA, shortAA)
+            hgvsp = '{}:{}'.format(row['gene'], row['proteinChange'])
+            return hgvsp
+
+        for field in ['hgvsProtein', 'hgvsCds', 'hgvsGenomic']:
+            if not pandas_falsy(row[field]):
+                return row[field]
+
+        raise ValueError('Variant field cannot be empty. Must include proteinChange or one of the hgvs fields (hgvsProtein, hgvsCds, hgvsGenomic) to build the variant string')
+
     # 'location' and 'refAlt' are not currently used for matching; still optional and allowed blank
 
     # change 3 letter AA to 1 letter AA notation
     for row in result:
-        for longAA, shortAA in protein_letters_3to1.items():
-            row['proteinChange'] = row['proteinChange'].replace(longAA, shortAA)
-        hgvsp = '{}:{}'.format(row['gene'], row['proteinChange'])
-        row['variant'] = hgvsp
+        row['variant'] = pick_variant(row)
         row['variantType'] = 'mut'
 
         if row.get('startPosition') and not row.get('endPosition'):
