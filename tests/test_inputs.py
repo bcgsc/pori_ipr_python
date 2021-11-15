@@ -21,7 +21,7 @@ from ipr.types import IprGeneVariant, IprStructuralVariant
 from ipr.util import logger
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'test_data')
-NULLS = ['', None, np.nan, pd.NA]
+NON_EMPTY_STRING_NULLS = ['', None, np.nan, pd.NA]
 
 
 def read_data_file(filename):
@@ -71,9 +71,11 @@ class TestPreProcessSmallMutations:
             'tumourRefCount': 48,
             'startPosition': 1234,
         }
+        # Make sure TEST_KEYS are appropriate.
+        # For some fields, like 'ref' and 'alt', NA is _not_ equivalent to a null string.
         TEST_KEYS = ['startPosition', 'endPosition', 'tumourAltCount', 'tumourRefCount']
         for key in TEST_KEYS:
-            for null in NULLS:
+            for null in NON_EMPTY_STRING_NULLS:
                 small_mut = original.copy()
                 small_mut[key] = null
                 records = preprocess_small_mutations([small_mut])
@@ -107,10 +109,10 @@ class TestPreProcessCopyVariants:
         assert 'variant' in records[0]
 
     def test_null(self):
-        for kb_cat in list(INPUT_COPY_CATEGORIES.values()) + NULLS:
+        for kb_cat in list(INPUT_COPY_CATEGORIES.values()) + NON_EMPTY_STRING_NULLS:
             original = {'gene': 'ERBB2', 'kbCategory': kb_cat}
             for key in COPY_OPTIONAL:
-                for null in NULLS:
+                for null in NON_EMPTY_STRING_NULLS:
                     copy_var = original.copy()
                     copy_var[key] = null
                     records = preprocess_copy_variants([copy_var])
