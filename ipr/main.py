@@ -62,6 +62,12 @@ def command_interface() -> None:
         '--therapeutics', default=False, help='Generate therapeutic options', action='store_true'
     )
     parser.add_argument(
+        '--skip_comments',
+        default=False,
+        action='store_true',
+        help='Turn off generating the analyst comments section of the report',
+    )
+    parser.add_argument(
         '-o',
         '--output_json_path',
         help='path to a JSON to output the report upload body',
@@ -88,6 +94,7 @@ def command_interface() -> None:
         output_json_path=args.output_json_path,
         always_write_output_json=args.always_write_output_json,
         generate_therapeutics=args.therapeutics,
+        generate_comments=not args.skip_comments,
     )
 
 
@@ -134,6 +141,7 @@ def create_report(
     interactive: bool = False,
     graphkb_url: str = '',
     generate_therapeutics: bool = False,
+    generate_comments: bool = True,
 ) -> Dict:
     """
     Run the matching and create the report JSON for upload to IPR
@@ -150,6 +158,7 @@ def create_report(
         interactive: progressbars for interactive users
         cache_gene_minimum: minimum number of genes required for gene name caching optimization
         generate_therapeutics: create therapeutic options for upload with the report
+        generate_comments: create the analyst comments section for upload with the report
 
     Returns:
         ipr_conn.upload_report return dictionary
@@ -227,14 +236,18 @@ def create_report(
         targets = []
 
     logger.info('generating analyst comments')
-    comments = {
-        'comments': summarize(
-            graphkb_conn,
-            alterations,
-            disease_name=kb_disease_match,
-            variants=all_variants,
-        )
-    }
+    if generate_comments:
+        comments = {
+            'comments': summarize(
+                graphkb_conn,
+                alterations,
+                disease_name=kb_disease_match,
+                variants=all_variants,
+            )
+        }
+    else:
+        comments = {'comments': ''}
+
     # thread safe deep-copy the original content
     output = json.loads(json.dumps(content))
     output.update(
