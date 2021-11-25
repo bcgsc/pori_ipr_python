@@ -108,9 +108,6 @@ def clean_unsupported_content(upload_content: Dict) -> Dict:
         'variant',
         'variantType',
         'histogramImage',
-        'hgvsProtein',
-        'hgvsCds',
-        'hgvsGenomic',
     ]
     for variant_section in [
         'expressionVariants',
