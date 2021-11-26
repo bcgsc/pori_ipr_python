@@ -1,14 +1,13 @@
 import hashlib
 import json
 import logging
-from typing import Dict, List, Set, Tuple
-
+import pandas as pd
+from graphkb import GraphKBConnection
 from graphkb.types import Record
 from graphkb.vocab import get_term_tree
-from graphkb import GraphKBConnection
+from typing import Dict, List, Set, Tuple
 
 from .types import IprVariant
-
 
 # name the logger after the package to make it simple to disable for packages using this one as a dependency
 # https://stackoverflow.com/questions/11029717/how-do-i-disable-log-messages-from-the-requests-library
@@ -179,3 +178,10 @@ def get_preferred_gene_name(graphkb_conn: GraphKBConnection, record_id: str) -> 
         return genes[0]['displayName']
     # fallback to the input displayName
     return record['displayName']
+
+
+def pandas_falsy(field):
+    """
+    Check if a field is python falsy or pandas null
+    """
+    return bool(pd.isnull(field) or not field)

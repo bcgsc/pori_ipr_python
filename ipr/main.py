@@ -5,7 +5,7 @@ import logging
 import os
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
 from graphkb import GraphKBConnection
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 from .annotate import annotate_category_variants, annotate_positional_variants, get_gene_information
 from .connection import IprConnection
@@ -40,25 +40,32 @@ def timestamp() -> str:
 
 def command_interface() -> None:
     parser = ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter)
-    parser.add_argument(
+    req = parser.add_argument_group('required arguments')
+    (req if not os.environ.get('USER') else parser).add_argument(
         '--username',
         required=not os.environ.get('USER'),
         default=os.environ.get('USER'),
         help='username to use connecting to graphkb/ipr',
     )
-    parser.add_argument(
+    req.add_argument(
         '--password',
         required=True,
         help='password to use connecting to graphkb/ipr',
     )
-    parser.add_argument(
-        '-c', '--content', required=False, type=file_path, help="Report Content as JSON"
+    req.add_argument(
+        '-c', '--content', required=True, type=file_path, help="Report Content as JSON"
     )
     parser.add_argument('--ipr_url', default=DEFAULT_URL)
     parser.add_argument('--graphkb_url', default=None)
     parser.add_argument('--log_level', default='info', choices=LOG_LEVELS.keys())
     parser.add_argument(
         '--therapeutics', default=False, help='Generate therapeutic options', action='store_true'
+    )
+    parser.add_argument(
+        '--skip_comments',
+        default=False,
+        action='store_true',
+        help='Turn off generating the analyst comments section of the report',
     )
     parser.add_argument(
         '-o',
@@ -69,7 +76,7 @@ def command_interface() -> None:
         '-w',
         '--always_write_output_json',
         action="store_true",
-        help='Write to output_json_path on successful IPR uploads',
+        help='Write to output_json_path on successful IPR uploads instead of just when the upload fails',
     )
 
     args = parser.parse_args()
@@ -87,6 +94,7 @@ def command_interface() -> None:
         output_json_path=args.output_json_path,
         always_write_output_json=args.always_write_output_json,
         generate_therapeutics=args.therapeutics,
+        generate_comments=not args.skip_comments,
     )
 
 
@@ -100,9 +108,6 @@ def clean_unsupported_content(upload_content: Dict) -> Dict:
         'variant',
         'variantType',
         'histogramImage',
-        'hgvsProtein',
-        'hgvsCds',
-        'hgvsGenomic',
     ]
     for variant_section in [
         'expressionVariants',
@@ -133,7 +138,8 @@ def create_report(
     interactive: bool = False,
     graphkb_url: str = '',
     generate_therapeutics: bool = False,
-) -> Optional[Dict]:
+    generate_comments: bool = True,
+) -> Dict:
     """
     Run the matching and create the report JSON for upload to IPR
 
@@ -149,6 +155,7 @@ def create_report(
         interactive: progressbars for interactive users
         cache_gene_minimum: minimum number of genes required for gene name caching optimization
         generate_therapeutics: create therapeutic options for upload with the report
+        generate_comments: create the analyst comments section for upload with the report
 
     Returns:
         ipr_conn.upload_report return dictionary
@@ -226,14 +233,18 @@ def create_report(
         targets = []
 
     logger.info('generating analyst comments')
-    comments = {
-        'comments': summarize(
-            graphkb_conn,
-            alterations,
-            disease_name=kb_disease_match,
-            variants=all_variants,
-        )
-    }
+    if generate_comments:
+        comments = {
+            'comments': summarize(
+                graphkb_conn,
+                alterations,
+                disease_name=kb_disease_match,
+                variants=all_variants,
+            )
+        }
+    else:
+        comments = {'comments': ''}
+
     # thread safe deep-copy the original content
     output = json.loads(json.dumps(content))
     output.update(
@@ -272,6 +283,7 @@ def create_report(
 
     output = clean_unsupported_content(output)
     ipr_result = None
+    upload_error = None
 
     if ipr_upload:
         try:
@@ -280,6 +292,7 @@ def create_report(
             logger.info(ipr_result)
             output.update(ipr_result)
         except Exception as err:
+            upload_error = err
             logger.error(f"ipr_conn.upload_report failed: {err}", exc_info=True)
     if output_json_path:
         if always_write_output_json or not ipr_result:
@@ -288,4 +301,6 @@ def create_report(
                 fh.write(json.dumps(output))
     logger.info(f'made {graphkb_conn.request_count} requests to graphkb')
     logger.info(f'average load {int(graphkb_conn.load or 0)} req/s')
+    if upload_error:
+        raise upload_error
     return output

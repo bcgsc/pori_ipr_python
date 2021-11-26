@@ -1,9 +1,13 @@
+import json
+import numpy as np
 import os
 import pandas as pd
 import pytest
 from unittest import mock
 
+from graphkb.match import INPUT_COPY_CATEGORIES
 from ipr.inputs import (
+    COPY_OPTIONAL,
     check_comparators,
     check_variant_links,
     create_graphkb_sv_notation,
@@ -11,11 +15,13 @@ from ipr.inputs import (
     preprocess_expression_variants,
     preprocess_small_mutations,
     preprocess_structural_variants,
+    validate_report_content,
 )
 from ipr.types import IprGeneVariant, IprStructuralVariant
 from ipr.util import logger
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'test_data')
+NON_EMPTY_STRING_NULLS = ['', None, np.nan, pd.NA]
 
 
 def read_data_file(filename):
@@ -57,27 +63,61 @@ class TestPreProcessSmallMutations:
         assert 'tumourDepth' in record
         assert record['tumourDepth'] == 90
 
+    def test_null(self):
+        original = {
+            'gene': 'A1BG',
+            'proteinChange': 'p.V460M',
+            'tumourAltCount': 42,
+            'tumourRefCount': 48,
+            'startPosition': 1234,
+        }
+        # Make sure TEST_KEYS are appropriate.
+        # For some fields, like 'ref' and 'alt', NA is _not_ equivalent to a null string.
+        TEST_KEYS = ['startPosition', 'endPosition', 'tumourAltCount', 'tumourRefCount']
+        for key in TEST_KEYS:
+            for null in NON_EMPTY_STRING_NULLS:
+                small_mut = original.copy()
+                small_mut[key] = null
+                records = preprocess_small_mutations([small_mut])
+                record = records[0]
+                assert record['variantType'] == 'mut'
+                for col in original:
+                    assert col in record
+                assert record['variant'] == 'A1BG:p.V460M'
+                assert 'endPosition' in record
 
-def test_load_small_mutations_probe() -> None:
-    records = preprocess_small_mutations(
-        pd.read_csv(os.path.join(DATA_DIR, 'small_mutations_probe.tab'), sep='\t').to_dict(
-            'records'
+    def test_load_small_mutations_probe(self) -> None:
+        records = preprocess_small_mutations(
+            pd.read_csv(os.path.join(DATA_DIR, 'small_mutations_probe.tab'), sep='\t').to_dict(
+                'records'
+            )
         )
-    )
-    assert records
-    assert len(records) == 4
-    assert records[0]['variantType'] == 'mut'
-    assert 'variant' in records[0]
+        assert records
+        assert len(records) == 4
+        assert records[0]['variantType'] == 'mut'
+        assert 'variant' in records[0]
 
 
-def test_load_copy_variants() -> None:
-    records = preprocess_copy_variants(
-        pd.read_csv(os.path.join(DATA_DIR, 'copy_variants.tab'), sep='\t').to_dict('records')
-    )
-    assert records
-    assert len(records) == 4603
-    assert records[0]['variantType'] == 'cnv'
-    assert 'variant' in records[0]
+class TestPreProcessCopyVariants:
+    def test_load_copy_variants(self) -> None:
+        records = preprocess_copy_variants(
+            pd.read_csv(os.path.join(DATA_DIR, 'copy_variants.tab'), sep='\t').to_dict('records')
+        )
+        assert records
+        assert len(records) == 4603
+        assert records[0]['variantType'] == 'cnv'
+        assert 'variant' in records[0]
+
+    def test_null(self):
+        for kb_cat in list(INPUT_COPY_CATEGORIES.values()) + NON_EMPTY_STRING_NULLS:
+            original = {'gene': 'ERBB2', 'kbCategory': kb_cat}
+            for key in COPY_OPTIONAL:
+                for null in NON_EMPTY_STRING_NULLS:
+                    copy_var = original.copy()
+                    copy_var[key] = null
+                    records = preprocess_copy_variants([copy_var])
+                    record = records[0]
+                    assert record['variantType'] == 'cnv'
 
 
 def test_load_structural_variants() -> None:
@@ -246,3 +286,10 @@ class TestCheckComparators:
 
         with pytest.raises(ValueError):
             check_comparators(content, variants)
+
+
+@pytest.mark.parametrize("example_name", ['no_variants', 'sm_and_exp', 'sm_only'])
+def test_valid_json_inputs(example_name: str):
+    with open(os.path.join(DATA_DIR, 'json_examples', f'{example_name}.json'), 'r') as fh:
+        content = json.load(fh)
+    validate_report_content(content)

@@ -10,7 +10,7 @@ from graphkb.match import INPUT_COPY_CATEGORIES, INPUT_EXPRESSION_CATEGORIES
 from typing import Callable, Dict, Iterable, List, Set, Tuple, cast
 
 from .types import IprGeneVariant, IprStructuralVariant, IprVariant
-from .util import hash_key, logger
+from .util import hash_key, logger, pandas_falsy
 
 protein_letters_3to1.setdefault('Ter', '*')
 
@@ -153,6 +153,9 @@ def validate_variant_rows(
             raise ValueError(f'duplicate row key ({row_key}) from ({row_to_key(row)})')
         row['key'] = row_key
         keys.add(row_key)
+        for k, v in row.items():
+            if v is pd.NA:
+                row[k] = ''
 
         result.append(cast(IprVariant, {col: row.get(col, '') for col in header}))
 
@@ -171,6 +174,7 @@ def preprocess_copy_variants(rows: Iterable[Dict]) -> List[IprVariant]:
         INPUT_COPY_CATEGORIES.GAIN: "copy gain",
         INPUT_COPY_CATEGORIES.LOSS: "copy loss",
     }
+    display_name_mapping.update(dict([(v, v) for v in display_name_mapping.values()]))
 
     def row_key(row: Dict) -> Tuple[str, ...]:
         return tuple(['cnv'] + [row[key] for key in COPY_KEY])
@@ -178,7 +182,7 @@ def preprocess_copy_variants(rows: Iterable[Dict]) -> List[IprVariant]:
     result = validate_variant_rows(rows, COPY_REQ, COPY_OPTIONAL, row_key)
 
     for row in result:
-        if not pd.isnull(row['kbCategory']):
+        if row['kbCategory'] and not pd.isnull(row['kbCategory']):
             if row['kbCategory'] not in INPUT_COPY_CATEGORIES.values():
                 raise ValueError(f'invalid copy variant kbCategory value ({row["kbCategory"]})')
             if not row['cnvState']:  # apply default short display name
@@ -196,20 +200,35 @@ def preprocess_small_mutations(rows: Iterable[Dict]) -> List[IprGeneVariant]:
     """
 
     def row_key(row: Dict) -> Tuple[str, ...]:
-        return tuple(['small mutation'] + [row.get(key, '') for key in SMALL_MUT_KEY])
+        key_vals = []
+        for kval in [row.get(key, '') for key in SMALL_MUT_KEY]:
+            key_vals.append(kval if pd.notnull(kval) else '')
+        return tuple(['small mutation'] + key_vals)
 
     result = validate_variant_rows(rows, SMALL_MUT_REQ, SMALL_MUT_OPTIONAL, row_key)
     if not result:
         return result
 
+    def pick_variant(row):
+        if not pandas_falsy(row['proteinChange']):
+            for longAA, shortAA in protein_letters_3to1.items():
+                row['proteinChange'] = row['proteinChange'].replace(longAA, shortAA)
+            hgvsp = '{}:{}'.format(row['gene'], row['proteinChange'])
+            return hgvsp
+
+        for field in ['hgvsProtein', 'hgvsCds', 'hgvsGenomic']:
+            if not pandas_falsy(row[field]):
+                return row[field]
+
+        raise ValueError(
+            'Variant field cannot be empty. Must include proteinChange or one of the hgvs fields (hgvsProtein, hgvsCds, hgvsGenomic) to build the variant string'
+        )
+
     # 'location' and 'refAlt' are not currently used for matching; still optional and allowed blank
 
     # change 3 letter AA to 1 letter AA notation
     for row in result:
-        for longAA, shortAA in protein_letters_3to1.items():
-            row['proteinChange'] = row['proteinChange'].replace(longAA, shortAA)
-        hgvsp = '{}:{}'.format(row['gene'], row['proteinChange'])
-        row['variant'] = hgvsp
+        row['variant'] = pick_variant(row)
         row['variantType'] = 'mut'
 
         if row.get('startPosition') and not row.get('endPosition'):
@@ -256,7 +275,7 @@ def preprocess_expression_variants(rows: Iterable[Dict]) -> List[IprGeneVariant]
         if not row['expressionState'] and row['kbCategory']:
             row['expressionState'] = row['kbCategory']
 
-        if not pd.isnull(row['variant']):
+        if row['variant'] and not pd.isnull(row['variant']):
             if row['variant'] not in INPUT_EXPRESSION_CATEGORIES.values():
                 err_msg = f"{row['gene']} variant '{row['variant']}' not in {INPUT_EXPRESSION_CATEGORIES.values()}"
                 errors.append(err_msg)
@@ -312,7 +331,7 @@ def preprocess_structural_variants(rows: Iterable[Dict]) -> List[IprVariant]:
         row['variantType'] = 'sv'
 
         # check and load the svg file where applicable
-        if not pd.isnull(row['svg']):
+        if row['svg'] and not pd.isnull(row['svg']):
             if not os.path.exists(row['svg']):
                 raise FileNotFoundError(row['svg'])
             with open(row['svg'], 'r') as fh:
@@ -442,7 +461,7 @@ def check_comparators(content: Dict, expresssionVariants: Iterable[Dict] = []) -
         required_comparators = {'expression (disease)'}
 
         def all_none(row: Dict, columns: List[str]) -> bool:
-            return all([row.get(col) is None for col in columns])
+            return all([row.get(col) is None or row[col] == '' for col in columns])
 
         for exp in expresssionVariants:
             if not all_none(
@@ -490,12 +509,18 @@ def extend_with_default(validator_class):
             yield error
 
     def check_null(checker, instance):
-        return validator_class.TYPE_CHECKER.is_type(instance, "null") or pd.isnull(instance)
+        return (
+            validator_class.TYPE_CHECKER.is_type(instance, "null")
+            or pd.isnull(instance)
+            or instance == ""
+        )
 
     type_checker = validator_class.TYPE_CHECKER.redefine("null", check_null)
 
     return jsonschema.validators.extend(
-        validator_class, validators={"properties": set_defaults}, type_checker=type_checker
+        validator_class,
+        validators={"properties": set_defaults},
+        type_checker=type_checker,
     )
 
 
