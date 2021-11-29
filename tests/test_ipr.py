@@ -1,7 +1,6 @@
-from unittest.mock import Mock
-
 import pytest
 from graphkb.types import Statement
+from unittest.mock import Mock
 
 from ipr.ipr import convert_statements_to_alterations
 
@@ -11,21 +10,35 @@ def graphkb_conn():
     def make_rid_list(*values):
         return [{'@rid': v} for v in values]
 
-    return_values = [
-        make_rid_list('disease'),  # disease call 1
-        [],  # disease call 2
-        make_rid_list('approved1', 'approved2'),
-        make_rid_list('ther1'),
-        [],  # makes 2 calls to get therapeutic terms
-        make_rid_list('diag1'),
-        make_rid_list('prog1'),
-        make_rid_list('bio1', 'bio2'),
-        [],
-        [],  # makes 3 calls to get biological terms
-    ]
-    query_mock = Mock()
-    query_mock.side_effect = return_values
-    conn = Mock(query=query_mock, cache={})
+    class QueryMock:
+        return_values = [
+            # get disease name matches
+            make_rid_list('disease'),
+            make_rid_list('disease'),
+            [],
+            [],
+            # get approved evidence levels
+            make_rid_list('approved1', 'approved2'),
+            # categorize relevance
+            make_rid_list('ther1'),  # get therapeutic eff base term
+            make_rid_list('ther1'),
+            make_rid_list('eleg1'),  # get eligibility base term
+            make_rid_list('eleg1'),
+            make_rid_list('diag1'),
+            make_rid_list('diag1'),
+            make_rid_list('prog1'),
+            make_rid_list('prog1'),
+            make_rid_list('bio1', 'bio2'),
+            make_rid_list('bio1', 'bio2'),
+        ]
+        index = -1
+
+        def __call__(self, *args, **kwargs):
+            self.index += 1
+            ret_val = self.return_values[self.index] if self.index < len(self.return_values) else []
+            return ret_val
+
+    conn = Mock(query=QueryMock(), cache={})
 
     return conn
 
