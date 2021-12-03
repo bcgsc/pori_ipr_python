@@ -98,12 +98,12 @@
                     "cna": {
                         "description": "The copy number alteration (CNA) ratio",
                         "example": 1.22,
-                        "type": "number"
+                        "type": ["number", "null"]
                     },
                     "copyChange": {
                         "description": "the ploidy corrected copy change value",
                         "example": -2,
-                        "type": "integer"
+                        "type": ["integer", "null"]
                     },
                     "end": {
                         "description": "the genomic end position of the copy segment this gene copy number was called from",
@@ -136,7 +136,7 @@
                         ]
                     },
                     "log2Cna": {
-                        "type": "number"
+                        "type": ["number", "null"]
                     },
                     "lohState": {
                         "description": "the loss-of-heterozygosity category for this gene region",
