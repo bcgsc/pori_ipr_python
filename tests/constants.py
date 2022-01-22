@@ -1,3 +1,0 @@
-import os
-
-EXCLUDE_INTEGRATION_TESTS = os.environ.get('EXCLUDE_INTEGRATION_TESTS') == '1'
