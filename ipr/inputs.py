@@ -45,6 +45,7 @@ SMALL_MUT_OPTIONAL = [
     'altSeq',
     'chromosome',
     'endPosition',
+    'germline',
     'hgvsCds',
     'hgvsGenomic',
     'hgvsProtein',
