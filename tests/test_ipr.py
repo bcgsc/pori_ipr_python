@@ -28,6 +28,13 @@ def graphkb_conn():
             make_rid_list('diag1'),
             make_rid_list('prog1'),
             make_rid_list('prog1'),
+            make_rid_list('phar1'),  # pharmacogenomic - base term
+            make_rid_list('phar2'),  # metabolism
+            make_rid_list('phar3'),  # toxicity
+            make_rid_list('phar4'),  # dosage
+            make_rid_list('pred1'),  # cancer predisposition - base term
+            make_rid_list('pred2'),  # pathogenic
+            make_rid_list('pred3'),  # pathogenic
             make_rid_list('bio1', 'bio2'),
             make_rid_list('bio1', 'bio2'),
         ]
