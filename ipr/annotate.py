@@ -71,7 +71,6 @@ def get_gene_information(
     variants = graphkb_conn.query(
         {'target': 'Variant', 'returnProperties': ['@class', 'reference1', 'reference2']},
     )
-    print(variants)
 
     gene_flags: Dict[str, Set[str]] = {
         'cancerRelated': set(),
