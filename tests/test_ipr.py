@@ -1,42 +1,21 @@
 import pytest
+from graphkb import statement as gkb_statement
+from graphkb import vocab as gkb_vocab
 from graphkb.types import Statement
 from unittest.mock import Mock
 
 from ipr.ipr import convert_statements_to_alterations
 
+DISEASE_RIDS = ['#138:12', '#138:13']
+APPROVED_EVIDENCE_RIDS = ['approved1', 'approved2']
 
-@pytest.fixture()
+
+@pytest.fixture
 def graphkb_conn():
-    def make_rid_list(*values):
-        return [{'@rid': v} for v in values]
-
     class QueryMock:
         return_values = [
-            # get disease name matches
-            make_rid_list('disease'),
-            make_rid_list('disease'),
-            [],
-            [],
             # get approved evidence levels
-            make_rid_list('approved1', 'approved2'),
-            # categorize relevance
-            make_rid_list('ther1'),  # get therapeutic eff base term
-            make_rid_list('ther1'),
-            make_rid_list('eleg1'),  # get eligibility base term
-            make_rid_list('eleg1'),
-            make_rid_list('diag1'),
-            make_rid_list('diag1'),
-            make_rid_list('prog1'),
-            make_rid_list('prog1'),
-            make_rid_list('phar1'),  # pharmacogenomic - base term
-            make_rid_list('phar2'),  # metabolism
-            make_rid_list('phar3'),  # toxicity
-            make_rid_list('phar4'),  # dosage
-            make_rid_list('pred1'),  # cancer predisposition - base term
-            make_rid_list('pred2'),  # pathogenic
-            make_rid_list('pred3'),  # pathogenic
-            make_rid_list('bio1', 'bio2'),
-            make_rid_list('bio1', 'bio2'),
+            [{'@rid': v} for v in APPROVED_EVIDENCE_RIDS],
         ]
         index = -1
 
@@ -50,7 +29,7 @@ def graphkb_conn():
     return conn
 
 
-def base_graphkb_statement(disease_id: str = 'disease') -> Statement:
+def base_graphkb_statement(disease_id: str = 'disease', relevance_rid: str = 'other') -> Statement:
     statement = Statement(
         {
             'conditions': [
@@ -65,16 +44,33 @@ def base_graphkb_statement(disease_id: str = 'disease') -> Statement:
             'subject': None,
             'source': None,
             'sourceId': None,
-            'relevance': {'@rid': 'relevance_rid', 'displayName': 'relevance_display_name'},
+            'relevance': {'@rid': relevance_rid, 'displayName': 'relevance_display_name'},
             '@rid': 'statement_rid',
         }
     )
     return statement
 
 
+@pytest.fixture(autouse=True)
+def mock_get_term_tree(monkeypatch):
+    def mock_func(*pos, **kwargs):
+        print('called mock_func')
+        return [{'@rid': d} for d in DISEASE_RIDS]
+
+    monkeypatch.setattr(gkb_vocab, 'get_term_tree', mock_func)
+
+
+@pytest.fixture(autouse=True)
+def mock_categorize_relevance(monkeypatch):
+    def mock_func(_, relevance_id):
+        return relevance_id
+
+    monkeypatch.setattr(gkb_statement, 'categorize_relevance', mock_func)
+
+
 class TestConvertStatementsToAlterations:
-    def test_disease_match(self, graphkb_conn) -> None:
-        statement = base_graphkb_statement('disease')
+    def test_disease_match(self, graphkb_conn, mock_get_term_tree) -> None:
+        statement = base_graphkb_statement(DISEASE_RIDS[0])
         result = convert_statements_to_alterations(
             graphkb_conn, [statement], 'disease', {'variant_rid'}
         )
@@ -110,9 +106,9 @@ class TestConvertStatementsToAlterations:
         row = result[0]
         assert not row['matchedCancer']
 
-    def test_biological_statement(self, graphkb_conn) -> None:
+    def test_biological(self, graphkb_conn) -> None:
         statement = base_graphkb_statement()
-        statement['relevance']['@rid'] = 'bio1'
+        statement['relevance']['@rid'] = 'biological'
 
         result = convert_statements_to_alterations(
             graphkb_conn, [statement], 'disease', {'variant_rid'}
@@ -121,9 +117,18 @@ class TestConvertStatementsToAlterations:
         row = result[0]
         assert row['category'] == 'biological'
 
-    def test_prognostic_statement(self, graphkb_conn) -> None:
+    def test_prognostic_no_disease_match(self, graphkb_conn) -> None:
         statement = base_graphkb_statement()
-        statement['relevance']['@rid'] = 'prog1'
+        statement['relevance']['@rid'] = 'prognostic'
+
+        result = convert_statements_to_alterations(
+            graphkb_conn, [statement], 'disease', {'variant_rid'}
+        )
+        assert len(result) == 0
+
+    def test_prognostic_disease_match(self, graphkb_conn) -> None:
+        statement = base_graphkb_statement(DISEASE_RIDS[0])
+        statement['relevance']['@rid'] = 'prognostic'
 
         result = convert_statements_to_alterations(
             graphkb_conn, [statement], 'disease', {'variant_rid'}
@@ -132,9 +137,9 @@ class TestConvertStatementsToAlterations:
         row = result[0]
         assert row['category'] == 'prognostic'
 
-    def test_diagnostic_statement(self, graphkb_conn) -> None:
+    def test_diagnostic(self, graphkb_conn) -> None:
         statement = base_graphkb_statement()
-        statement['relevance']['@rid'] = 'diag1'
+        statement['relevance']['@rid'] = 'diagnostic'
 
         result = convert_statements_to_alterations(
             graphkb_conn, [statement], 'disease', {'variant_rid'}
@@ -143,9 +148,9 @@ class TestConvertStatementsToAlterations:
         row = result[0]
         assert row['category'] == 'diagnostic'
 
-    def test_unapproved_therapeutic_statement(self, graphkb_conn) -> None:
+    def test_unapproved_therapeutic(self, graphkb_conn) -> None:
         statement = base_graphkb_statement()
-        statement['relevance']['@rid'] = 'ther1'
+        statement['relevance']['@rid'] = 'therapeutic'
         statement['evidenceLevel'] = [{'@rid': 'other', 'displayName': 'level'}]
 
         result = convert_statements_to_alterations(
@@ -155,10 +160,10 @@ class TestConvertStatementsToAlterations:
         row = result[0]
         assert row['category'] == 'therapeutic'
 
-    def test_approved_therapeutic_statement(self, graphkb_conn) -> None:
+    def test_approved_therapeutic(self, graphkb_conn) -> None:
         statement = base_graphkb_statement()
-        statement['relevance']['@rid'] = 'ther1'
-        statement['evidenceLevel'] = [{'@rid': 'approved1', 'displayName': 'level'}]
+        statement['relevance']['@rid'] = 'therapeutic'
+        statement['evidenceLevel'] = [{'@rid': APPROVED_EVIDENCE_RIDS[0], 'displayName': 'level'}]
 
         result = convert_statements_to_alterations(
             graphkb_conn, [statement], 'disease', {'variant_rid'}

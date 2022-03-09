@@ -1,59 +1,107 @@
-import os
-from typing import Dict, List
-
 import pytest
-from graphkb import GraphKBConnection
+from graphkb import genes as gkb_genes
+from graphkb import match as gkb_match
+from graphkb import vocab as gkb_vocab
+from unittest.mock import Mock
 
 from ipr.annotate import get_gene_information
+from ipr.constants import FAILED_REVIEW_STATUS
 
-from .constants import EXCLUDE_INTEGRATION_TESTS
-
-
-@pytest.fixture(scope='class')
-def genes() -> List[Dict]:
-    graphkb_conn = GraphKBConnection()
-    graphkb_conn.login(os.environ['IPR_USER'], os.environ['IPR_PASS'])
-
-    return get_gene_information(graphkb_conn, ['kras', 'cdkn2a', 'blargh-monkeys', 'ewsr1'])
+from .util import QueryMock
 
 
-@pytest.mark.skipif(EXCLUDE_INTEGRATION_TESTS, reason="excluding long running integration tests")
-class TestGetGeneInformation:
-    def test_fetches_tumour_suppressors(self, genes: List[Dict]) -> None:
-        assert genes
-        gene = [g for g in genes if g['name'] == 'cdkn2a']
-        assert gene
-        assert 'tumourSuppressor' in gene[0]
-        assert gene[0]['tumourSuppressor']
+@pytest.mark.parametrize(
+    'gene,flags',
+    [
+        ['fusionPartnerGene', ['knownFusionPartner', 'cancerRelated']],
+        ['smallMutationGene', ['knownSmallMutation', 'cancerRelated']],
+        ['cancerRelatedGene', ['cancerRelated']],
+        ['therapyAssociatedGene1', ['therapeuticAssociated']],
+        ['therapyAssociatedGene2', ['therapeuticAssociated']],
+        ['therapyAssociatedGene3', ['therapeuticAssociated']],
+        ['oncoGene', ['oncogene']],
+        ['tumourSuppressorGene', ['tumourSuppressor']],
+    ],
+)
+def test_get_gene_information(gene, flags, monkeypatch):
 
-    def test_fetches_oncogenes(self, genes: List[Dict]) -> None:
-        assert genes
-        gene = [g for g in genes if g['name'] == 'kras']
-        assert gene
-        assert 'oncogene' in gene[0]
-        assert gene[0]['oncogene']
+    # mock the API connection class
+    graphkb_conn = Mock(
+        query=QueryMock(
+            [
+                # variants to return
+                [
+                    {'reference1': 'fusionGene1', 'reference2': 'fusionPartnerGene'},
+                    {
+                        'reference1': 'smallMutationGene',
+                        '@class': 'PositionalVariant',
+                        'reference2': None,
+                    },
+                    {
+                        'reference1': 'cancerRelatedGene',
+                        '@class': 'CategoryVariant',
+                        'reference2': None,
+                    },
+                ],
+                # mock the return statements
+                [
+                    {'reviewStatus': FAILED_REVIEW_STATUS},
+                    {
+                        'reviewStatus': '',
+                        'conditions': [
+                            {'@class': 'Feature', '@rid': 'therapyAssociatedGene1'},
+                            {
+                                '@class': 'Variant',
+                                'reference1': {
+                                    '@rid': 'therapyAssociatedGene2',
+                                    '@class': 'Feature',
+                                },
+                                'reference2': None,
+                            },
+                            {
+                                '@class': 'PositionalVariant',
+                                'reference1': {
+                                    '@rid': 'therapyAssociatedGene2',
+                                    '@class': 'Feature',
+                                },
+                                'reference2': None,
+                            },
+                            {
+                                '@class': 'CategoryVariant',
+                                'reference1': {'@rid': 'someGene', '@class': 'Feature'},
+                                'reference2': {
+                                    '@rid': 'therapyAssociatedGene3',
+                                    '@class': 'Feature',
+                                },
+                            },
+                        ],
+                    },
+                ],
+            ]
+        ),
+        cache={},
+    )
 
-    def test_fetches_cancer_genes(self, genes: List[Dict]) -> None:
-        assert genes
-        cancer_genes = [g for g in genes if g.get('cancerRelated', False)]
-        assert cancer_genes
+    monkeypatch.setattr(gkb_vocab, 'get_terms_set', lambda conn, term: ['anything'])
+    monkeypatch.setattr(gkb_genes, 'get_oncokb_oncogenes', lambda conn: [{'@rid': 'oncoGene'}])
+    monkeypatch.setattr(
+        gkb_genes, 'get_oncokb_tumour_supressors', lambda conn: [{'@rid': 'tumourSuppressorGene'}]
+    )
+    monkeypatch.setattr(gkb_match, 'get_equivalent_features', lambda conn, term: [{'@rid': term}])
 
-    def test_ignores_noninteresting_genes(self, genes: List[Dict]) -> None:
-        assert genes
-        names = [g['name'] for g in genes]
-        assert 'blargh-monkeys' not in names
+    info = get_gene_information(
+        graphkb_conn,
+        [gene],
+    )
 
-    def test_fetches_fusion_partner_genes(self, genes: List[Dict]) -> None:
-        assert genes
-        names = [g['name'] for g in genes if g.get('knownFusionPartner')]
-        assert 'ewsr1' in names
+    assert info
+    gene_info = [i for i in info if i['name'] == gene]
+    assert len(gene_info) == 1
+    gene_info = gene_info[0]
+    for flag in flags:
+        assert flag in gene_info
+        assert gene_info[flag]
 
-    def test_fetches_small_mutation_genes(self, genes: List[Dict]) -> None:
-        assert genes
-        names = [g['name'] for g in genes if g.get('knownSmallMutation')]
-        assert 'kras' in names
-
-    def test_fetches_therapeutic_genes(self, genes: List[Dict]) -> None:
-        assert genes
-        names = [g['name'] for g in genes if g.get('therapeuticAssociated')]
-        assert 'cdkn2a' in names
+    for attr in gene_info:
+        if attr not in {'name'} | set(flags):
+            assert not gene_info[attr], f'expected {attr} to be False'
