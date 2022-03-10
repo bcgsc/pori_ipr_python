@@ -3,9 +3,9 @@ Contains functions specific to formatting reports for IPR that are unlikely to b
 by other reporting systems
 """
 from graphkb import GraphKBConnection
-from graphkb.statement import categorize_relevance
+from graphkb import statement as gkb_statement
+from graphkb import vocab as gkb_vocab
 from graphkb.types import Ontology, Statement
-from graphkb.vocab import get_term_tree
 from typing import Dict, Iterable, List, Set, Tuple
 
 from .constants import APPROVED_EVIDENCE_LEVELS, VARIANT_CLASSES
@@ -90,7 +90,8 @@ def convert_statements_to_alterations(
         - only report disease matched prognostic markers https://www.bcgsc.ca/jira/browse/GERO-72 and GERO-196
     """
     disease_matches = {
-        r['@rid'] for r in get_term_tree(graphkb_conn, disease_name, ontology_class='Disease')
+        r['@rid']
+        for r in gkb_vocab.get_term_tree(graphkb_conn, disease_name, ontology_class='Disease')
     }
 
     if not disease_matches:
@@ -111,7 +112,7 @@ def convert_statements_to_alterations(
 
         disease_match = len(diseases) == 1 and diseases[0]['@rid'] in disease_matches
 
-        ipr_section = categorize_relevance(graphkb_conn, relevance_id)
+        ipr_section = gkb_statement.categorize_relevance(graphkb_conn, relevance_id)
 
         if ipr_section == 'therapeutic':
             for level in statement['evidenceLevel'] or []:

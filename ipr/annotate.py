@@ -4,23 +4,17 @@ handles annotating variants with annotation information from graphkb
 from requests.exceptions import HTTPError
 
 from graphkb import GraphKBConnection
+from graphkb import genes as gkb_genes
+from graphkb import match as gkb_match
+from graphkb import vocab as gkb_vocab
 from graphkb.constants import (
     BASE_RETURN_PROPERTIES,
     BASE_THERAPEUTIC_TERMS,
     GENERIC_RETURN_PROPERTIES,
 )
-from graphkb.genes import get_oncokb_oncogenes, get_oncokb_tumour_supressors
-from graphkb.match import (
-    INPUT_COPY_CATEGORIES,
-    get_equivalent_features,
-    match_category_variant,
-    match_copy_variant,
-    match_expression_variant,
-    match_positional_variant,
-)
+from graphkb.match import INPUT_COPY_CATEGORIES
 from graphkb.types import Record, Statement, Variant
 from graphkb.util import FeatureNotFoundError, convert_to_rid_list
-from graphkb.vocab import get_terms_set
 from progressbar import progressbar
 from typing import Dict, Iterable, List, Set
 
@@ -31,7 +25,7 @@ from .util import convert_to_rid_set, logger
 
 
 def get_therapeutic_associated_genes(graphkb_conn: GraphKBConnection) -> Set[str]:
-    therapeutic_relevance = get_terms_set(graphkb_conn, BASE_THERAPEUTIC_TERMS)
+    therapeutic_relevance = gkb_vocab.get_terms_set(graphkb_conn, BASE_THERAPEUTIC_TERMS)
     statements = graphkb_conn.query(
         {
             'target': 'Statement',
@@ -94,16 +88,18 @@ def get_gene_information(
             gene_flags['knownSmallMutation'].add(variant['reference1'])
 
     logger.info('fetching oncogenes list')
-    gene_flags['oncogene'] = convert_to_rid_set(get_oncokb_oncogenes(graphkb_conn))
+    gene_flags['oncogene'] = convert_to_rid_set(gkb_genes.get_oncokb_oncogenes(graphkb_conn))
     logger.info('fetching tumour supressors list')
-    gene_flags['tumourSuppressor'] = convert_to_rid_set(get_oncokb_tumour_supressors(graphkb_conn))
+    gene_flags['tumourSuppressor'] = convert_to_rid_set(
+        gkb_genes.get_oncokb_tumour_supressors(graphkb_conn)
+    )
     logger.info('fetching therapeutic associated genes lists')
     gene_flags['therapeuticAssociated'] = get_therapeutic_associated_genes(graphkb_conn)
 
     result = []
 
     for gene_name in gene_names:
-        equivalent = convert_to_rid_set(get_equivalent_features(graphkb_conn, gene_name))
+        equivalent = convert_to_rid_set(gkb_match.get_equivalent_features(graphkb_conn, gene_name))
 
         row = IprGene({'name': gene_name})
 
@@ -173,7 +169,7 @@ def get_second_pass_variants(
     }
 
     for (reference1, variant_type) in inferred_variants:
-        variants = match_category_variant(graphkb_conn, reference1, variant_type)
+        variants = gkb_match.match_category_variant(graphkb_conn, reference1, variant_type)
 
         for variant in variants:
             all_inferred_matches[variant['@rid']] = variant
@@ -261,9 +257,9 @@ def annotate_category_variants(
 
         try:
             if copy_variant:
-                matches = match_copy_variant(graphkb_conn, gene, variant)
+                matches = gkb_match.match_copy_variant(graphkb_conn, gene, variant)
             else:
-                matches = match_expression_variant(graphkb_conn, gene, variant)
+                matches = gkb_match.match_expression_variant(graphkb_conn, gene, variant)
 
             for ipr_row in get_ipr_statements_from_variants(graphkb_conn, matches, disease_name):
                 new_row = KbMatch({'variant': row['key'], 'variantType': row['variantType']})
@@ -318,7 +314,7 @@ def annotate_positional_variants(
             continue
 
         try:
-            matches = match_positional_variant(graphkb_conn, variant)
+            matches = gkb_match.match_positional_variant(graphkb_conn, variant)
 
             for ipr_row in get_ipr_statements_from_variants(graphkb_conn, matches, disease_name):
                 new_row = KbMatch({'variant': row['key'], 'variantType': row['variantType']})
