@@ -146,6 +146,7 @@ def convert_statements_to_alterations(
                     if statement['source']
                     else None,
                     'externalStatementId': statement.get('sourceId'),
+                    'reviewStatus': statement['reviewStatus'],
                 }
             )
             rows.append(row)
