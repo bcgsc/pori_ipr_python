@@ -24,6 +24,7 @@ class KbMatch(TypedDict):
     kbRelevanceId: str
     externalSource: str
     externalStatementId: str
+    reviewStatus: str
 
 
 class IprGeneVariant(TypedDict):

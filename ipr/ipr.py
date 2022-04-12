@@ -107,18 +107,18 @@ def convert_statements_to_alterations(
         pmid = ';'.join([e['displayName'] for e in statement['evidence']])
 
         relevance_id = statement['relevance']['@rid']
-
-        approved_therapy = False
+        review_status = statement['reviewStatus'] if 'reviewStatus' in statement else ''
 
         disease_match = len(diseases) == 1 and diseases[0]['@rid'] in disease_matches
 
         ipr_section = gkb_statement.categorize_relevance(graphkb_conn, relevance_id)
-
+        approved_therapy = False
         if ipr_section == 'therapeutic':
             for level in statement['evidenceLevel'] or []:
                 if level['@rid'] in approved:
                     approved_therapy = True
                     break
+
         if ipr_section == 'prognostic' and not disease_match:
             continue  # GERO-72 / GERO-196
 
@@ -146,6 +146,7 @@ def convert_statements_to_alterations(
                     if statement['source']
                     else None,
                     'externalStatementId': statement.get('sourceId'),
+                    'reviewStatus': review_status,
                 }
             )
             rows.append(row)
