@@ -26,6 +26,7 @@ from .types import KbMatch
 from .util import LOG_LEVELS, logger, trim_empty_values
 
 CACHE_GENE_MINIMUM = 5000
+GERMLINE_BASE_TERMS = ('pharmacogenomic', 'cancer predisposition')  # based on graphkb.constants
 
 
 def file_path(path: str) -> str:
@@ -47,11 +48,7 @@ def command_interface() -> None:
         default=os.environ.get('USER'),
         help='username to use connecting to graphkb/ipr',
     )
-    req.add_argument(
-        '--password',
-        required=True,
-        help='password to use connecting to graphkb/ipr',
-    )
+    req.add_argument('--password', required=True, help='password to use connecting to graphkb/ipr')
     req.add_argument(
         '-c', '--content', required=True, type=file_path, help="Report Content as JSON"
     )
@@ -68,9 +65,7 @@ def command_interface() -> None:
         help='Turn off generating the analyst comments section of the report',
     )
     parser.add_argument(
-        '-o',
-        '--output_json_path',
-        help='path to a JSON to output the report upload body',
+        '-o', '--output_json_path', help='path to a JSON to output the report upload body'
     )
     parser.add_argument(
         '-w',
@@ -104,11 +99,7 @@ def clean_unsupported_content(upload_content: Dict) -> Dict:
     or to support upcoming and soon to be supported content that we would like
     to implement but is not yet supported by the upload
     """
-    drop_columns = [
-        'variant',
-        'variantType',
-        'histogramImage',
-    ]
+    drop_columns = ['variant', 'variantType', 'histogramImage']
     for variant_section in [
         'expressionVariants',
         'smallMutations',
@@ -139,6 +130,7 @@ def create_report(
     graphkb_url: str = '',
     generate_therapeutics: bool = False,
     generate_comments: bool = True,
+    match_germline: bool = True,
 ) -> Dict:
     """
     Run the matching and create the report JSON for upload to IPR
@@ -156,6 +148,7 @@ def create_report(
         cache_gene_minimum: minimum number of genes required for gene name caching optimization
         generate_therapeutics: create therapeutic options for upload with the report
         generate_comments: create the analyst comments section for upload with the report
+        match_germline: check for germline status for matching
 
     Returns:
         ipr_conn.upload_report return dictionary
@@ -219,12 +212,30 @@ def create_report(
         )
     )
 
-    logger.info('fetching gene annotations')
-    gene_information = get_gene_information(graphkb_conn, genes_with_variants)
-
     all_variants = expression_variants + copy_variants + structural_variants + small_mutations
+    if match_germline:
+        if germ_alts := [alt for alt in alterations if alt['category'] in GERMLINE_BASE_TERMS]:
+            logger.info(f"checking germline status of {GERMLINE_BASE_TERMS}")
+            alterations = [alt for alt in alterations if alt not in germ_alts]
+            for alt in germ_alts:
+                var_list = [v for v in all_variants if v['key'] == alt['variant']]
+                germline_var_list = [v for v in var_list if 'germline' in v and v['germline']]
+                if germline_var_list:
+                    alterations.append(alt)
+                elif var_list:
+                    logger.info(
+                        f"Dropping somatic match to kbStatementId:{alt['kbStatementId']}: {alt['kbVariant']} {alt['category']}"
+                    )
+                else:
+                    logger.error(
+                        f"germline check fail for: {alt['kbStatementId']}: {alt['kbVariant']} {alt['category']}"
+                    )
+                    alterations.append(alt)
 
     key_alterations, variant_counts = create_key_alterations(alterations, all_variants)
+
+    logger.info('fetching gene annotations')
+    gene_information = get_gene_information(graphkb_conn, genes_with_variants)
 
     if generate_therapeutics:
         logger.info('generating therapeutic options')
@@ -236,10 +247,7 @@ def create_report(
     if generate_comments:
         comments = {
             'comments': summarize(
-                graphkb_conn,
-                alterations,
-                disease_name=kb_disease_match,
-                variants=all_variants,
+                graphkb_conn, alterations, disease_name=kb_disease_match, variants=all_variants
             )
         }
     else:
