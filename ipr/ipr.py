@@ -8,7 +8,7 @@ from graphkb import vocab as gkb_vocab
 from graphkb.types import Ontology, Statement
 from typing import Dict, Iterable, List, Set, Tuple
 
-from .constants import APPROVED_EVIDENCE_LEVELS, VARIANT_CLASSES
+from .constants import APPROVED_EVIDENCE_LEVELS, GERMLINE_BASE_TERMS, VARIANT_CLASSES
 from .types import ImageDefinition, IprGene, IprStructuralVariant, IprVariant, KbMatch
 from .util import convert_to_rid_set, find_variant
 
@@ -190,8 +190,7 @@ def select_expression_plots(
 
 
 def create_key_alterations(
-    kb_matches: List[KbMatch],
-    all_variants: List[IprVariant],
+    kb_matches: List[KbMatch], all_variants: List[IprVariant]
 ) -> Tuple[List[Dict], Dict]:
     """
     Creates the list of genomic key alterations which summarizes all the variants matched by the KB
@@ -202,7 +201,7 @@ def create_key_alterations(
     type_mapping = {
         'mut': 'smallMutations',
         'cnv': 'CNVs',
-        'sv': "SVs",
+        'sv': 'SVs',
         'exp': 'expressionOutliers',
     }
     counts: Dict[str, Set] = {v: set() for v in type_mapping.values()}
@@ -222,6 +221,8 @@ def create_key_alterations(
         elif variant_type == 'cnv':
             gene = variant['gene']
             alterations.append(f'{gene} ({variant["cnvState"]})')
+        elif kb_match['category'] in GERMLINE_BASE_TERMS:
+            alterations.append(f"germline {variant['variant']}")
         else:
             alterations.append(variant['variant'])
 

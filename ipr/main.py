@@ -9,7 +9,7 @@ from typing import Dict, List
 
 from .annotate import annotate_category_variants, annotate_positional_variants, get_gene_information
 from .connection import IprConnection
-from .constants import DEFAULT_URL
+from .constants import DEFAULT_URL, GERMLINE_BASE_TERMS
 from .inputs import (
     check_comparators,
     check_variant_links,
@@ -26,7 +26,6 @@ from .types import KbMatch
 from .util import LOG_LEVELS, logger, trim_empty_values
 
 CACHE_GENE_MINIMUM = 5000
-GERMLINE_BASE_TERMS = ('pharmacogenomic', 'cancer predisposition')  # based on graphkb.constants
 
 
 def file_path(path: str) -> str:
@@ -221,6 +220,9 @@ def create_report(
                 var_list = [v for v in all_variants if v['key'] == alt['variant']]
                 germline_var_list = [v for v in var_list if 'germline' in v and v['germline']]
                 if germline_var_list:
+                    logger.info(
+                        f"germline kbStatementId:{alt['kbStatementId']}: {alt['kbVariant']} {alt['category']}"
+                    )
                     alterations.append(alt)
                 elif var_list:
                     logger.info(
