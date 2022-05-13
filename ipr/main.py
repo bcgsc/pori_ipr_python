@@ -218,7 +218,8 @@ def create_report(
     all_variants = expression_variants + copy_variants + structural_variants + small_mutations
 
     if match_germline:  # verify germline kb statements matched germline observed variants
-        if germ_alts := [alt for alt in alterations if alt['category'] in GERMLINE_BASE_TERMS]:
+        germ_alts = [alt for alt in alterations if alt['category'] in GERMLINE_BASE_TERMS]
+        if germ_alts:
             logger.info(f"checking germline status of {GERMLINE_BASE_TERMS}")
             alterations = [alt for alt in alterations if alt not in germ_alts]
             for alt in germ_alts:
