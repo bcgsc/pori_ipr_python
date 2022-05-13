@@ -130,6 +130,7 @@ def create_report(
     generate_therapeutics: bool = False,
     generate_comments: bool = True,
     match_germline: bool = True,
+    kb_match_filters: List[Dict] = [],
 ) -> Dict:
     """
     Run the matching and create the report JSON for upload to IPR
@@ -148,6 +149,9 @@ def create_report(
         generate_therapeutics: create therapeutic options for upload with the report
         generate_comments: create the analyst comments section for upload with the report
         match_germline: check for germline status for matching
+        kb_match_filters: filtered out properties [{alteration_field:(bool=require/exclude, values)}]
+                          eg. Exclude cancer predisposition matches if 'externalSource' not 'CGL'
+                          [{'category': (True, ['cancer predisposition']), 'externalSource': (False, ['CGL'])}]
 
     Returns:
         ipr_conn.upload_report return dictionary
@@ -212,7 +216,8 @@ def create_report(
     )
 
     all_variants = expression_variants + copy_variants + structural_variants + small_mutations
-    if match_germline:
+
+    if match_germline:  # verify germline kb statements matched germline observed variants
         if germ_alts := [alt for alt in alterations if alt['category'] in GERMLINE_BASE_TERMS]:
             logger.info(f"checking germline status of {GERMLINE_BASE_TERMS}")
             alterations = [alt for alt in alterations if alt not in germ_alts]
@@ -234,6 +239,27 @@ def create_report(
                     )
                     alterations.append(alt)
 
+    if kb_match_filters:
+        logger.info('filtering kbmatched alterations.')
+        filtered_alts = []
+        for alt in alterations:
+            for filter_dict in kb_match_filters:
+                filtered_pos = all(
+                    [alt[field] in values for field, (comp, values) in filter_dict.items() if comp]
+                )
+                filtered_exclude = all(
+                    [
+                        alt[field] not in values
+                        for field, (comp, values) in filter_dict.items()
+                        if not comp
+                    ]
+                )
+                if filtered_pos and filtered_exclude:
+                    logger.info(
+                        f"Dropping kbStatementId:{alt['kbStatementId']}: {alt['kbVariant']} - {filter_dict}"
+                    )
+                    filtered_alts.append(alt)
+        alterations = [alt for alt in alterations if alt not in filtered_alts]
     key_alterations, variant_counts = create_key_alterations(alterations, all_variants)
 
     logger.info('fetching gene annotations')
