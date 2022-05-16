@@ -53,7 +53,7 @@ def create_therapeutic_options(
         return options
     options_df = pandas.DataFrame.from_records(options)
 
-    def delimited_list(inputs, delimiter=' / ') -> str:
+    def delimited_list(inputs: List, delimiter: str = ' / ') -> str:
         return delimiter.join(sorted(list({i for i in inputs if i})))
 
     options_df = options_df.groupby(['gene', 'type', 'therapy', 'variant']).agg(
