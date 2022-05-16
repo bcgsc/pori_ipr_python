@@ -242,7 +242,7 @@ def create_key_alterations(
     )
 
 
-def germline_kb_matches(kb_matches: List[KbMatch], all_variants: List[IprVariant]) -> List[KbMatch]:
+def germline_kb_matches(kb_matches: List[KbMatch], all_variants: List[IprVariant], assume_somatic: bool = True) -> List[KbMatch]:
     """Remove germline statements, eg. pharmacogenomic or cancer predisposition, matched to somatic variants."""
     germ_alts = [alt for alt in kb_matches if alt['category'] in GERMLINE_BASE_TERMS]
     ret_list = [alt for alt in kb_matches if alt not in germ_alts]
@@ -260,11 +260,12 @@ def germline_kb_matches(kb_matches: List[KbMatch], all_variants: List[IprVariant
                 logger.info(
                     f"Dropping somatic match to kbStatementId:{alt['kbStatementId']}: {alt['kbVariant']} {alt['category']}"
                 )
-            else:
+            else:  # no data
                 logger.error(
                     f"germline check fail for: {alt['kbStatementId']}: {alt['kbVariant']} {alt['category']}"
                 )
-                ret_list.append(alt)
+                if not assume_somatic:
+                    ret_list.append(alt)
     return ret_list
 
 
@@ -277,7 +278,6 @@ def filter_kb_matches(
                     eg. Exclude cancer predisposition matches if 'externalSource' not 'CGL'
                     [{'category': (True, ['cancer predisposition']), 'externalSource': (False, ['CGL'])}]
     """
-    logger.info('filtering kbmatched alterations.')
     filtered_alts = []
     for alt in kb_matches:
         for filter_dict in kb_match_filters:

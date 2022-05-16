@@ -4,11 +4,10 @@ from graphkb import vocab as gkb_vocab
 from graphkb.types import Statement
 from unittest.mock import Mock
 
-from ipr.ipr import convert_statements_to_alterations, germline_kb_matches
+from ipr.ipr import convert_statements_to_alterations, filter_kb_matches, germline_kb_matches
 
 DISEASE_RIDS = ['#138:12', '#138:13']
 APPROVED_EVIDENCE_RIDS = ['approved1', 'approved2']
-
 GERMLINE_VARIANTS = [
     {
         'altSeq': 'T',
@@ -90,6 +89,26 @@ PCP_KB_MATCHES = [
         'relevance': 'decreased toxicity',
         'reviewStatus': 'initial',
         'variant': '584ffc37bfc37efc41a53a221a93a1f3',
+        'variantType': 'mut',
+    },
+    {
+        'approvedTherapy': False,
+        'category': 'cancer predisposition',
+        'context': 'prostate adenocarcinoma [PRAD]',
+        'disease': 'prostate adenocarcinoma [PRAD]',
+        'evidenceLevel': 'MOAlmanac FDA-Approved',
+        'externalSource': 'MOAlmanac',
+        'externalStatementId': '621',
+        'kbContextId': '#135:8764',
+        'kbRelevanceId': '#147:32',
+        'kbStatementId': '#155:13511',
+        'kbVariant': 'BRCA1 mutation',
+        'kbVariantId': '#161:938',
+        'matchedCancer': False,
+        'reference': 'MOAlmanac FDA-56',
+        'relevance': 'pathogenic',
+        'reviewStatus': None,
+        'variant': '7158e8931eda66a7d0cf9e0313d82561',
         'variantType': 'mut',
     },
 ]
@@ -265,3 +284,24 @@ class TestKbmatchFilters:
         assert not germline_kb_matches(
             PCP_KB_MATCHES, SOMATIC_VARIANTS
         ), "Somatic variant matched to KB pharmacogenomic by germline_kb_matches"
+
+    def test_filter_kb_matches(self):
+        assert filter_kb_matches(PCP_KB_MATCHES, []), "filter_kb_matches no filter returned nothing"
+        # filter from GERO-238 - only report cancer predisposition matches from CGL source.
+        kb_match_filters = [
+            {'category': (True, ['pharmacogenomic'])},
+            {'category': (True, ['cancer predisposition']), 'externalSource': (False, ['CGL'])},
+        ]
+        assert not filter_kb_matches(
+            PCP_KB_MATCHES, kb_match_filters
+        ), "filter_kb_matches returned non-CGL filter"
+        kb_match_filters = [
+            {'category': (True, ['pharmacogenomic'])},
+            {
+                'category': (True, ['cancer predisposition']),
+                'externalSource': (False, ['MOAlmanac']),
+            },
+        ]
+        assert filter_kb_matches(
+            PCP_KB_MATCHES, kb_match_filters
+        ), "filter_kb_matches failed externalSource filter"
