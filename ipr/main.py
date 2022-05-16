@@ -21,8 +21,8 @@ from .inputs import (
 )
 from .ipr import (
     create_key_alterations,
-    filter_structural_variants,
     filter_kb_matches,
+    filter_structural_variants,
     germline_kb_matches,
     select_expression_plots,
 )
