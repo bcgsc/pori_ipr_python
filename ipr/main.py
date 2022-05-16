@@ -9,7 +9,7 @@ from typing import Dict, List
 
 from .annotate import annotate_category_variants, annotate_positional_variants, get_gene_information
 from .connection import IprConnection
-from .constants import DEFAULT_URL, GERMLINE_BASE_TERMS
+from .constants import DEFAULT_URL
 from .inputs import (
     check_comparators,
     check_variant_links,
