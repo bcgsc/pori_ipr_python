@@ -191,26 +191,26 @@ def create_report(
     )
 
     # filter excess variants not required for extra gene information
-    logger.info(f'annotating small mutations')
+    logger.info(f'annotating {len(small_mutations)} small mutations')
     alterations: List[KbMatch] = annotate_positional_variants(
         graphkb_conn, small_mutations, kb_disease_match, show_progress=interactive
     )
 
-    logger.info(f'annotating structural variants')
+    logger.info(f'annotating {len(structural_variants)} structural variants')
     alterations.extend(
         annotate_positional_variants(
             graphkb_conn, structural_variants, kb_disease_match, show_progress=interactive
         )
     )
 
-    logger.info(f'annotating copy variants')
+    logger.info(f'annotating {len(copy_variants)} copy variants')
     alterations.extend(
         annotate_category_variants(
             graphkb_conn, copy_variants, kb_disease_match, show_progress=interactive
         )
     )
 
-    logger.info(f'annotating expression variants')
+    logger.info(f'annotating {len(expression_variants)} expression variants')
     alterations.extend(
         annotate_category_variants(
             graphkb_conn,

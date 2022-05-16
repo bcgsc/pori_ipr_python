@@ -269,7 +269,7 @@ def germline_kb_matches(kb_matches: List[KbMatch], all_variants: List[IprVariant
 
 
 def filter_kb_matches(
-    kb_matches: List[KbMatch], kb_match_filters: List[Dict], exclude_matches=True
+    kb_matches: List[KbMatch], kb_match_filters: List[Dict], exclude_matches: bool = True
 ) -> List[KbMatch]:
     """Filter kb_matches results by arbitrary properties.
 
