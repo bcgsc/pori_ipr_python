@@ -242,7 +242,9 @@ def create_key_alterations(
     )
 
 
-def germline_kb_matches(kb_matches: List[KbMatch], all_variants: List[IprVariant], assume_somatic: bool = True) -> List[KbMatch]:
+def germline_kb_matches(
+    kb_matches: List[KbMatch], all_variants: List[IprVariant], assume_somatic: bool = True
+) -> List[KbMatch]:
     """Remove germline statements, eg. pharmacogenomic or cancer predisposition, matched to somatic variants."""
     germ_alts = [alt for alt in kb_matches if alt['category'] in GERMLINE_BASE_TERMS]
     ret_list = [alt for alt in kb_matches if alt not in germ_alts]
