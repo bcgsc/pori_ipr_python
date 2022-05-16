@@ -22,6 +22,7 @@ from .inputs import (
 from .ipr import (
     create_key_alterations,
     filter_structural_variants,
+    filter_kb_matches,
     germline_kb_matches,
     select_expression_plots,
 )
@@ -227,25 +228,8 @@ def create_report(
 
     if kb_match_filters:
         logger.info('filtering kbmatched alterations.')
-        filtered_alts = []
-        for alt in alterations:
-            for filter_dict in kb_match_filters:
-                filtered_pos = all(
-                    [alt[field] in values for field, (comp, values) in filter_dict.items() if comp]
-                )
-                filtered_exclude = all(
-                    [
-                        alt[field] not in values
-                        for field, (comp, values) in filter_dict.items()
-                        if not comp
-                    ]
-                )
-                if filtered_pos and filtered_exclude:
-                    logger.info(
-                        f"Dropping kbStatementId:{alt['kbStatementId']}: {alt['kbVariant']} - {filter_dict}"
-                    )
-                    filtered_alts.append(alt)
-        alterations = [alt for alt in alterations if alt not in filtered_alts]
+        alterations = filter_kb_matches(alterations, kb_match_filters)
+
     key_alterations, variant_counts = create_key_alterations(alterations, all_variants)
 
     logger.info('fetching gene annotations')
