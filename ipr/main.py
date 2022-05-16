@@ -19,7 +19,12 @@ from .inputs import (
     preprocess_structural_variants,
     validate_report_content,
 )
-from .ipr import create_key_alterations, filter_structural_variants, select_expression_plots
+from .ipr import (
+    create_key_alterations,
+    filter_structural_variants,
+    germline_kb_matches,
+    select_expression_plots,
+)
 from .summary import summarize
 from .therapeutic_options import create_therapeutic_options
 from .types import KbMatch
@@ -218,27 +223,7 @@ def create_report(
     all_variants = expression_variants + copy_variants + structural_variants + small_mutations
 
     if match_germline:  # verify germline kb statements matched germline observed variants
-        germ_alts = [alt for alt in alterations if alt['category'] in GERMLINE_BASE_TERMS]
-        if germ_alts:
-            logger.info(f"checking germline status of {GERMLINE_BASE_TERMS}")
-            alterations = [alt for alt in alterations if alt not in germ_alts]
-            for alt in germ_alts:
-                var_list = [v for v in all_variants if v['key'] == alt['variant']]
-                germline_var_list = [v for v in var_list if 'germline' in v and v['germline']]
-                if germline_var_list:
-                    logger.info(
-                        f"germline kbStatementId:{alt['kbStatementId']}: {alt['kbVariant']} {alt['category']}"
-                    )
-                    alterations.append(alt)
-                elif var_list:
-                    logger.info(
-                        f"Dropping somatic match to kbStatementId:{alt['kbStatementId']}: {alt['kbVariant']} {alt['category']}"
-                    )
-                else:
-                    logger.error(
-                        f"germline check fail for: {alt['kbStatementId']}: {alt['kbVariant']} {alt['category']}"
-                    )
-                    alterations.append(alt)
+        alterations = germline_kb_matches(alterations, all_variants)
 
     if kb_match_filters:
         logger.info('filtering kbmatched alterations.')

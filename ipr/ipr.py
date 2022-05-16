@@ -10,7 +10,7 @@ from typing import Dict, Iterable, List, Set, Tuple
 
 from .constants import APPROVED_EVIDENCE_LEVELS, GERMLINE_BASE_TERMS, VARIANT_CLASSES
 from .types import ImageDefinition, IprGene, IprStructuralVariant, IprVariant, KbMatch
-from .util import convert_to_rid_set, find_variant
+from .util import convert_to_rid_set, find_variant, logger
 
 
 def display_evidence_levels(statement: Statement) -> str:
@@ -240,3 +240,29 @@ def create_key_alterations(
         [{'geneVariant': alt} for alt in set(alterations)],
         {k: len(v) for k, v in counts.items()},
     )
+
+
+def germline_kb_matches(kb_matches: List[KbMatch], all_variants: List[IprVariant]) -> List[KbMatch]:
+    """Remove germline statements, eg. pharmacogenomic or cancer predisposition, matched to somatic variants."""
+    germ_alts = [alt for alt in kb_matches if alt['category'] in GERMLINE_BASE_TERMS]
+    ret_list = [alt for alt in kb_matches if alt not in germ_alts]
+    if germ_alts:
+        logger.info(f"checking germline status of {GERMLINE_BASE_TERMS}")
+        for alt in germ_alts:
+            var_list = [v for v in all_variants if v['key'] == alt['variant']]
+            germline_var_list = [v for v in var_list if 'germline' in v and v['germline']]
+            if germline_var_list:
+                logger.info(
+                    f"germline kbStatementId:{alt['kbStatementId']}: {alt['kbVariant']} {alt['category']}"
+                )
+                ret_list.append(alt)
+            elif var_list:
+                logger.info(
+                    f"Dropping somatic match to kbStatementId:{alt['kbStatementId']}: {alt['kbVariant']} {alt['category']}"
+                )
+            else:
+                logger.error(
+                    f"germline check fail for: {alt['kbStatementId']}: {alt['kbVariant']} {alt['category']}"
+                )
+                ret_list.append(alt)
+    return ret_list
