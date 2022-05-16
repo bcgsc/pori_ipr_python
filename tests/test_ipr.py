@@ -4,10 +4,95 @@ from graphkb import vocab as gkb_vocab
 from graphkb.types import Statement
 from unittest.mock import Mock
 
-from ipr.ipr import convert_statements_to_alterations
+from ipr.ipr import convert_statements_to_alterations, germline_kb_matches
 
 DISEASE_RIDS = ['#138:12', '#138:13']
 APPROVED_EVIDENCE_RIDS = ['approved1', 'approved2']
+
+GERMLINE_VARIANTS = [
+    {
+        'altSeq': 'T',
+        'chromosome': 'chr9',
+        'endPosition': 84286011,
+        'gene': 'SLC28A3',
+        'germline': True,
+        'hgvsCds': 'SLC28A3:c.1381C>T',
+        'hgvsGenomic': 'chr9:g.84286011G>A',
+        'hgvsProtein': 'SLC28A3:p.L461L',
+        'key': '584ffc37bfc37efc41a53a221a93a1f3',
+        'ncbiBuild': 'GRCh38',
+        'normalAltCount': 37,
+        'normalDepth': 37,
+        'normalRefCount': 0,
+        'proteinChange': 'p.L461L',
+        'refSeq': 'C',
+        'rnaAltCount': '',
+        'rnaDepth': '',
+        'rnaRefCount': '',
+        'startPosition': 84286011,
+        'transcript': 'ENST00000376238',
+        'tumourAltCount': '',
+        'tumourDepth': '',
+        'tumourRefCount': '',
+        'variant': 'SLC28A3:p.L461L',
+        'variantType': 'mut',
+        'zygosity': '',
+    }
+]
+
+SOMATIC_VARIANTS = [
+    {
+        'altSeq': 'T',
+        'chromosome': 'chr9',
+        'endPosition': 84286011,
+        'gene': 'SLC28A3',
+        'germline': False,
+        'hgvsCds': 'SLC28A3:c.1381C>T',
+        'hgvsGenomic': 'chr9:g.84286011G>A',
+        'hgvsProtein': 'SLC28A3:p.L461L',
+        'key': '584ffc37bfc37efc41a53a221a93a1f3',
+        'ncbiBuild': 'GRCh38',
+        'normalAltCount': 0,
+        'normalDepth': 37,
+        'normalRefCount': 37,
+        'proteinChange': 'p.L461L',
+        'refSeq': 'C',
+        'rnaAltCount': '',
+        'rnaDepth': '',
+        'rnaRefCount': '',
+        'startPosition': 84286011,
+        'transcript': 'ENST00000376238',
+        'tumourAltCount': 37,
+        'tumourDepth': 37,
+        'tumourRefCount': 0,
+        'variant': 'SLC28A3:p.L461L',
+        'variantType': 'mut',
+        'zygosity': '',
+    }
+]
+
+PCP_KB_MATCHES = [
+    {
+        'approvedTherapy': False,
+        'category': 'pharmacogenomic',
+        'context': 'anthracyclines',
+        'disease': '',
+        'evidenceLevel': '',
+        'externalSource': None,
+        'externalStatementId': None,
+        'kbContextId': '#122:20944',
+        'kbRelevanceId': '#147:38',
+        'kbStatementId': '#154:13387',
+        'kbVariant': 'SLC28A3:c.1381C>T',
+        'kbVariantId': '#159:5426',
+        'matchedCancer': False,
+        'reference': 'PMID: 27197003',
+        'relevance': 'decreased toxicity',
+        'reviewStatus': 'initial',
+        'variant': '584ffc37bfc37efc41a53a221a93a1f3',
+        'variantType': 'mut',
+    },
+]
 
 
 @pytest.fixture
@@ -170,3 +255,13 @@ class TestConvertStatementsToAlterations:
         assert len(result) == 1
         row = result[0]
         assert row['category'] == 'therapeutic'
+
+
+class TestKbmatchFilters:
+    def test_germline_kb_matches(self):
+        assert germline_kb_matches(
+            PCP_KB_MATCHES, GERMLINE_VARIANTS
+        ), "Germline variant improperly excluded by germline_kb_matches"
+        assert not germline_kb_matches(
+            PCP_KB_MATCHES, SOMATIC_VARIANTS
+        ), "Somatic variant matched to KB pharmacogenomic by germline_kb_matches"

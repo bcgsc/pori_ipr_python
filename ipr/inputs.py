@@ -210,7 +210,7 @@ def preprocess_small_mutations(rows: Iterable[Dict]) -> List[IprGeneVariant]:
     if not result:
         return result
 
-    def pick_variant(row):
+    def pick_variant(row: Dict) -> str:
         if not pandas_falsy(row['proteinChange']):
             for longAA, shortAA in protein_letters_3to1.items():
                 row['proteinChange'] = row['proteinChange'].replace(longAA, shortAA)
