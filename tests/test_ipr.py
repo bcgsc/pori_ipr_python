@@ -284,24 +284,3 @@ class TestKbmatchFilters:
         assert not germline_kb_matches(
             PCP_KB_MATCHES, SOMATIC_VARIANTS
         ), "Somatic variant matched to KB pharmacogenomic by germline_kb_matches"
-
-    def test_filter_kb_matches(self):
-        assert filter_kb_matches(PCP_KB_MATCHES, []), "filter_kb_matches no filter returned nothing"
-        # filter from GERO-238 - only report cancer predisposition matches from CGL source.
-        kb_match_filters = [
-            {'category': (True, ['pharmacogenomic'])},
-            {'category': (True, ['cancer predisposition']), 'externalSource': (False, ['CGL'])},
-        ]
-        assert not filter_kb_matches(
-            PCP_KB_MATCHES, kb_match_filters
-        ), "filter_kb_matches returned non-CGL filter"
-        kb_match_filters = [
-            {'category': (True, ['pharmacogenomic'])},
-            {
-                'category': (True, ['cancer predisposition']),
-                'externalSource': (False, ['MOAlmanac']),
-            },
-        ]
-        assert filter_kb_matches(
-            PCP_KB_MATCHES, kb_match_filters
-        ), "filter_kb_matches failed externalSource filter"
