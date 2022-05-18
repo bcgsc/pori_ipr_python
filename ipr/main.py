@@ -155,9 +155,6 @@ def create_report(
         generate_comments: create the analyst comments section for upload with the report
         match_germline: check for germline status for matching
         custom_kb_match_filter: function(List[kbMatch]) -> List[kbMatch]
-        kb_match_filters: filtered out properties [{alteration_field:(bool=require/exclude, values)}]
-                          eg. Exclude cancer predisposition matches if 'externalSource' not 'CGL'
-                          [{'category': (True, ['cancer predisposition']), 'externalSource': (False, ['CGL'])}]
 
     Returns:
         ipr_conn.upload_report return dictionary
