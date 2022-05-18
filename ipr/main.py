@@ -136,7 +136,7 @@ def create_report(
     generate_therapeutics: bool = False,
     generate_comments: bool = True,
     match_germline: bool = True,
-    custom_kb_match_filter = None,
+    custom_kb_match_filter=None,
 ) -> Dict:
     """
     Run the matching and create the report JSON for upload to IPR
