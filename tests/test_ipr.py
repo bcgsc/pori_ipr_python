@@ -4,7 +4,7 @@ from graphkb import vocab as gkb_vocab
 from graphkb.types import Statement
 from unittest.mock import Mock
 
-from ipr.ipr import convert_statements_to_alterations, filter_kb_matches, germline_kb_matches
+from ipr.ipr import convert_statements_to_alterations, germline_kb_matches
 
 DISEASE_RIDS = ['#138:12', '#138:13']
 APPROVED_EVIDENCE_RIDS = ['approved1', 'approved2']
