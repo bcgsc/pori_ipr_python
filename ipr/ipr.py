@@ -246,8 +246,9 @@ def germline_kb_matches(
     kb_matches: List[KbMatch], all_variants: List[IprVariant], assume_somatic: bool = True
 ) -> List[KbMatch]:
     """Remove germline statements, eg. pharmacogenomic or cancer predisposition, matched to somatic variants."""
+    ret_list = []
     germ_alts = [alt for alt in kb_matches if alt['category'] in GERMLINE_BASE_TERMS]
-    ret_list = [alt for alt in kb_matches if alt not in germ_alts]
+    somatic_alts = [alt for alt in kb_matches if alt not in germ_alts]
     if germ_alts:
         logger.info(f"checking germline status of {GERMLINE_BASE_TERMS}")
         for alt in germ_alts:
@@ -260,7 +261,7 @@ def germline_kb_matches(
                 ret_list.append(alt)
             elif var_list:
                 logger.info(
-                    f"Dropping somatic match to kbStatementId:{alt['kbStatementId']}: {alt['kbVariant']} {alt['category']}"
+                    f"Dropping somatic match to germline kbStatementId:{alt['kbStatementId']}: {alt['kbVariant']} {alt['category']}"
                 )
             else:  # no data
                 logger.error(
@@ -268,4 +269,18 @@ def germline_kb_matches(
                 )
                 if not assume_somatic:
                     ret_list.append(alt)
+    if somatic_alts:
+        # Remove any matches to germline events
+        for alt in somatic_alts:
+            var_list = [v for v in all_variants if v['key'] == alt['variant']]
+            somatic_var_list = [v for v in var_list if 'germline' in v and not v['germline']]
+            if assume_somatic:
+                somatic_var_list += [v for v in var_list if 'germline' not in v]
+            if somatic_var_list:
+                ret_list.append(alt)
+            else:
+                logger.info(
+                    f"Dropping germline match to somatic statement kbStatementId:{alt['kbStatementId']}: {alt['kbVariant']} {alt['category']}"
+                )
+
     return ret_list
