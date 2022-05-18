@@ -269,36 +269,3 @@ def germline_kb_matches(
                 if not assume_somatic:
                     ret_list.append(alt)
     return ret_list
-
-
-def filter_kb_matches(
-    kb_matches: List[KbMatch], kb_match_filters: List[Dict], exclude_matches: bool = True
-) -> List[KbMatch]:
-    """Filter kb_matches results by arbitrary properties.
-
-    kb_match_filters: filtered out properties [{alteration_field:(bool=require/exclude, values)}]
-                    eg. Exclude cancer predisposition matches if 'externalSource' not 'CGL'
-                    [{'category': (True, ['cancer predisposition']), 'externalSource': (False, ['CGL'])}]
-    """
-    filtered_alts = []
-    for alt in kb_matches:
-        for filter_dict in kb_match_filters:
-            filtered_pos = all(
-                [alt[field] in values for field, (comp, values) in filter_dict.items() if comp]
-            )
-            filtered_exclude = all(
-                [
-                    alt[field] not in values
-                    for field, (comp, values) in filter_dict.items()
-                    if not comp
-                ]
-            )
-            if filtered_pos and filtered_exclude:
-                logger.info(
-                    f"Dropping kbStatementId:{alt['kbStatementId']}: {alt['kbVariant']} - {filter_dict}"
-                )
-                filtered_alts.append(alt)
-    if exclude_matches:
-        return [alt for alt in kb_matches if alt not in filtered_alts]
-    else:
-        return filtered_alts

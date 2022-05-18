@@ -136,7 +136,7 @@ def create_report(
     generate_therapeutics: bool = False,
     generate_comments: bool = True,
     match_germline: bool = True,
-    kb_match_filters: List[Dict] = [],
+    custom_kb_match_filter = None,
 ) -> Dict:
     """
     Run the matching and create the report JSON for upload to IPR
@@ -155,6 +155,7 @@ def create_report(
         generate_therapeutics: create therapeutic options for upload with the report
         generate_comments: create the analyst comments section for upload with the report
         match_germline: check for germline status for matching
+        custom_kb_match_filter: function(List[kbMatch]) -> List[kbMatch]
         kb_match_filters: filtered out properties [{alteration_field:(bool=require/exclude, values)}]
                           eg. Exclude cancer predisposition matches if 'externalSource' not 'CGL'
                           [{'category': (True, ['cancer predisposition']), 'externalSource': (False, ['CGL'])}]
@@ -226,9 +227,10 @@ def create_report(
     if match_germline:  # verify germline kb statements matched germline observed variants
         alterations = germline_kb_matches(alterations, all_variants)
 
-    if kb_match_filters:
-        logger.info('filtering kbmatched alterations.')
-        alterations = filter_kb_matches(alterations, kb_match_filters)
+    if custom_kb_match_filter:
+        logger.info(f'custom_kb_match_filter on {len(alterations)}')
+        alterations = custom_kb_match_filter(alterations)
+        logger.info(f'\t Left with {len(alterations)}')
 
     key_alterations, variant_counts = create_key_alterations(alterations, all_variants)
 
