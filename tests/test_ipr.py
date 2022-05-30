@@ -10,21 +10,16 @@ DISEASE_RIDS = ['#138:12', '#138:13']
 APPROVED_EVIDENCE_RIDS = ['approved1', 'approved2']
 GERMLINE_VARIANTS = [
     {
-        'altSeq': 'T',
-        'chromosome': 'chr9',
-        'endPosition': 84286011,
-        'gene': 'SLC28A3',
+        'key': '1',
         'germline': True,
         'hgvsCds': 'SLC28A3:c.1381C>T',
         'hgvsGenomic': 'chr9:g.84286011G>A',
         'hgvsProtein': 'SLC28A3:p.L461L',
-        'key': '1',
         'ncbiBuild': 'GRCh38',
         'normalAltCount': 37,
         'normalDepth': 37,
         'normalRefCount': 0,
         'proteinChange': 'p.L461L',
-        'refSeq': 'C',
         'rnaAltCount': '',
         'rnaDepth': '',
         'rnaRefCount': '',
@@ -36,49 +31,62 @@ GERMLINE_VARIANTS = [
         'variant': 'SLC28A3:p.L461L',
         'variantType': 'mut',
         'zygosity': '',
-    }
+    },
+    {
+        'key': '2',
+        'germline': True,
+        'hgvsCds': 'BRCA1:c.4837A>',
+        'hgvsGenomic': 'chr17:g.43071077T>C',
+        'hgvsProtein': 'BRCA1:p.S1613G',
+        'normalAltCount': 33,
+        'normalDepth': 33,
+        'normalRefCount': 0,
+        'tumourAltCount': 37,
+        'tumourDepth': 37,
+        'tumourRefCount': 0,
+    },
 ]
 
 SOMATIC_VARIANTS = [
     {
-        'altSeq': 'T',
-        'chromosome': 'chr9',
-        'endPosition': 84286011,
+        'key': '1',
         'gene': 'SLC28A3',
         'germline': False,
         'hgvsCds': 'SLC28A3:c.1381C>T',
         'hgvsGenomic': 'chr9:g.84286011G>A',
         'hgvsProtein': 'SLC28A3:p.L461L',
-        'key': '2',
         'ncbiBuild': 'GRCh38',
-        'tumourAltCount': 0,
-        'tumourDepth': 37,
-        'tumourRefCount': 37,
-        'proteinChange': 'p.L461L',
-        'refSeq': 'C',
-        'rnaAltCount': '',
-        'rnaDepth': '',
-        'rnaRefCount': '',
-        'startPosition': 84286011,
-        'transcript': 'ENST00000376238',
+        'normalAltCount': 0,
+        'normalDepth': 37,
+        'normalRefCount': 37,
         'tumourAltCount': 37,
         'tumourDepth': 37,
         'tumourRefCount': 0,
         'variant': 'SLC28A3:p.L461L',
         'variantType': 'mut',
         'zygosity': '',
-    }
+    },
+    {
+        'key': '2',
+        'germline': False,
+        'hgvsCds': 'BRCA1:c.4837A>',
+        'hgvsGenomic': 'chr17:g.43071077T>C',
+        'hgvsProtein': 'BRCA1:p.S1613G',
+        'normalAltCount': 1,
+        'normalDepth': 33,
+        'normalRefCount': 32,
+        'tumourAltCount': 37,
+        'tumourDepth': 37,
+        'tumourRefCount': 0,
+    },
 ]
 
-PCP_KB_MATCHES = [
+GERMLINE_KB_MATCHES = [
     {
+        'variant': '1',
         'approvedTherapy': False,
         'category': 'pharmacogenomic',
         'context': 'anthracyclines',
-        'disease': '',
-        'evidenceLevel': '',
-        'externalSource': None,
-        'externalStatementId': None,
         'kbContextId': '#122:20944',
         'kbRelevanceId': '#147:38',
         'kbStatementId': '#154:13387',
@@ -88,17 +96,11 @@ PCP_KB_MATCHES = [
         'reference': 'PMID: 27197003',
         'relevance': 'decreased toxicity',
         'reviewStatus': 'initial',
-        'variant': '1',
-        'variantType': 'mut',
     },
     {
-        'approvedTherapy': False,
+        'variant': '2',
+        'approvedTherapy': True,
         'category': 'cancer predisposition',
-        'context': 'prostate adenocarcinoma [PRAD]',
-        'disease': 'prostate adenocarcinoma [PRAD]',
-        'evidenceLevel': 'MOAlmanac FDA-Approved',
-        'externalSource': 'MOAlmanac',
-        'externalStatementId': '621',
         'kbContextId': '#135:8764',
         'kbRelevanceId': '#147:32',
         'kbStatementId': '#155:13511',
@@ -106,12 +108,26 @@ PCP_KB_MATCHES = [
         'kbVariantId': '#161:938',
         'matchedCancer': False,
         'reference': 'MOAlmanac FDA-56',
-        'relevance': 'pathogenic',
+        'relevance': 'therapy',
         'reviewStatus': None,
-        'variant': '7158e8931eda66a7d0cf9e0313d82561',
-        'variantType': 'mut',
+    },
+]
+
+SOMATIC_KB_MATCHES = [
+    {
+        'variant': '1',
+        'approvedTherapy': False,
+        'category': 'prognostic',
+        'kbContextId': 'somatic_test',
+        'kbRelevanceId': '#147:38',
+        'kbStatementId': '#154:13387',
+        'kbVariant': 'SLC28A3:c.1381C>T',
+        'kbVariantId': '#159:5426',
+        'relevance': 'prognostic',
+        'reviewStatus': 'initial',
     },
     {
+        'variant': '2',
         'approvedTherapy': True,
         'category': 'therapy',
         'kbContextId': '#135:8764',
@@ -123,8 +139,6 @@ PCP_KB_MATCHES = [
         'reference': 'MOAlmanac FDA-56',
         'relevance': 'therapy',
         'reviewStatus': None,
-        'variant': '7158e8931eda66a7d0cf9e0313d82561',
-        'variantType': 'mut',
     },
 ]
 
@@ -293,9 +307,15 @@ class TestConvertStatementsToAlterations:
 
 class TestKbmatchFilters:
     def test_germline_kb_matches(self):
-        assert germline_kb_matches(
-            PCP_KB_MATCHES, GERMLINE_VARIANTS
+        assert len(germline_kb_matches(GERMLINE_KB_MATCHES, GERMLINE_VARIANTS)) == len(
+            GERMLINE_KB_MATCHES
         ), "Germline variant improperly excluded by germline_kb_matches"
         assert not germline_kb_matches(
-            PCP_KB_MATCHES, SOMATIC_VARIANTS
+            GERMLINE_KB_MATCHES, SOMATIC_VARIANTS
         ), "Somatic variant matched to KB pharmacogenomic by germline_kb_matches"
+        assert len(germline_kb_matches(SOMATIC_KB_MATCHES, SOMATIC_VARIANTS)) == len(
+            SOMATIC_KB_MATCHES
+        ), "Somatic variant improperly excluded by germline_kb_matches"
+        assert not germline_kb_matches(
+            SOMATIC_KB_MATCHES, GERMLINE_VARIANTS
+        ), "Germline variant matched to KB somatic by germline_kb_matches"
