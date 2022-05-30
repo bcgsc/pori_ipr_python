@@ -134,7 +134,7 @@ def create_report(
     graphkb_url: str = '',
     generate_therapeutics: bool = False,
     generate_comments: bool = True,
-    match_germline: bool = True,
+    match_germline: bool = False,
     custom_kb_match_filter=None,
 ) -> Dict:
     """
@@ -153,7 +153,7 @@ def create_report(
         cache_gene_minimum: minimum number of genes required for gene name caching optimization
         generate_therapeutics: create therapeutic options for upload with the report
         generate_comments: create the analyst comments section for upload with the report
-        match_germline: check for germline status for matching
+        match_germline: match only germline statements to germline events and non-germline statements to non-germline events.
         custom_kb_match_filter: function(List[kbMatch]) -> List[kbMatch]
 
     Returns:

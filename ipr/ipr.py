@@ -245,7 +245,18 @@ def create_key_alterations(
 def germline_kb_matches(
     kb_matches: List[KbMatch], all_variants: List[IprVariant], assume_somatic: bool = True
 ) -> List[KbMatch]:
-    """Remove germline statements, eg. pharmacogenomic or cancer predisposition, matched to somatic variants."""
+    """Filter kb_matches for matching to germline or somatic events.
+
+    Pharmacogenomic and cancer predisposition KB references must match germline variants.
+    Other KB statements are matched to somatic variants only.
+
+    Params:
+        kb_matches: KbMatch statements to be filtered.  'variant' properties must match 'key' in all_variants.
+        all_variants: IprVariants, with a 'germline' property, that were used for kb_matches creation.
+        assume_somatic: Whether to assume somatic or germline when no 'germline' property exists in the variant.
+    Returns:
+        filtered list of kb_matches
+    """
     ret_list = []
     germ_alts = [alt for alt in kb_matches if alt['category'] in GERMLINE_BASE_TERMS]
     somatic_alts = [alt for alt in kb_matches if alt not in germ_alts]
