@@ -245,10 +245,12 @@ def create_key_alterations(
 def germline_kb_matches(
     kb_matches: List[KbMatch], all_variants: List[IprVariant], assume_somatic: bool = True
 ) -> List[KbMatch]:
-    """Filter kb_matches for matching to germline or somatic events.
+    """Filter kb_matches for matching to germline or somatic events using the 'germline' optional property.
 
-    Pharmacogenomic and cancer predisposition KB references must match germline variants.
-    Other KB statements are matched to somatic variants only.
+    Statements related to pharmacogenomic toxicity or cancer predisposition are only relevant if
+    the variant is present in the germline of the patient.
+    Other statements, such as diagnostic or recurrent oncogenic mutations, are only relevant as
+    somatic events in cancer.  Germline variants are excluded from these matches.
 
     Params:
         kb_matches: KbMatch statements to be filtered.  'variant' properties must match 'key' in all_variants.
@@ -266,16 +268,16 @@ def germline_kb_matches(
             var_list = [v for v in all_variants if v['key'] == alt['variant']]
             germline_var_list = [v for v in var_list if 'germline' in v and v['germline']]
             if germline_var_list:
-                logger.info(
+                logger.debug(
                     f"germline kbStatementId:{alt['kbStatementId']}: {alt['kbVariant']} {alt['category']}"
                 )
                 ret_list.append(alt)
             elif var_list:
-                logger.info(
+                logger.debug(
                     f"Dropping somatic match to germline kbStatementId:{alt['kbStatementId']}: {alt['kbVariant']} {alt['category']}"
                 )
             else:  # no data
-                logger.error(
+                logger.warning(
                     f"germline check fail for: {alt['kbStatementId']}: {alt['kbVariant']} {alt['category']}"
                 )
                 if not assume_somatic:

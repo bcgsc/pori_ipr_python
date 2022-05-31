@@ -309,13 +309,13 @@ class TestKbmatchFilters:
     def test_germline_kb_matches(self):
         assert len(germline_kb_matches(GERMLINE_KB_MATCHES, GERMLINE_VARIANTS)) == len(
             GERMLINE_KB_MATCHES
-        ), "Germline variant improperly excluded by germline_kb_matches"
+        ), "Germline variant not matched to germline KB statement."
         assert not germline_kb_matches(
             GERMLINE_KB_MATCHES, SOMATIC_VARIANTS
-        ), "Somatic variant matched to KB pharmacogenomic by germline_kb_matches"
+        ), "Somatic variant matched to KB germline statement."
         assert len(germline_kb_matches(SOMATIC_KB_MATCHES, SOMATIC_VARIANTS)) == len(
             SOMATIC_KB_MATCHES
-        ), "Somatic variant improperly excluded by germline_kb_matches"
+        ), "Somatic variant not matched to somatic KB statement."
         assert not germline_kb_matches(
             SOMATIC_KB_MATCHES, GERMLINE_VARIANTS
-        ), "Germline variant matched to KB somatic by germline_kb_matches"
+        ), "Germline variant matched to KB somatic statement."
