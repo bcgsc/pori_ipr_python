@@ -19,7 +19,12 @@ from .inputs import (
     preprocess_structural_variants,
     validate_report_content,
 )
-from .ipr import create_key_alterations, filter_structural_variants, select_expression_plots
+from .ipr import (
+    create_key_alterations,
+    filter_structural_variants,
+    germline_kb_matches,
+    select_expression_plots,
+)
 from .summary import summarize
 from .therapeutic_options import create_therapeutic_options
 from .types import KbMatch
@@ -47,11 +52,7 @@ def command_interface() -> None:
         default=os.environ.get('USER'),
         help='username to use connecting to graphkb/ipr',
     )
-    req.add_argument(
-        '--password',
-        required=True,
-        help='password to use connecting to graphkb/ipr',
-    )
+    req.add_argument('--password', required=True, help='password to use connecting to graphkb/ipr')
     req.add_argument(
         '-c', '--content', required=True, type=file_path, help="Report Content as JSON"
     )
@@ -68,9 +69,7 @@ def command_interface() -> None:
         help='Turn off generating the analyst comments section of the report',
     )
     parser.add_argument(
-        '-o',
-        '--output_json_path',
-        help='path to a JSON to output the report upload body',
+        '-o', '--output_json_path', help='path to a JSON to output the report upload body'
     )
     parser.add_argument(
         '-w',
@@ -104,11 +103,7 @@ def clean_unsupported_content(upload_content: Dict) -> Dict:
     or to support upcoming and soon to be supported content that we would like
     to implement but is not yet supported by the upload
     """
-    drop_columns = [
-        'variant',
-        'variantType',
-        'histogramImage',
-    ]
+    drop_columns = ['variant', 'variantType', 'histogramImage']
     for variant_section in [
         'expressionVariants',
         'smallMutations',
@@ -139,6 +134,8 @@ def create_report(
     graphkb_url: str = '',
     generate_therapeutics: bool = False,
     generate_comments: bool = True,
+    match_germline: bool = False,
+    custom_kb_match_filter=None,
 ) -> Dict:
     """
     Run the matching and create the report JSON for upload to IPR
@@ -156,6 +153,8 @@ def create_report(
         cache_gene_minimum: minimum number of genes required for gene name caching optimization
         generate_therapeutics: create therapeutic options for upload with the report
         generate_comments: create the analyst comments section for upload with the report
+        match_germline: match only germline statements to germline events and non-germline statements to non-germline events.
+        custom_kb_match_filter: function(List[kbMatch]) -> List[kbMatch]
 
     Returns:
         ipr_conn.upload_report return dictionary
@@ -189,26 +188,26 @@ def create_report(
     )
 
     # filter excess variants not required for extra gene information
-    logger.info(f'annotating small mutations')
+    logger.info(f'annotating {len(small_mutations)} small mutations')
     alterations: List[KbMatch] = annotate_positional_variants(
         graphkb_conn, small_mutations, kb_disease_match, show_progress=interactive
     )
 
-    logger.info(f'annotating structural variants')
+    logger.info(f'annotating {len(structural_variants)} structural variants')
     alterations.extend(
         annotate_positional_variants(
             graphkb_conn, structural_variants, kb_disease_match, show_progress=interactive
         )
     )
 
-    logger.info(f'annotating copy variants')
+    logger.info(f'annotating {len(copy_variants)} copy variants')
     alterations.extend(
         annotate_category_variants(
             graphkb_conn, copy_variants, kb_disease_match, show_progress=interactive
         )
     )
 
-    logger.info(f'annotating expression variants')
+    logger.info(f'annotating {len(expression_variants)} expression variants')
     alterations.extend(
         annotate_category_variants(
             graphkb_conn,
@@ -219,12 +218,20 @@ def create_report(
         )
     )
 
-    logger.info('fetching gene annotations')
-    gene_information = get_gene_information(graphkb_conn, genes_with_variants)
-
     all_variants = expression_variants + copy_variants + structural_variants + small_mutations
 
+    if match_germline:  # verify germline kb statements matched germline observed variants
+        alterations = germline_kb_matches(alterations, all_variants)
+
+    if custom_kb_match_filter:
+        logger.info(f'custom_kb_match_filter on {len(alterations)}')
+        alterations = custom_kb_match_filter(alterations)
+        logger.info(f'\t Left with {len(alterations)}')
+
     key_alterations, variant_counts = create_key_alterations(alterations, all_variants)
+
+    logger.info('fetching gene annotations')
+    gene_information = get_gene_information(graphkb_conn, genes_with_variants)
 
     if generate_therapeutics:
         logger.info('generating therapeutic options')
@@ -236,10 +243,7 @@ def create_report(
     if generate_comments:
         comments = {
             'comments': summarize(
-                graphkb_conn,
-                alterations,
-                disease_name=kb_disease_match,
-                variants=all_variants,
+                graphkb_conn, alterations, disease_name=kb_disease_match, variants=all_variants
             )
         }
     else:
