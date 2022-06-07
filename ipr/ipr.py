@@ -286,9 +286,7 @@ def germline_kb_matches(
         # Remove any matches to germline events
         for alt in somatic_alts:
             var_list = [v for v in all_variants if v['key'] == alt['variant']]
-            somatic_var_list = [v for v in var_list if 'germline' in v and not v['germline']]
-            if assume_somatic:
-                somatic_var_list += [v for v in var_list if 'germline' not in v]
+            somatic_var_list = [v for v in var_list if not v.get('germline', not assume_somatic)]
             if somatic_var_list:
                 ret_list.append(alt)
             else:
