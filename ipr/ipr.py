@@ -221,7 +221,12 @@ def create_key_alterations(
         elif variant_type == 'cnv':
             gene = variant['gene']
             alterations.append(f'{gene} ({variant["cnvState"]})')
-        elif kb_match['category'] in GERMLINE_BASE_TERMS:
+        # only show germline if relevant
+        elif (
+            kb_match['category'] in GERMLINE_BASE_TERMS
+            and 'germline' in variant
+            and variant['germline']
+        ):
             alterations.append(f"germline {variant['variant']}")
         else:
             alterations.append(variant['variant'])
