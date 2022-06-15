@@ -4,10 +4,143 @@ from graphkb import vocab as gkb_vocab
 from graphkb.types import Statement
 from unittest.mock import Mock
 
-from ipr.ipr import convert_statements_to_alterations
+from ipr.ipr import convert_statements_to_alterations, germline_kb_matches
 
 DISEASE_RIDS = ['#138:12', '#138:13']
 APPROVED_EVIDENCE_RIDS = ['approved1', 'approved2']
+GERMLINE_VARIANTS = [
+    {
+        'key': '1',
+        'germline': True,
+        'hgvsCds': 'SLC28A3:c.1381C>T',
+        'hgvsGenomic': 'chr9:g.84286011G>A',
+        'hgvsProtein': 'SLC28A3:p.L461L',
+        'ncbiBuild': 'GRCh38',
+        'normalAltCount': 37,
+        'normalDepth': 37,
+        'normalRefCount': 0,
+        'proteinChange': 'p.L461L',
+        'rnaAltCount': '',
+        'rnaDepth': '',
+        'rnaRefCount': '',
+        'startPosition': 84286011,
+        'transcript': 'ENST00000376238',
+        'tumourAltCount': '',
+        'tumourDepth': '',
+        'tumourRefCount': '',
+        'variant': 'SLC28A3:p.L461L',
+        'variantType': 'mut',
+        'zygosity': '',
+    },
+    {
+        'key': '2',
+        'germline': True,
+        'hgvsCds': 'BRCA1:c.4837A>',
+        'hgvsGenomic': 'chr17:g.43071077T>C',
+        'hgvsProtein': 'BRCA1:p.S1613G',
+        'normalAltCount': 33,
+        'normalDepth': 33,
+        'normalRefCount': 0,
+        'tumourAltCount': 37,
+        'tumourDepth': 37,
+        'tumourRefCount': 0,
+    },
+]
+
+SOMATIC_VARIANTS = [
+    {
+        'key': '1',
+        'gene': 'SLC28A3',
+        'germline': False,
+        'hgvsCds': 'SLC28A3:c.1381C>T',
+        'hgvsGenomic': 'chr9:g.84286011G>A',
+        'hgvsProtein': 'SLC28A3:p.L461L',
+        'ncbiBuild': 'GRCh38',
+        'normalAltCount': 0,
+        'normalDepth': 37,
+        'normalRefCount': 37,
+        'tumourAltCount': 37,
+        'tumourDepth': 37,
+        'tumourRefCount': 0,
+        'variant': 'SLC28A3:p.L461L',
+        'variantType': 'mut',
+        'zygosity': '',
+    },
+    {
+        'key': '2',
+        'germline': False,
+        'hgvsCds': 'BRCA1:c.4837A>',
+        'hgvsGenomic': 'chr17:g.43071077T>C',
+        'hgvsProtein': 'BRCA1:p.S1613G',
+        'normalAltCount': 1,
+        'normalDepth': 33,
+        'normalRefCount': 32,
+        'tumourAltCount': 37,
+        'tumourDepth': 37,
+        'tumourRefCount': 0,
+    },
+]
+
+GERMLINE_KB_MATCHES = [
+    {
+        'variant': '1',
+        'approvedTherapy': False,
+        'category': 'pharmacogenomic',
+        'context': 'anthracyclines',
+        'kbContextId': '#122:20944',
+        'kbRelevanceId': '#147:38',
+        'kbStatementId': '#154:13387',
+        'kbVariant': 'SLC28A3:c.1381C>T',
+        'kbVariantId': '#159:5426',
+        'matchedCancer': False,
+        'reference': 'PMID: 27197003',
+        'relevance': 'decreased toxicity',
+        'reviewStatus': 'initial',
+    },
+    {
+        'variant': '2',
+        'approvedTherapy': True,
+        'category': 'cancer predisposition',
+        'kbContextId': '#135:8764',
+        'kbRelevanceId': '#147:32',
+        'kbStatementId': '#155:13511',
+        'kbVariant': 'BRCA1 mutation',
+        'kbVariantId': '#161:938',
+        'matchedCancer': False,
+        'reference': 'MOAlmanac FDA-56',
+        'relevance': 'therapy',
+        'reviewStatus': None,
+    },
+]
+
+SOMATIC_KB_MATCHES = [
+    {
+        'variant': '1',
+        'approvedTherapy': False,
+        'category': 'prognostic',
+        'kbContextId': 'somatic_test',
+        'kbRelevanceId': '#147:38',
+        'kbStatementId': '#154:13387',
+        'kbVariant': 'SLC28A3:c.1381C>T',
+        'kbVariantId': '#159:5426',
+        'relevance': 'prognostic',
+        'reviewStatus': 'initial',
+    },
+    {
+        'variant': '2',
+        'approvedTherapy': True,
+        'category': 'therapy',
+        'kbContextId': '#135:8764',
+        'kbRelevanceId': '#147:32',
+        'kbStatementId': '#155:13511',
+        'kbVariant': 'BRCA1 mutation',
+        'kbVariantId': '#161:938',
+        'matchedCancer': False,
+        'reference': 'MOAlmanac FDA-56',
+        'relevance': 'therapy',
+        'reviewStatus': None,
+    },
+]
 
 
 @pytest.fixture
@@ -170,3 +303,19 @@ class TestConvertStatementsToAlterations:
         assert len(result) == 1
         row = result[0]
         assert row['category'] == 'therapeutic'
+
+
+class TestKbmatchFilters:
+    def test_germline_kb_matches(self):
+        assert len(germline_kb_matches(GERMLINE_KB_MATCHES, GERMLINE_VARIANTS)) == len(
+            GERMLINE_KB_MATCHES
+        ), "Germline variant not matched to germline KB statement."
+        assert not germline_kb_matches(
+            GERMLINE_KB_MATCHES, SOMATIC_VARIANTS
+        ), "Somatic variant matched to KB germline statement."
+        assert len(germline_kb_matches(SOMATIC_KB_MATCHES, SOMATIC_VARIANTS)) == len(
+            SOMATIC_KB_MATCHES
+        ), "Somatic variant not matched to somatic KB statement."
+        assert not germline_kb_matches(
+            SOMATIC_KB_MATCHES, GERMLINE_VARIANTS
+        ), "Germline variant matched to KB somatic statement."

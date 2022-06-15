@@ -5,7 +5,7 @@ import pandas as pd
 from graphkb import GraphKBConnection
 from graphkb.types import Record
 from graphkb.vocab import get_term_tree
-from typing import Dict, List, Set, Tuple
+from typing import Any, Dict, List, Set, Tuple
 
 from .types import IprVariant
 
@@ -180,7 +180,7 @@ def get_preferred_gene_name(graphkb_conn: GraphKBConnection, record_id: str) -> 
     return record['displayName']
 
 
-def pandas_falsy(field):
+def pandas_falsy(field: Any) -> bool:
     """
     Check if a field is python falsy or pandas null
     """

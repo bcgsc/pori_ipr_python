@@ -1,24 +1,21 @@
-from typing import Sequence, Dict, List, Set, Tuple
 import base64
 import json
-from urllib.parse import urlencode
-
-
-from graphkb.types import Statement, Record
 from graphkb import GraphKBConnection
-from graphkb.vocab import get_term_tree
 from graphkb.constants import RELEVANCE_BASE_TERMS
 from graphkb.statement import categorize_relevance
+from graphkb.types import Record, Statement
 from graphkb.util import convert_to_rid_list
+from graphkb.vocab import get_term_tree
+from typing import Callable, Dict, List, Sequence, Set, Tuple
+from urllib.parse import urlencode
 
-from .types import KbMatch, IprVariant
+from .types import IprVariant, KbMatch
 from .util import (
     convert_to_rid_set,
+    generate_ontology_preference_key,
     get_preferred_drug_representation,
     get_preferred_gene_name,
-    generate_ontology_preference_key,
 )
-
 
 OTHER_DISEASES = 'other disease types'
 ENTREZ_GENE_URL = 'https://www.ncbi.nlm.nih.gov/gene'
@@ -48,7 +45,9 @@ def natural_join(word_list: List[str]) -> str:
     return ''.join(word_list)
 
 
-def natural_join_records(records: List[Dict], covert_to_word=lambda x: x['displayName']) -> str:
+def natural_join_records(
+    records: List[Dict], covert_to_word: Callable[[Dict], str] = lambda x: x['displayName']
+) -> str:
     word_list = sorted(list({covert_to_word(rec) for rec in records}))
     return natural_join(word_list)
 
@@ -198,8 +197,8 @@ def aggregate_statements(
     return result
 
 
-def display_variants(gene_name: str, variants: List[IprVariant]):
-    def display_variant(variant: IprVariant):
+def display_variants(gene_name: str, variants: List[IprVariant]) -> str:
+    def display_variant(variant: IprVariant) -> str:
         if 'gene' in variant and 'proteinChange' in variant:
             return f'{variant["gene"]}:{variant["proteinChange"]}'
         if 'gene1' in variant and 'gene2' in variant:

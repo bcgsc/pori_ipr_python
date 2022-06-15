@@ -1,9 +1,6 @@
-from ipr.summary import (
-    substitute_sentence_template,
-    get_preferred_drug_representation,
-    GRAPHKB_GUI,
-)
 from unittest.mock import MagicMock
+
+from ipr.summary import GRAPHKB_GUI, get_preferred_drug_representation, substitute_sentence_template
 
 
 class TestGetPreferredDrugRepresentation:

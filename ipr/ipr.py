@@ -8,9 +8,9 @@ from graphkb import vocab as gkb_vocab
 from graphkb.types import Ontology, Statement
 from typing import Dict, Iterable, List, Set, Tuple
 
-from .constants import APPROVED_EVIDENCE_LEVELS, VARIANT_CLASSES
+from .constants import APPROVED_EVIDENCE_LEVELS, GERMLINE_BASE_TERMS, VARIANT_CLASSES
 from .types import ImageDefinition, IprGene, IprStructuralVariant, IprVariant, KbMatch
-from .util import convert_to_rid_set, find_variant
+from .util import convert_to_rid_set, find_variant, logger
 
 
 def display_evidence_levels(statement: Statement) -> str:
@@ -190,8 +190,7 @@ def select_expression_plots(
 
 
 def create_key_alterations(
-    kb_matches: List[KbMatch],
-    all_variants: List[IprVariant],
+    kb_matches: List[KbMatch], all_variants: List[IprVariant]
 ) -> Tuple[List[Dict], Dict]:
     """
     Creates the list of genomic key alterations which summarizes all the variants matched by the KB
@@ -202,7 +201,7 @@ def create_key_alterations(
     type_mapping = {
         'mut': 'smallMutations',
         'cnv': 'CNVs',
-        'sv': "SVs",
+        'sv': 'SVs',
         'exp': 'expressionOutliers',
     }
     counts: Dict[str, Set] = {v: set() for v in type_mapping.values()}
@@ -222,6 +221,9 @@ def create_key_alterations(
         elif variant_type == 'cnv':
             gene = variant['gene']
             alterations.append(f'{gene} ({variant["cnvState"]})')
+        # only show germline if relevant
+        elif kb_match['category'] in GERMLINE_BASE_TERMS and variant.get('germline'):
+            alterations.append(f"germline {variant['variant']}")
         else:
             alterations.append(variant['variant'])
 
@@ -239,3 +241,66 @@ def create_key_alterations(
         [{'geneVariant': alt} for alt in set(alterations)],
         {k: len(v) for k, v in counts.items()},
     )
+
+
+def germline_kb_matches(
+    kb_matches: List[KbMatch], all_variants: List[IprVariant], assume_somatic: bool = True
+) -> List[KbMatch]:
+    """Filter kb_matches for matching to germline or somatic events using the 'germline' optional property.
+
+    Statements related to pharmacogenomic toxicity or cancer predisposition are only relevant if
+    the variant is present in the germline of the patient.
+    Other statements, such as diagnostic or recurrent oncogenic mutations, are only relevant as
+    somatic events in cancer.  Germline variants are excluded from these matches.
+
+    Params:
+        kb_matches: KbMatch statements to be filtered.  'variant' properties must match 'key' in all_variants.
+        all_variants: IprVariants, with a 'germline' property, that were used for kb_matches creation.
+        assume_somatic: Whether to assume somatic or germline when no 'germline' property exists in the variant.
+    Returns:
+        filtered list of kb_matches
+    """
+    ret_list = []
+    germ_alts = [alt for alt in kb_matches if alt['category'] in GERMLINE_BASE_TERMS]
+    somatic_alts = [alt for alt in kb_matches if alt not in germ_alts]
+    if germ_alts:
+        logger.info(f"checking germline status of {GERMLINE_BASE_TERMS}")
+        for alt in germ_alts:
+            var_list = [v for v in all_variants if v['key'] == alt['variant']]
+            germline_var_list = [v for v in var_list if 'germline' in v and v['germline']]
+            unknown_var_list = [v for v in var_list if 'germline' not in v]
+            if germline_var_list:
+                logger.debug(
+                    f"germline kbStatementId:{alt['kbStatementId']}: {alt['kbVariant']} {alt['category']}"
+                )
+                ret_list.append(alt)
+            elif unknown_var_list:
+                logger.warning(
+                    f"germline no data fail for: {alt['kbStatementId']}: {alt['kbVariant']} {alt['category']}"
+                )
+                if not assume_somatic:
+                    logger.debug(
+                        f"Keeping unverified match to germline kbStatementId:{alt['kbStatementId']}: {alt['kbVariant']} {alt['category']}"
+                    )
+                    ret_list.append(alt)
+                else:
+                    logger.debug(
+                        f"Dropping unverified match to germline kbStatementId:{alt['kbStatementId']}: {alt['kbVariant']} {alt['category']}"
+                    )
+            else:
+                logger.debug(
+                    f"Dropping somatic match to germline kbStatementId:{alt['kbStatementId']}: {alt['kbVariant']} {alt['category']}"
+                )
+    if somatic_alts:
+        # Remove any matches to germline events
+        for alt in somatic_alts:
+            var_list = [v for v in all_variants if v['key'] == alt['variant']]
+            somatic_var_list = [v for v in var_list if not v.get('germline', not assume_somatic)]
+            if somatic_var_list:
+                ret_list.append(alt)
+            else:
+                logger.debug(
+                    f"Dropping germline match to somatic statement kbStatementId:{alt['kbStatementId']}: {alt['kbVariant']} {alt['category']}"
+                )
+
+    return ret_list
