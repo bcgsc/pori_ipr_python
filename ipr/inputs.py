@@ -85,6 +85,11 @@ EXP_OPTIONAL = [
     'primarySitePercentile',
     'primarySiteQC',
     'primarySiteZScore',
+    'internalPancancerFoldChange',
+    'internalPancancerkIQR',
+    'internalPancancerPercentile',
+    'internalPancancerQC',
+    'internalPancancerZScore',
     'rnaReads',
     'rpkm',
     'tpm',
@@ -486,6 +491,17 @@ def check_comparators(content: Dict, expresssionVariants: Iterable[Dict] = []) -
                 ],
             ):
                 required_comparators.add('expression (biopsy site)')
+
+            if not all_none(
+                exp,
+                [
+                    'internalPancancerkIQR',
+                    'internalPancancerPercentile',
+                    'internalPancancerZScore',
+                    'internalPancancerFoldChange',
+                ],
+            ):
+                required_comparators.add('expression (internal pancancer cohort)')
 
         if required_comparators - comparator_roles:
             missing = '; '.join(sorted(list(required_comparators - comparator_roles)))
