@@ -40,8 +40,8 @@ jobs:
     - name: Full Tests with pytest
       run: pytest --junitxml=junit/test-results-${{ matrix.python-version }}.xml --cov ipr --cov-report term --cov-report xml
       env:
-        IPR_USER: ${{ secrets.IPR_TEST_USER }}
-        IPR_PASS: ${{ secrets.IPR_TEST_PASSWORD }}
+        IPR_USER: ${{ secrets.IPR_TEST_USER_2 }}
+        IPR_PASS: ${{ secrets.IPR_TEST_PASSWORD_2 }}
     - name: Upload pytest test results
       uses: actions/upload-artifact@master
       with:
