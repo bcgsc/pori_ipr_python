@@ -221,7 +221,8 @@ def create_key_alterations(
         elif variant_type == 'cnv':
             gene = variant['gene']
             alterations.append(f'{gene} ({variant["cnvState"]})')
-        elif kb_match['category'] in GERMLINE_BASE_TERMS:
+        # only show germline if relevant
+        elif kb_match['category'] in GERMLINE_BASE_TERMS and variant.get('germline'):
             alterations.append(f"germline {variant['variant']}")
         else:
             alterations.append(variant['variant'])
@@ -267,32 +268,38 @@ def germline_kb_matches(
         for alt in germ_alts:
             var_list = [v for v in all_variants if v['key'] == alt['variant']]
             germline_var_list = [v for v in var_list if 'germline' in v and v['germline']]
+            unknown_var_list = [v for v in var_list if 'germline' not in v]
             if germline_var_list:
                 logger.debug(
                     f"germline kbStatementId:{alt['kbStatementId']}: {alt['kbVariant']} {alt['category']}"
                 )
                 ret_list.append(alt)
-            elif var_list:
+            elif unknown_var_list:
+                logger.warning(
+                    f"germline no data fail for: {alt['kbStatementId']}: {alt['kbVariant']} {alt['category']}"
+                )
+                if not assume_somatic:
+                    logger.debug(
+                        f"Keeping unverified match to germline kbStatementId:{alt['kbStatementId']}: {alt['kbVariant']} {alt['category']}"
+                    )
+                    ret_list.append(alt)
+                else:
+                    logger.debug(
+                        f"Dropping unverified match to germline kbStatementId:{alt['kbStatementId']}: {alt['kbVariant']} {alt['category']}"
+                    )
+            else:
                 logger.debug(
                     f"Dropping somatic match to germline kbStatementId:{alt['kbStatementId']}: {alt['kbVariant']} {alt['category']}"
                 )
-            else:  # no data
-                logger.warning(
-                    f"germline check fail for: {alt['kbStatementId']}: {alt['kbVariant']} {alt['category']}"
-                )
-                if not assume_somatic:
-                    ret_list.append(alt)
     if somatic_alts:
         # Remove any matches to germline events
         for alt in somatic_alts:
             var_list = [v for v in all_variants if v['key'] == alt['variant']]
-            somatic_var_list = [v for v in var_list if 'germline' in v and not v['germline']]
-            if assume_somatic:
-                somatic_var_list += [v for v in var_list if 'germline' not in v]
+            somatic_var_list = [v for v in var_list if not v.get('germline', not assume_somatic)]
             if somatic_var_list:
                 ret_list.append(alt)
             else:
-                logger.info(
+                logger.debug(
                     f"Dropping germline match to somatic statement kbStatementId:{alt['kbStatementId']}: {alt['kbVariant']} {alt['category']}"
                 )
 
