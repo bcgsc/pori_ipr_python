@@ -16,8 +16,7 @@
             "type": "string"
         },
         "comparators": {
-            "default": [
-            ],
+            "default": [],
             "items": {
                 "examples": [
                     {
@@ -60,7 +59,9 @@
                             "mutation burden SV (tertiary)",
                             "mutation burden SV (quaternary)",
                             "protein expression (primary)",
-                            "protein expression (secondary)"
+                            "protein expression (secondary)",
+                            "expression (internal pancancer cohort)",
+                            "expression (internal pancancer cohort QC)"
                         ],
                         "type": "string"
                     },
@@ -86,8 +87,7 @@
             "type": "array"
         },
         "copyVariants": {
-            "default": [
-            ],
+            "default": [],
             "items": {
                 "properties": {
                     "chromosomeBand": {
@@ -98,12 +98,18 @@
                     "cna": {
                         "description": "The copy number alteration (CNA) ratio",
                         "example": 1.22,
-                        "type": ["number", "null"]
+                        "type": [
+                            "number",
+                            "null"
+                        ]
                     },
                     "copyChange": {
                         "description": "the ploidy corrected copy change value",
                         "example": -2,
-                        "type": ["integer", "null"]
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
                     },
                     "end": {
                         "description": "the genomic end position of the copy segment this gene copy number was called from",
@@ -136,7 +142,10 @@
                         ]
                     },
                     "log2Cna": {
-                        "type": ["number", "null"]
+                        "type": [
+                            "number",
+                            "null"
+                        ]
                     },
                     "lohState": {
                         "description": "the loss-of-heterozygosity category for this gene region",
@@ -160,8 +169,7 @@
             "type": "array"
         },
         "expressionVariants": {
-            "default": [
-            ],
+            "default": [],
             "items": {
                 "properties": {
                     "biopsySiteFoldChange": {
@@ -322,6 +330,50 @@
                     },
                     "primarySitekIQR": {
                         "description": "the kIQR with respect to the primary site expression comparator cohort",
+                        "pattern": "^[-+]?inf$|",
+                        "type": [
+                            "number",
+                            "null",
+                            "string"
+                        ]
+                    },
+                    "internalPancancerFoldChange": {
+                        "description": "the fold change with respect to the median of the internal pancancer expression comparator cohort",
+                        "pattern": "^[-+]?inf$|",
+                        "type": [
+                            "number",
+                            "null",
+                            "string"
+                        ]
+                    },
+                    "internalPancancerPercentile": {
+                        "description": "the percentile with respect to the internal pancancer expression comparator cohort",
+                        "pattern": "^[-+]?inf$|",
+                        "type": [
+                            "number",
+                            "null",
+                            "string"
+                        ]
+                    },
+                    "internalPancancerQC": {
+                        "pattern": "^[-+]?inf$|",
+                        "type": [
+                            "number",
+                            "null",
+                            "string"
+                        ]
+                    },
+                    "internalPancancerZScore": {
+                        "description": "the zscore with respect to the internal pancancer expression comparator cohort",
+                        "pattern": "^[-+]?inf$|",
+                        "type": [
+                            "number",
+                            "null",
+                            "string"
+                        ]
+                    },
+                    "internalPancancerkIQR": {
+                        "description": "the kIQR with respect to the internal pancancer expression comparator cohort",
                         "pattern": "^[-+]?inf$|",
                         "type": [
                             "number",
@@ -720,8 +772,7 @@
             "type": "string"
         },
         "smallMutations": {
-            "default": [
-            ],
+            "default": [],
             "items": {
                 "properties": {
                     "altSeq": {
@@ -918,8 +969,7 @@
             "type": "array"
         },
         "structuralVariants": {
-            "default": [
-            ],
+            "default": [],
             "items": {
                 "properties": {
                     "breakpoint": {

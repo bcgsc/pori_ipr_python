@@ -28,6 +28,7 @@ def report_upload_content(tmp_path_factory) -> Dict:
                     {'analysisRole': 'expression (disease)', 'name': '1'},
                     {'analysisRole': 'expression (primary site)', 'name': '2'},
                     {'analysisRole': 'expression (biopsy site)', 'name': '3'},
+                    {'analysisRole': 'expression (internal pancancer cohort)', 'name': '4'},
                 ],
                 'patientId': 'PATIENT001',
                 'project': 'TEST',
