@@ -314,9 +314,9 @@ def annotate_positional_variants(
             continue
 
         for var_key in VARIANT_KEYS:
-            if var_key not in row or not row[var_key]:
+            variant = row.get(var_key, '')
+            if not variant:
                 continue
-            variant = row[var_key]
             try:
                 matches = gkb_match.match_positional_variant(graphkb_conn, variant)
 
