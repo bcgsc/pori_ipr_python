@@ -300,44 +300,50 @@ def annotate_positional_variants(
     Returns:
         list of kbMatches records for IPR
     """
+    VARIANT_KEYS = ('variant', 'hgvsProtein', 'hgvsCds', 'hgvsGenomic')
     errors = 0
     alterations = []
     problem_genes = set()
 
     iterfunc = progressbar if show_progress else iter
     for row in iterfunc(variants):
-        variant = row['variant']
 
         if not row.get('gene', '') and (not row.get('gene1', '') or not row.get('gene2', '')):
             # https://www.bcgsc.ca/jira/browse/GERO-56?focusedCommentId=1234791&page=com.atlassian.jira.plugin.system.issuetabpanels:comment-tabpanel#comment-1234791
             # should not match single gene SVs
             continue
 
-        try:
-            matches = gkb_match.match_positional_variant(graphkb_conn, variant)
+        for var_key in VARIANT_KEYS:
+            variant = row.get(var_key, '')
+            if not variant:
+                continue
+            try:
+                matches = gkb_match.match_positional_variant(graphkb_conn, variant)
 
-            for ipr_row in get_ipr_statements_from_variants(graphkb_conn, matches, disease_name):
-                new_row = KbMatch({'variant': row['key'], 'variantType': row['variantType']})
-                new_row.update(ipr_row)
-                alterations.append(new_row)
+                for ipr_row in get_ipr_statements_from_variants(
+                    graphkb_conn, matches, disease_name
+                ):
+                    new_row = KbMatch({'variant': row['key'], 'variantType': row['variantType']})
+                    new_row.update(ipr_row)
+                    alterations.append(new_row)
 
-        except FeatureNotFoundError as err:
-            logger.debug(f'failed to match positional variants ({variant}): {err}')
-            errors += 1
-            if 'gene' in row:
-                problem_genes.add(row['gene'])
-            elif 'gene1' in row and f"({row['gene1']})" in str(err):
-                problem_genes.add(row['gene1'])
-            elif 'gene2' in row and f"({row['gene2']})" in str(err):
-                problem_genes.add(row['gene2'])
-            elif 'gene1' in row and 'gene2' in row:
-                problem_genes.add(row['gene1'])
-                problem_genes.add(row['gene2'])
-            else:
-                raise err
-        except HTTPError as err:
-            errors += 1
-            logger.error(f'failed to match positional variants ({variant}): {err}')
+            except FeatureNotFoundError as err:
+                logger.debug(f'failed to match positional variants ({variant}): {err}')
+                errors += 1
+                if 'gene' in row:
+                    problem_genes.add(row['gene'])
+                elif 'gene1' in row and f"({row['gene1']})" in str(err):
+                    problem_genes.add(row['gene1'])
+                elif 'gene2' in row and f"({row['gene2']})" in str(err):
+                    problem_genes.add(row['gene2'])
+                elif 'gene1' in row and 'gene2' in row:
+                    problem_genes.add(row['gene1'])
+                    problem_genes.add(row['gene2'])
+                else:
+                    raise err
+            except HTTPError as err:
+                errors += 1
+                logger.error(f'failed to match positional variants ({variant}): {err}')
 
     if problem_genes:
         logger.error(f'gene finding failures for {sorted(problem_genes)}')
