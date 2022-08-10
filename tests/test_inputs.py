@@ -3,9 +3,9 @@ import numpy as np
 import os
 import pandas as pd
 import pytest
+from graphkb.match import INPUT_COPY_CATEGORIES
 from unittest import mock
 
-from graphkb.match import INPUT_COPY_CATEGORIES
 from ipr.inputs import (
     COPY_OPTIONAL,
     check_comparators,

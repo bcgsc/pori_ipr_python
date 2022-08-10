@@ -1,10 +1,12 @@
+import os
 import pytest
+from graphkb import GraphKBConnection
 from graphkb import genes as gkb_genes
 from graphkb import match as gkb_match
 from graphkb import vocab as gkb_vocab
 from unittest.mock import Mock
 
-from ipr.annotate import get_gene_information
+from ipr.annotate import get_gene_information, get_therapeutic_associated_genes
 from ipr.constants import FAILED_REVIEW_STATUS
 
 from .util import QueryMock
@@ -16,9 +18,9 @@ from .util import QueryMock
         ['fusionPartnerGene', ['knownFusionPartner', 'cancerRelated']],
         ['smallMutationGene', ['knownSmallMutation', 'cancerRelated']],
         ['cancerRelatedGene', ['cancerRelated']],
-        ['therapyAssociatedGene1', ['therapeuticAssociated']],
-        ['therapyAssociatedGene2', ['therapeuticAssociated']],
-        ['therapyAssociatedGene3', ['therapeuticAssociated']],
+        # ['therapyAssociatedGene1', ['therapeuticAssociated']],
+        # ['therapyAssociatedGene2', ['therapeuticAssociated']],
+        # ['therapyAssociatedGene3', ['therapeuticAssociated']],
         ['oncoGene', ['oncogene']],
         ['tumourSuppressorGene', ['tumourSuppressor']],
     ],
@@ -94,7 +96,7 @@ def test_get_gene_information(gene, flags, monkeypatch):
         [gene],
     )
 
-    assert info
+    assert info, f"get_gene_information failed for {gene}"
     gene_info = [i for i in info if i['name'] == gene]
     assert len(gene_info) == 1
     gene_info = gene_info[0]
@@ -105,3 +107,12 @@ def test_get_gene_information(gene, flags, monkeypatch):
     for attr in gene_info:
         if attr not in {'name'} | set(flags):
             assert not gene_info[attr], f'expected {attr} to be False'
+
+
+def test_get_therapeutic_associated_genes():
+    username = os.environ['IPR_USER']
+    password = os.environ['IPR_PASS']
+    graphkb_conn = GraphKBConnection()
+    graphkb_conn.login(username, password)
+    gene_list = get_therapeutic_associated_genes(graphkb_conn=graphkb_conn)
+    assert gene_list, 'No get_therapeutic_associated_genes found'
