@@ -34,6 +34,16 @@ class IprGeneVariant(TypedDict):
     variant: str
 
 
+class IprCopyVariant(IprGeneVariant):
+    # variantType == 'cnv'
+    cnvState: str
+
+
+class IprExprVariant(IprGeneVariant):
+    # variantType == 'exp'
+    expressionState: str
+
+
 class IprGene(TypedDict):
     name: str
     cancerRelated: Optional[bool]
@@ -44,7 +54,7 @@ class IprGene(TypedDict):
     therapeuticAssociated: Optional[bool]
 
 
-class IprStructuralVariant(TypedDict):
+class IprFusionVariant(TypedDict):
     key: str
     variantType: str
     variant: str
@@ -54,9 +64,17 @@ class IprStructuralVariant(TypedDict):
     exon2: int
 
 
+class IprSmallMutationVariant(TypedDict):
+    key: str
+    variantType: str
+    variant: str
+    gene: str
+
+
 class ImageDefinition(TypedDict):
     key: str
     path: str
 
 
-IprVariant = Union[IprGeneVariant, IprStructuralVariant]
+IprStructuralVariant = Union[IprSmallMutationVariant, IprFusionVariant]
+IprVariant = Union[IprCopyVariant, IprExprVariant, IprStructuralVariant]

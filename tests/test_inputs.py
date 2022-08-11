@@ -17,7 +17,7 @@ from ipr.inputs import (
     preprocess_structural_variants,
     validate_report_content,
 )
-from ipr.types import IprGeneVariant, IprStructuralVariant
+from ipr.types import IprFusionVariant, IprGeneVariant
 from ipr.util import logger
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'test_data')
@@ -220,32 +220,32 @@ class TestCheckVariantLinks:
 class TestCreateGraphkbSvNotation:
     def test_both_genes_and_exons(self) -> None:
         notation = create_graphkb_sv_notation(
-            IprStructuralVariant({'gene1': 'A', 'gene2': 'B', 'exon1': 1, 'exon2': 2})
+            IprFusionVariant({'gene1': 'A', 'gene2': 'B', 'exon1': 1, 'exon2': 2})
         )
         assert notation == '(A,B):fusion(e.1,e.2)'
 
     def test_one_exon_missing(self) -> None:
         notation = create_graphkb_sv_notation(
-            IprStructuralVariant({'gene1': 'A', 'gene2': 'B', 'exon1': '', 'exon2': 2})
+            IprFusionVariant({'gene1': 'A', 'gene2': 'B', 'exon1': '', 'exon2': 2})
         )
         assert notation == '(A,B):fusion(e.?,e.2)'
 
     def test_one_gene_missing(self) -> None:
         notation = create_graphkb_sv_notation(
-            IprStructuralVariant({'gene1': 'A', 'gene2': '', 'exon1': 1, 'exon2': 2})
+            IprFusionVariant({'gene1': 'A', 'gene2': '', 'exon1': 1, 'exon2': 2})
         )
         assert notation == '(A,?):fusion(e.1,e.2)'
 
     def test_first_gene_missing(self) -> None:
         notation = create_graphkb_sv_notation(
-            IprStructuralVariant({'gene1': '', 'gene2': 'B', 'exon1': 1, 'exon2': 2})
+            IprFusionVariant({'gene1': '', 'gene2': 'B', 'exon1': 1, 'exon2': 2})
         )
         assert notation == '(B,?):fusion(e.2,e.1)'
 
     def test_no_genes_error(self) -> None:
         with pytest.raises(ValueError):
             create_graphkb_sv_notation(
-                IprStructuralVariant({'gene1': '', 'gene2': '', 'exon1': 1, 'exon2': 2, 'key': 'x'})
+                IprFusionVariant({'gene1': '', 'gene2': '', 'exon1': 1, 'exon2': 2, 'key': 'x'})
             )
 
 

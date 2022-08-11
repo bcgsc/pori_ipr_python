@@ -3,7 +3,7 @@ import json
 import logging
 import pandas as pd
 from graphkb import GraphKBConnection
-from graphkb.types import Record
+from graphkb.types import Ontology, Record
 from graphkb.vocab import get_term_tree
 from typing import Any, Dict, List, Set, Tuple
 
@@ -40,7 +40,7 @@ def hash_key(key: Tuple[str]) -> str:
     return hash_code
 
 
-def convert_to_rid_set(records: List[Record]) -> Set[str]:
+def convert_to_rid_set(records: List[Ontology]) -> Set[str]:
     return {r['@rid'] for r in records}
 
 
@@ -54,36 +54,22 @@ def trim_empty_values(obj: Dict, empty_values: List = ['', None]) -> Dict:
     return obj
 
 
-def create_variant_name(variant: IprVariant) -> str:
-    """
-    Given an IPR variant row, create the variant representation to be used as the name
-    of the variant
-    """
-    variant_type = variant['variantType']
-    if variant_type == 'exp':
-        gene = variant['gene']
-        return f'{gene} ({variant["expressionState"]})'
-    elif variant_type == 'cnv':
-        gene = variant['gene']
-        return f'{gene} ({variant["cnvState"]})'
-    return variant['variant']
-
-
 def create_variant_name_tuple(variant: IprVariant) -> Tuple[str, str]:
     """
     Given an IPR variant row, create the variant representation to be used as the name
     of the variant
     """
     variant_type = variant['variantType']
-    gene = variant['gene'] if 'gene' in variant else variant['gene1']
+    gene = str(variant.get('gene', variant.get('gene1', '')))
     if variant_type == 'exp':
-        gene = variant['gene']
-        return (gene, variant['expressionState'])
+        return (gene, str(variant.get('expressionState', '')))
     elif variant_type == 'cnv':
-        gene = variant['gene']
-        return (gene, variant['cnvState'])
-    variant_split = variant['variant'].split(':', 1)[1]
-    gene2 = variant.get('gene2')
+        return (gene, str(variant.get('cnvState', '')))
+    variant_split = (
+        variant['variant'].split(':', 1)[1] if ':' in variant['variant'] else variant['variant']
+    )
+
+    gene2 = str(variant.get('gene2', ''))
     if gene and gene2:
         gene = f'{gene}, {gene2}'
     elif gene2:
@@ -118,7 +104,7 @@ def generate_ontology_preference_key(record: Dict, sources_sort: Dict[str, int] 
     )
 
 
-def get_alternatives(graphkb_conn: GraphKBConnection, record_id: str) -> List[Dict]:
+def get_alternatives(graphkb_conn: GraphKBConnection, record_id: str) -> List[Record]:
     return graphkb_conn.query({'target': [record_id], 'queryType': 'similarTo', 'treeEdges': []})
 
 

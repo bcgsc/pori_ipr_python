@@ -9,7 +9,7 @@ from Bio.Data.IUPACData import protein_letters_3to1
 from graphkb.match import INPUT_COPY_CATEGORIES, INPUT_EXPRESSION_CATEGORIES
 from typing import Callable, Dict, Iterable, List, Set, Tuple, cast
 
-from .types import IprGeneVariant, IprStructuralVariant, IprVariant
+from .types import IprFusionVariant, IprGeneVariant, IprSmallMutationVariant, IprVariant
 from .util import hash_key, logger, pandas_falsy
 
 protein_letters_3to1.setdefault('Ter', '*')
@@ -302,7 +302,7 @@ def preprocess_expression_variants(rows: Iterable[Dict]) -> List[IprGeneVariant]
     return result
 
 
-def create_graphkb_sv_notation(row: IprStructuralVariant) -> str:
+def create_graphkb_sv_notation(row: IprFusionVariant) -> str:
     """
     Generate GKB style structural variant notation from a structural variant input row
     """
@@ -347,10 +347,10 @@ def preprocess_structural_variants(rows: Iterable[Dict]) -> List[IprVariant]:
 
 
 def check_variant_links(
-    small_mutations: List[IprGeneVariant],
+    small_mutations: List[IprSmallMutationVariant],
     expression_variants: List[IprGeneVariant],
     copy_variants: List[IprGeneVariant],
-    structural_variants: List[IprStructuralVariant],
+    structural_variants: List[IprFusionVariant],
 ) -> Set[str]:
     """
     Check matching information for any genes with variants.

@@ -9,7 +9,7 @@ from graphkb.types import Ontology, Statement
 from typing import Dict, Iterable, List, Set, Tuple
 
 from .constants import APPROVED_EVIDENCE_LEVELS, GERMLINE_BASE_TERMS, VARIANT_CLASSES
-from .types import ImageDefinition, IprGene, IprStructuralVariant, IprVariant, KbMatch
+from .types import ImageDefinition, IprFusionVariant, IprGene, IprVariant, KbMatch
 from .util import convert_to_rid_set, find_variant, logger
 
 
@@ -37,10 +37,10 @@ def get_approved_evidence_levels(graphkb_conn: GraphKBConnection) -> List[Ontolo
 
 
 def filter_structural_variants(
-    structural_variants: List[IprStructuralVariant],
+    structural_variants: List[IprFusionVariant],
     kb_matches: List[KbMatch],
     gene_annotations: List[IprGene],
-) -> List[IprStructuralVariant]:
+) -> List[IprFusionVariant]:
     """
     Filter structural variants to remove non-high quality events unless they are matched/annotated or
     they involve a gene that is a known fusion partner

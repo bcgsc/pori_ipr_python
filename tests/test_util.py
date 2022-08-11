@@ -1,6 +1,6 @@
 import pytest
 
-from ipr.util import create_variant_name, trim_empty_values
+from ipr.util import create_variant_name_tuple, trim_empty_values
 
 
 @pytest.mark.parametrize(
@@ -29,6 +29,6 @@ def test_trim_empty_values(input, output_keys):
         ],
     ],
 )
-def test_create_variant_name(variant, result):
-    name = create_variant_name(variant)
+def test_create_variant_name_tuple(variant, result):
+    _gene, name = create_variant_name_tuple(variant)
     assert name == result
