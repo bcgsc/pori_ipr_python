@@ -27,23 +27,6 @@ class KbMatch(TypedDict):
     reviewStatus: str
 
 
-class IprGeneVariant(TypedDict):
-    gene: str
-    key: str
-    variantType: str
-    variant: str
-
-
-class IprCopyVariant(IprGeneVariant):
-    # variantType == 'cnv'
-    cnvState: str
-
-
-class IprExprVariant(IprGeneVariant):
-    # variantType == 'exp'
-    expressionState: str
-
-
 class IprGene(TypedDict):
     name: str
     cancerRelated: Optional[bool]
@@ -54,6 +37,44 @@ class IprGene(TypedDict):
     therapeuticAssociated: Optional[bool]
 
 
+class IprGeneVariant(TypedDict):
+    gene: str
+    key: str
+    variantType: str
+    variant: str
+
+
+class IprCopyVariant(IprGeneVariant):
+    # variantType == 'cnv'
+    kbCategory: str
+    cnvState: str
+
+
+class IprExprVariant(IprGeneVariant):
+    # variantType == 'exp'
+    kbCategory: str
+    expressionState: str
+    histogramImage: Optional[str]
+
+
+class IprSmallMutationVariant(IprGeneVariant):
+    germline: Optional[bool]
+    hgvsCds: Optional[str]
+    hgvsGenomic: Optional[str]
+    hgvsProtein: Optional[str]
+    startPosition: Optional[int]
+    endPosition: Optional[int]
+    normalAltCount: Optional[int]
+    normalDepth: Optional[int]
+    normalRefCount: Optional[int]
+    rnaAltCount: Optional[int]
+    rnaDepth: Optional[int]
+    rnaRefCount: Optional[int]
+    tumourAltCount: Optional[int]
+    tumourDepth: Optional[int]
+    tumourRefCount: Optional[int]
+
+
 class IprFusionVariant(TypedDict):
     key: str
     variantType: str
@@ -62,13 +83,7 @@ class IprFusionVariant(TypedDict):
     gene2: str
     exon1: int
     exon2: int
-
-
-class IprSmallMutationVariant(TypedDict):
-    key: str
-    variantType: str
-    variant: str
-    gene: str
+    svg: Optional[str]  # path to svg image of fusion
 
 
 class ImageDefinition(TypedDict):
