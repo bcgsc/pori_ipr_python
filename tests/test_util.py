@@ -17,18 +17,19 @@ def test_trim_empty_values(input, output_keys):
     [
         [
             {'variantType': 'exp', 'gene': 'GENE', 'expressionState': 'increased expression'},
-            'GENE (increased expression)',
+            'increased expression',
         ],
         [
             {'variantType': 'cnv', 'gene': 'GENE', 'cnvState': 'amplification'},
-            'GENE (amplification)',
+            'amplification',
         ],
         [
-            {'variantType': 'other', 'variant': 'anything'},
+            {'variantType': 'other', 'gene2': 'GENE', 'variant': 'GENE:anything'},
             'anything',
         ],
     ],
 )
 def test_create_variant_name_tuple(variant, result):
-    _gene, name = create_variant_name_tuple(variant)
+    gene, name = create_variant_name_tuple(variant)
     assert name == result
+    assert gene == 'GENE'
