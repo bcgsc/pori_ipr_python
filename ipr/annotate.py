@@ -42,7 +42,6 @@ def get_therapeutic_associated_genes(graphkb_conn: GraphKBConnection) -> Set[str
         },
     )
     genes = set()
-
     for statement in statements:
         if statement['reviewStatus'] == FAILED_REVIEW_STATUS:
             continue
@@ -68,9 +67,23 @@ def get_gene_information(
         gene_names ([type]): [description]
     """
     logger.info('fetching variant related genes list')
-    variants = graphkb_conn.query(
-        {'target': 'Variant', 'returnProperties': ['@class', 'reference1', 'reference2']},
-    )
+    body = {'target': 'Variant', 'returnProperties': ['@class', 'reference1', 'reference2']}
+    if len(gene_names) < 100:
+        # SDEV-3148 - Filter by gene_ids to improve speed
+        gene_ids = set()
+        for gene_name in gene_names:
+            gene_ids.update(
+                convert_to_rid_set(gkb_match.get_equivalent_features(graphkb_conn, gene_name))
+            )
+        gene_ids = sorted(gene_ids)
+
+        filters = [{'reference1': gene_ids}, {'reference2': gene_ids}]
+        variants = []
+        for ref_filter in filters:
+            body['filters'] = ref_filter
+            variants.extend(graphkb_conn.query(body))
+    else:
+        variants = graphkb_conn.query(body)
 
     gene_flags: Dict[str, Set[str]] = {
         'cancerRelated': set(),
@@ -79,6 +92,8 @@ def get_gene_information(
     }
 
     for variant in variants:
+        if 'reference1' not in variant:
+            continue
         gene_flags['cancerRelated'].add(variant['reference1'])
         if variant['reference2']:
             gene_flags['cancerRelated'].add(variant['reference2'])
@@ -97,24 +112,16 @@ def get_gene_information(
     gene_flags['therapeuticAssociated'] = get_therapeutic_associated_genes(graphkb_conn)
 
     result = []
-
     for gene_name in gene_names:
         equivalent = convert_to_rid_set(gkb_match.get_equivalent_features(graphkb_conn, gene_name))
-
         row = IprGene({'name': gene_name})
-
+        flagged = False
         for flag in gene_flags:
-            row[flag] = bool(equivalent & gene_flags[flag])
-
-        flags = [c for c in row.keys() if c != 'name']
-
-        if any(row[c] for c in flags):
-            result.append(row)
-
             # make smaller JSON to upload since all default to false already
-            for flag in flags:
-                if not row[flag]:
-                    del row[flag]
+            if equivalent & gene_flags[flag]:
+                row[flag] = flagged = True
+        if flagged:
+            result.append(row)
 
     return result
 
