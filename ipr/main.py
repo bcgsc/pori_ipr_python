@@ -5,9 +5,14 @@ import logging
 import os
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
 from graphkb import GraphKBConnection
-from typing import Dict, List
+from typing import Dict, List, Sequence
 
-from .annotate import annotate_category_variants, annotate_positional_variants, get_gene_information
+from .annotate import (
+    annotate_copy_variants,
+    annotate_expression_variants,
+    annotate_positional_variants,
+    get_gene_information,
+)
 from .connection import IprConnection
 from .constants import DEFAULT_URL
 from .inputs import (
@@ -27,7 +32,7 @@ from .ipr import (
 )
 from .summary import summarize
 from .therapeutic_options import create_therapeutic_options
-from .types import KbMatch
+from .types import IprVariant, KbMatch
 from .util import LOG_LEVELS, logger, trim_empty_values
 
 CACHE_GENE_MINIMUM = 5000
@@ -202,22 +207,19 @@ def create_report(
 
     logger.info(f'annotating {len(copy_variants)} copy variants')
     alterations.extend(
-        annotate_category_variants(
+        annotate_copy_variants(
             graphkb_conn, copy_variants, kb_disease_match, show_progress=interactive
         )
     )
 
     logger.info(f'annotating {len(expression_variants)} expression variants')
     alterations.extend(
-        annotate_category_variants(
-            graphkb_conn,
-            expression_variants,
-            kb_disease_match,
-            copy_variant=False,
-            show_progress=interactive,
+        annotate_expression_variants(
+            graphkb_conn, expression_variants, kb_disease_match, show_progress=interactive
         )
     )
 
+    all_variants: Sequence[IprVariant]
     all_variants = expression_variants + copy_variants + structural_variants + small_mutations
 
     if match_germline:  # verify germline kb statements matched germline observed variants
@@ -231,7 +233,7 @@ def create_report(
     key_alterations, variant_counts = create_key_alterations(alterations, all_variants)
 
     logger.info('fetching gene annotations')
-    gene_information = get_gene_information(graphkb_conn, genes_with_variants)
+    gene_information = get_gene_information(graphkb_conn, sorted(genes_with_variants))
 
     if generate_therapeutics:
         logger.info('generating therapeutic options')
@@ -279,11 +281,7 @@ def create_report(
             'therapeuticTarget': targets,
         }
     )
-    output.setdefault('images', []).extend(
-        select_expression_plots(
-            alterations, expression_variants + copy_variants + structural_variants + small_mutations
-        )
-    )
+    output.setdefault('images', []).extend(select_expression_plots(alterations, all_variants))
 
     output = clean_unsupported_content(output)
     ipr_result = None

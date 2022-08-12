@@ -324,7 +324,7 @@ def summarize(
     graphkb_conn: GraphKBConnection,
     matches: Sequence[KbMatch],
     disease_name: str,
-    variants: List[IprVariant],
+    variants: Sequence[IprVariant],
 ) -> str:
     """
     Given a list of GraphKB matches generate a text summary to add to the report

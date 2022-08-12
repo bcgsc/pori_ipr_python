@@ -459,7 +459,7 @@ def check_variant_links(
     return genes_with_variants
 
 
-def check_comparators(content: Dict, expresssionVariants: Iterable[IprExprVariant] = []) -> None:
+def check_comparators(content: Dict, expresssionVariants: List[IprExprVariant] = []) -> None:
     """
     Given the optional content dictionary, check that based on the analyses present the
     correct/sufficient comparators have also been specified

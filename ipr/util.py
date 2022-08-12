@@ -5,6 +5,7 @@ import pandas as pd
 from graphkb import GraphKBConnection
 from graphkb.types import Ontology, Record
 from graphkb.vocab import get_term_tree
+from numpy import nan
 from typing import Any, Dict, List, Set, Tuple
 
 from .types import IprVariant
@@ -44,8 +45,8 @@ def convert_to_rid_set(records: List[Ontology]) -> Set[str]:
     return {r['@rid'] for r in records}
 
 
-def trim_empty_values(obj: Dict, empty_values: List = ['', None]) -> Dict:
-    blacklist = ['gene1', 'gene2']  # allow null for sv genes
+def trim_empty_values(obj, empty_values: List = ['', None, nan]):
+    blacklist = ('gene1', 'gene2')  # allow null for sv genes
     keys = list(obj.keys())
 
     for key in keys:

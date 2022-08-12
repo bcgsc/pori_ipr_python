@@ -6,7 +6,7 @@ from graphkb import GraphKBConnection
 from graphkb import statement as gkb_statement
 from graphkb import vocab as gkb_vocab
 from graphkb.types import Ontology, Statement
-from typing import Dict, Iterable, List, Set, Tuple
+from typing import Dict, Iterable, List, Sequence, Set, Tuple
 
 from .constants import APPROVED_EVIDENCE_LEVELS, GERMLINE_BASE_TERMS, VARIANT_CLASSES
 from .types import ImageDefinition, IprFusionVariant, IprGene, IprVariant, KbMatch
@@ -154,7 +154,7 @@ def convert_statements_to_alterations(
 
 
 def select_expression_plots(
-    kb_matches: List[KbMatch], all_variants: List[IprVariant]
+    kb_matches: List[KbMatch], all_variants: Sequence[IprVariant]
 ) -> List[Dict[str, ImageDefinition]]:
     """
     Given the list of expression variants, determine which expression
@@ -190,7 +190,7 @@ def select_expression_plots(
 
 
 def create_key_alterations(
-    kb_matches: List[KbMatch], all_variants: List[IprVariant]
+    kb_matches: List[KbMatch], all_variants: Sequence[IprVariant]
 ) -> Tuple[List[Dict], Dict]:
     """
     Creates the list of genomic key alterations which summarizes all the variants matched by the KB
@@ -244,7 +244,7 @@ def create_key_alterations(
 
 
 def germline_kb_matches(
-    kb_matches: List[KbMatch], all_variants: List[IprVariant], assume_somatic: bool = True
+    kb_matches: List[KbMatch], all_variants: Sequence[IprVariant], assume_somatic: bool = True
 ) -> List[KbMatch]:
     """Filter kb_matches for matching to germline or somatic events using the 'germline' optional property.
 

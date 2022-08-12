@@ -16,12 +16,14 @@ from graphkb.match import INPUT_COPY_CATEGORIES
 from graphkb.types import Record, Statement, Variant
 from graphkb.util import FeatureNotFoundError, convert_to_rid_list
 from progressbar import progressbar
-from typing import Dict, Iterable, List, Set
+from typing import Dict, List, Sequence, Set
 
 from .constants import FAILED_REVIEW_STATUS
 from .ipr import convert_statements_to_alterations
-from .types import IprGene, IprGeneVariant, IprVariant, KbMatch
+from .types import IprCopyVariant, IprExprVariant, IprGene, IprStructuralVariant, KbMatch
 from .util import convert_to_rid_set, logger
+
+REPORTED_COPY_VARIANTS = (INPUT_COPY_CATEGORIES.AMP, INPUT_COPY_CATEGORIES.DEEP)
 
 
 def get_therapeutic_associated_genes(graphkb_conn: GraphKBConnection) -> Set[str]:
@@ -57,7 +59,7 @@ def get_therapeutic_associated_genes(graphkb_conn: GraphKBConnection) -> Set[str
 
 
 def get_gene_information(
-    graphkb_conn: GraphKBConnection, gene_names: Iterable[str]
+    graphkb_conn: GraphKBConnection, gene_names: Sequence[str]
 ) -> List[IprGene]:
     """
     Create the Gene Info object for upload to IPR with the other report information
@@ -75,9 +77,8 @@ def get_gene_information(
             gene_ids.update(
                 convert_to_rid_set(gkb_match.get_equivalent_features(graphkb_conn, gene_name))
             )
-        gene_ids = sorted(gene_ids)
-
-        filters = [{'reference1': gene_ids}, {'reference2': gene_ids}]
+        genes = sorted(gene_ids)
+        filters = [{'reference1': genes}, {'reference2': genes}]
         variants = []
         for ref_filter in filters:
             body['filters'] = ref_filter
@@ -127,7 +128,7 @@ def get_gene_information(
 
 
 def get_statements_from_variants(
-    graphkb_conn: GraphKBConnection, variants: List[Record]
+    graphkb_conn: GraphKBConnection, variants: List[Variant]
 ) -> List[Statement]:
     """
     Given a list of variant records from GraphKB, return all the related statements
@@ -185,7 +186,7 @@ def get_second_pass_variants(
 
 
 def get_ipr_statements_from_variants(
-    graphkb_conn: GraphKBConnection, matches: List[Record], disease_name: str
+    graphkb_conn: GraphKBConnection, matches: List[Variant], disease_name: str
 ) -> List[KbMatch]:
     """
     Matches to GraphKB statements from the list of input variants. From these results matches
@@ -225,16 +226,13 @@ def get_ipr_statements_from_variants(
     return rows
 
 
-def annotate_category_variants(
+def annotate_expression_variants(
     graphkb_conn: GraphKBConnection,
-    variants: List[IprGeneVariant],
+    variants: List[IprExprVariant],
     disease_name: str,
-    copy_variant: bool = True,
     show_progress: bool = False,
 ) -> List[KbMatch]:
-    """
-    Annotate variant calls with information from GraphKB and return these annotations in the IPR
-    alterations format
+    """Annotate allowed copy variants with GraphKB in the IPR alterations format.
 
     Args:
         graphkb_conn: the graphkb api connection object
@@ -255,24 +253,15 @@ def annotate_category_variants(
 
         if not variant:
             skipped += 1
-            continue
-
-        if copy_variant and variant not in [INPUT_COPY_CATEGORIES.AMP, INPUT_COPY_CATEGORIES.DEEP]:
-            # https://www.bcgsc.ca/jira/browse/GERO-77
-            skipped += 1
+            logger.debug(f"Skipping malformed Expression {gene}: {row}")
             continue
 
         try:
-            if copy_variant:
-                matches = gkb_match.match_copy_variant(graphkb_conn, gene, variant)
-            else:
-                matches = gkb_match.match_expression_variant(graphkb_conn, gene, variant)
-
+            matches = gkb_match.match_expression_variant(graphkb_conn, gene, variant)
             for ipr_row in get_ipr_statements_from_variants(graphkb_conn, matches, disease_name):
-                new_row = KbMatch({'variant': row['key'], 'variantType': row['variantType']})
-                new_row.update(ipr_row)
-                alterations.append(new_row)
-
+                ipr_row['variant'] = row['key']
+                ipr_row['variantType'] = row['variantType']
+                alterations.append(ipr_row)
         except FeatureNotFoundError as err:
             problem_genes.add(gene)
             logger.debug(f'Unrecognized gene ({gene} {variant}): {err}')
@@ -280,19 +269,75 @@ def annotate_category_variants(
             logger.error(f'failed to match variants ({gene} {variant}): {err}')
 
     if skipped:
-        logger.info(f'skipped matching {skipped} non variant information rows')
+        logger.info(f'skipped matching {skipped} expression information rows')
     if problem_genes:
-        logger.error(f'gene finding failures for {sorted(problem_genes)}')
-        logger.error(f'gene finding falure for {len(problem_genes)} category genes')
+        logger.error(f'gene finding failures for expression {sorted(problem_genes)}')
+        logger.error(f'gene finding falure for {len(problem_genes)} expression genes')
     logger.info(
-        f'matched {len(variants)} category variants to {len(alterations)} graphkb annotations'
+        f'matched {len(variants)} expression variants to {len(alterations)} graphkb annotations'
+    )
+    return alterations
+
+
+def annotate_copy_variants(
+    graphkb_conn: GraphKBConnection,
+    variants: List[IprCopyVariant],
+    disease_name: str,
+    show_progress: bool = False,
+) -> List[KbMatch]:
+    """Annotate allowed copy variants with GraphKB in the IPR alterations format.
+
+    Args:
+        graphkb_conn: the graphkb api connection object
+        variants: list of variants
+
+    Returns:
+        list of kbMatches records for IPR
+    """
+    skipped = 0
+    alterations = []
+    problem_genes = set()
+
+    logger.info(f"Starting annotation of {len(variants)} category_variants")
+    iterfunc = progressbar if show_progress else iter
+    for row in iterfunc(variants):
+        gene = row['gene']
+        variant = row['variant']
+
+        if variant not in REPORTED_COPY_VARIANTS:
+            # https://www.bcgsc.ca/jira/browse/GERO-77
+            skipped += 1
+            logger.debug(f"Dropping {gene} copy change '{variant}' - not in REPORTED_COPY_VARIANTS")
+            continue
+
+        try:
+            matches = gkb_match.match_copy_variant(graphkb_conn, gene, variant)
+            for ipr_row in get_ipr_statements_from_variants(graphkb_conn, matches, disease_name):
+                ipr_row['variant'] = row['key']
+                ipr_row['variantType'] = row['variantType']
+                alterations.append(ipr_row)
+        except FeatureNotFoundError as err:
+            problem_genes.add(gene)
+            logger.debug(f'Unrecognized gene ({gene} {variant}): {err}')
+        except ValueError as err:
+            logger.error(f'failed to match variants ({gene} {variant}): {err}')
+
+    if skipped:
+        logger.info(
+            f'skipped matching {skipped} copy number variants not in {REPORTED_COPY_VARIANTS}'
+        )
+    if problem_genes:
+        logger.error(f'gene finding failures for copy variants {sorted(problem_genes)}')
+        logger.error(f'gene finding failure for {len(problem_genes)} copy variant genes')
+    logger.info(
+        f'matched {len(variants)} copy category variants to {len(alterations)} graphkb annotations'
     )
     return alterations
 
 
 def annotate_positional_variants(
     graphkb_conn: GraphKBConnection,
-    variants: List[IprVariant],
+    variants: Sequence[IprStructuralVariant],
     disease_name: str,
     show_progress: bool = False,
 ) -> List[KbMatch]:
