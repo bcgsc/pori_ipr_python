@@ -13,14 +13,21 @@ from graphkb.constants import (
     GENERIC_RETURN_PROPERTIES,
 )
 from graphkb.match import INPUT_COPY_CATEGORIES
-from graphkb.types import Record, Statement, Variant
+from graphkb.types import Record, Variant
 from graphkb.util import FeatureNotFoundError, convert_to_rid_list
 from progressbar import progressbar
 from typing import Dict, List, Sequence, Set
 
 from .constants import FAILED_REVIEW_STATUS
 from .ipr import convert_statements_to_alterations
-from .types import IprCopyVariant, IprExprVariant, IprGene, IprStructuralVariant, KbMatch
+from .types import (
+    GkbStatement,
+    IprCopyVariant,
+    IprExprVariant,
+    IprGene,
+    IprStructuralVariant,
+    KbMatch,
+)
 from .util import convert_to_rid_set, logger
 
 REPORTED_COPY_VARIANTS = (INPUT_COPY_CATEGORIES.AMP, INPUT_COPY_CATEGORIES.DEEP)
@@ -129,7 +136,7 @@ def get_gene_information(
 
 def get_statements_from_variants(
     graphkb_conn: GraphKBConnection, variants: List[Variant]
-) -> List[Statement]:
+) -> List[GkbStatement]:
     """
     Given a list of variant records from GraphKB, return all the related statements
 
@@ -162,7 +169,7 @@ def get_statements_from_variants(
 
 
 def get_second_pass_variants(
-    graphkb_conn: GraphKBConnection, statements: List[Statement]
+    graphkb_conn: GraphKBConnection, statements: List[GkbStatement]
 ) -> List[Variant]:
     """
     Given a list of statements that have been matched. Convert these to

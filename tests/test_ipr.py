@@ -1,10 +1,10 @@
 import pytest
 from graphkb import statement as gkb_statement
 from graphkb import vocab as gkb_vocab
-from graphkb.types import Statement
 from unittest.mock import Mock
 
 from ipr.ipr import convert_statements_to_alterations, germline_kb_matches
+from ipr.types import GkbStatement
 
 DISEASE_RIDS = ['#138:12', '#138:13']
 APPROVED_EVIDENCE_RIDS = ['approved1', 'approved2']
@@ -162,8 +162,10 @@ def graphkb_conn():
     return conn
 
 
-def base_graphkb_statement(disease_id: str = 'disease', relevance_rid: str = 'other') -> Statement:
-    statement = Statement(
+def base_graphkb_statement(
+    disease_id: str = 'disease', relevance_rid: str = 'other'
+) -> GkbStatement:
+    statement = GkbStatement(
         {
             'conditions': [
                 {'@class': 'Disease', '@rid': disease_id, 'displayName': 'disease_display_name'},

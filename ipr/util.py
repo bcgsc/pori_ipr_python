@@ -6,9 +6,11 @@ from graphkb import GraphKBConnection
 from graphkb.types import Ontology, Record
 from graphkb.vocab import get_term_tree
 from numpy import nan
-from typing import Any, Dict, List, Set, Tuple
+from typing import Any, Dict, List, Sequence, Set, Tuple
 
 from .types import IprVariant
+
+GENE_NEIGHBORS_MAX = 3
 
 # name the logger after the package to make it simple to disable for packages using this one as a dependency
 # https://stackoverflow.com/questions/11029717/how-do-i-disable-log-messages-from-the-requests-library
@@ -41,11 +43,11 @@ def hash_key(key: Tuple[str]) -> str:
     return hash_code
 
 
-def convert_to_rid_set(records: List[Ontology]) -> Set[str]:
+def convert_to_rid_set(records: Sequence[Record]) -> Set[str]:
     return {r['@rid'] for r in records}
 
 
-def trim_empty_values(obj, empty_values: List = ['', None, nan]):
+def trim_empty_values(obj, empty_values: Sequence = ('', None, nan)):
     blacklist = ('gene1', 'gene2')  # allow null for sv genes
     keys = list(obj.keys())
 
@@ -79,7 +81,9 @@ def create_variant_name_tuple(variant: IprVariant) -> Tuple[str, str]:
     return (gene, variant_split)
 
 
-def find_variant(all_variants: List[IprVariant], variant_type: str, variant_key: str) -> IprVariant:
+def find_variant(
+    all_variants: Sequence[IprVariant], variant_type: str, variant_key: str
+) -> IprVariant:
     """
     Find a variant in a list of variants by its key and type
     """
@@ -109,7 +113,9 @@ def get_alternatives(graphkb_conn: GraphKBConnection, record_id: str) -> List[Re
     return graphkb_conn.query({'target': [record_id], 'queryType': 'similarTo', 'treeEdges': []})
 
 
-def get_preferred_drug_representation(graphkb_conn: GraphKBConnection, drug_record_id: str) -> Dict:
+def get_preferred_drug_representation(
+    graphkb_conn: GraphKBConnection, drug_record_id: str
+) -> Record:
     """
     Given a Drug record, follow its linked records to find the preferred
     representation by following alias, deprecating, and cross reference links
@@ -125,15 +131,16 @@ def get_preferred_drug_representation(graphkb_conn: GraphKBConnection, drug_reco
     return drugs[0]
 
 
-def get_preferred_gene_name(graphkb_conn: GraphKBConnection, record_id: str) -> str:
-    """
-    Given some Feature record ID return the preferred gene name
-    """
+def get_preferred_gene_name(
+    graphkb_conn: GraphKBConnection, record_id: str, neighbors: int = GENE_NEIGHBORS_MAX
+) -> str:
+    """Given some Feature record ID return the preferred gene name."""
     record = graphkb_conn.get_record_by_id(record_id)
     biotype = record.get('biotype', '')
     genes = []
-    expanded = graphkb_conn.query({'target': [record_id], 'neighbors': 3})[0]
-
+    expanded_gene_names = graphkb_conn.query({'target': [record_id], 'neighbors': neighbors})
+    assert len(expanded_gene_names) == 1, "get_preferred_gene_name should have single result"
+    expanded: Dict[str, List] = expanded_gene_names[0]  # type: ignore
     if biotype != 'gene':
         for edge in expanded.get('out_ElementOf', []):
             target = edge['in']
@@ -164,11 +171,9 @@ def get_preferred_gene_name(graphkb_conn: GraphKBConnection, record_id: str) -> 
     if genes:
         return genes[0]['displayName']
     # fallback to the input displayName
-    return record['displayName']
+    return str(record.get('displayName', ''))
 
 
 def pandas_falsy(field: Any) -> bool:
-    """
-    Check if a field is python falsy or pandas null
-    """
+    """Check if a field is python falsy or pandas null."""
     return bool(pd.isnull(field) or not field)
