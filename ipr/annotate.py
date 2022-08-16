@@ -13,10 +13,10 @@ from graphkb.constants import (
     GENERIC_RETURN_PROPERTIES,
 )
 from graphkb.match import INPUT_COPY_CATEGORIES
-from graphkb.types import Record, Variant
+from graphkb.types import Variant
 from graphkb.util import FeatureNotFoundError, convert_to_rid_list
 from progressbar import progressbar
-from typing import Dict, List, Sequence, Set
+from typing import Any, Dict, List, Sequence, Set, cast
 
 from .constants import FAILED_REVIEW_STATUS
 from .ipr import convert_statements_to_alterations
@@ -34,6 +34,7 @@ REPORTED_COPY_VARIANTS = (INPUT_COPY_CATEGORIES.AMP, INPUT_COPY_CATEGORIES.DEEP)
 
 
 def get_therapeutic_associated_genes(graphkb_conn: GraphKBConnection) -> Set[str]:
+    """Set of all genes related to a cancer-associated statement in Graphkb."""
     therapeutic_relevance = gkb_vocab.get_terms_set(graphkb_conn, BASE_THERAPEUTIC_TERMS)
     statements = graphkb_conn.query(
         {
@@ -48,35 +49,39 @@ def get_therapeutic_associated_genes(graphkb_conn: GraphKBConnection) -> Set[str
                 'conditions.reference2.@rid',
                 'reviewStatus',
             ],
-        },
+        }
     )
     genes = set()
-    for statement in statements:
+    gkb_thera_statements = [cast(GkbStatement, s) for s in statements]
+    for statement in gkb_thera_statements:
         if statement['reviewStatus'] == FAILED_REVIEW_STATUS:
             continue
         for condition in statement['conditions']:
             if condition['@class'] == 'Feature':
                 genes.add(condition['@rid'])
             elif condition['@class'].endswith('Variant'):
-                if condition['reference1'] and condition['reference1']['@class'] == 'Feature':
-                    genes.add(condition['reference1']['@rid'])
-                if condition['reference2'] and condition['reference2']['@class'] == 'Feature':
-                    genes.add(condition['reference2']['@rid'])
+                cond = cast(Variant, condition)
+                if cond['reference1'] and cond['reference1']['@class'] == 'Feature':
+                    genes.add(cond['reference1']['@rid'])
+                if cond['reference2'] and cond['reference2']['@class'] == 'Feature':
+                    genes.add(cond['reference2']['@rid'])
     return genes
 
 
 def get_gene_information(
     graphkb_conn: GraphKBConnection, gene_names: Sequence[str]
 ) -> List[IprGene]:
-    """
-    Create the Gene Info object for upload to IPR with the other report information
+    """Create the Gene Info object for upload to IPR with the other report information.
 
     Args:
         graphkb_conn ([type]): [description]
         gene_names ([type]): [description]
     """
     logger.info('fetching variant related genes list')
-    body = {'target': 'Variant', 'returnProperties': ['@class', 'reference1', 'reference2']}
+    body: Dict[str, Any] = {
+        'target': 'Variant',
+        'returnProperties': ['@class', 'reference1', 'reference2'],
+    }
     if len(gene_names) < 100:
         # SDEV-3148 - Filter by gene_ids to improve speed
         gene_ids = set()
@@ -99,7 +104,7 @@ def get_gene_information(
         'knownSmallMutation': set(),
     }
 
-    for variant in variants:
+    for variant in [cast(Variant, v) for v in variants]:
         if 'reference1' not in variant:
             continue
         gene_flags['cancerRelated'].add(variant['reference1'])
@@ -137,8 +142,7 @@ def get_gene_information(
 def get_statements_from_variants(
     graphkb_conn: GraphKBConnection, variants: List[Variant]
 ) -> List[GkbStatement]:
-    """
-    Given a list of variant records from GraphKB, return all the related statements
+    """Given a list of variant records from GraphKB, return all the related statements.
 
     Args:
         graphkb_conn (GraphKBConnection): the graphkb api connection object
@@ -163,20 +167,21 @@ def get_statements_from_variants(
             'target': 'Statement',
             'filters': {'conditions': convert_to_rid_list(variants), 'operator': 'CONTAINSANY'},
             'returnProperties': return_props,
-        },
+        }
     )
-    return [s for s in statements if s['reviewStatus'] != FAILED_REVIEW_STATUS]
+    return [
+        cast(GkbStatement, s) for s in statements if s.get('reviewStatus') != FAILED_REVIEW_STATUS
+    ]
 
 
 def get_second_pass_variants(
     graphkb_conn: GraphKBConnection, statements: List[GkbStatement]
 ) -> List[Variant]:
-    """
-    Given a list of statements that have been matched. Convert these to
-    new category variants to be used in a second-pass matching
+    """Given a list of statements that have been matched, convert these to
+    new category variants to be used in a second-pass matching.
     """
     # second-pass matching
-    all_inferred_matches: Dict[str, Record] = {}
+    all_inferred_matches: Dict[str, Variant] = {}
     inferred_variants = {
         (s['subject']['@rid'], s['relevance']['name'])
         for s in statements
@@ -188,7 +193,7 @@ def get_second_pass_variants(
 
         for variant in variants:
             all_inferred_matches[variant['@rid']] = variant
-    inferred_matches: List[Record] = list(all_inferred_matches.values())
+    inferred_matches: List[Variant] = list(all_inferred_matches.values())
     return inferred_matches
 
 
@@ -221,10 +226,7 @@ def get_ipr_statements_from_variants(
     ]
 
     for ipr_row in convert_statements_to_alterations(
-        graphkb_conn,
-        inferred_statements,
-        disease_name,
-        convert_to_rid_set(inferred_matches),
+        graphkb_conn, inferred_statements, disease_name, convert_to_rid_set(inferred_matches)
     ):
         new_row = KbMatch({'kbData': {'inferred': True}})
         new_row.update(ipr_row)

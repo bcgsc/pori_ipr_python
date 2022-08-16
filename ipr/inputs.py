@@ -13,7 +13,6 @@ from .types import (
     IprCopyVariant,
     IprExprVariant,
     IprFusionVariant,
-    IprGeneVariant,
     IprSmallMutationVariant,
     IprVariant,
 )
@@ -534,12 +533,7 @@ def extend_with_default(validator_class):
             if "default" in subschema:
                 instance.setdefault(property, subschema["default"])
 
-        for error in validate_properties(
-            validator,
-            properties,
-            instance,
-            schema,
-        ):
+        for error in validate_properties(validator, properties, instance, schema):
             yield error
 
     def check_null(checker, instance):
@@ -552,9 +546,7 @@ def extend_with_default(validator_class):
     type_checker = validator_class.TYPE_CHECKER.redefine("null", check_null)
 
     return jsonschema.validators.extend(
-        validator_class,
-        validators={"properties": set_defaults},
-        type_checker=type_checker,
+        validator_class, validators={"properties": set_defaults}, type_checker=type_checker
     )
 
 

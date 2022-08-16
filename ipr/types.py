@@ -7,6 +7,8 @@ except ImportError:
 
 from graphkb.types import Ontology, Record
 
+# TODO: Can constants in inputs.py like COPY_REQ, SMALL_MUT_REQ, just be replaced by types?
+
 
 class KbMatch(TypedDict):
     variant: str
@@ -114,6 +116,7 @@ class GkbStatement(Record):
     source: Record
     sourceId: str
     reviewStatus: Optional[str]
+    displayNameTemplate: str
 
 
 IprStructuralVariant = Union[IprSmallMutationVariant, IprFusionVariant]

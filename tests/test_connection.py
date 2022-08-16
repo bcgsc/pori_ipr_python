@@ -73,8 +73,7 @@ class TestPostImages:
             conn = IprConnection('user', 'pass')
             with pytest.raises(FileNotFoundError):
                 conn.post_images(
-                    'report_id',
-                    files={'expression.correlation': 'thing/that/does/not/exist.png'},
+                    'report_id', files={'expression.correlation': 'thing/that/does/not/exist.png'}
                 )
 
     def test_failed_image_load(self):

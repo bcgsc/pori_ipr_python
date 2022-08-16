@@ -95,13 +95,7 @@ class TestSubstituteSentenceTemplate:
         ]
         subjects = [{'@class': 'Therapy', 'displayName': 'some drug', '@rid': '5'}]
         sentence = substitute_sentence_template(
-            template,
-            diseases + variants,
-            subjects,
-            relevance,
-            [],
-            ['6', '7'],
-            disease_matches,
+            template, diseases + variants, subjects, relevance, [], ['6', '7'], disease_matches
         )
         assert (
             sentence
@@ -126,13 +120,7 @@ class TestSubstituteSentenceTemplate:
         ]
         subjects = [{'@class': 'Therapy', 'displayName': 'some drug', '@rid': '5'}]
         sentence = substitute_sentence_template(
-            template,
-            diseases + variants,
-            subjects,
-            relevance,
-            [],
-            ['6', '7'],
-            disease_matches,
+            template, diseases + variants, subjects, relevance, [], ['6', '7'], disease_matches
         )
         assert (
             sentence
@@ -157,13 +145,7 @@ class TestSubstituteSentenceTemplate:
         ]
         subjects = [{'@class': 'Therapy', 'displayName': 'some drug', '@rid': '5'}]
         sentence = substitute_sentence_template(
-            template,
-            diseases + variants,
-            subjects,
-            relevance,
-            [],
-            ['6', '7'],
-            disease_matches,
+            template, diseases + variants, subjects, relevance, [], ['6', '7'], disease_matches
         )
         assert (
             sentence

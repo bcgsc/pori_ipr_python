@@ -19,14 +19,8 @@ def test_trim_empty_values(input, output_keys):
             {'variantType': 'exp', 'gene': 'GENE', 'expressionState': 'increased expression'},
             'increased expression',
         ],
-        [
-            {'variantType': 'cnv', 'gene': 'GENE', 'cnvState': 'amplification'},
-            'amplification',
-        ],
-        [
-            {'variantType': 'other', 'gene2': 'GENE', 'variant': 'GENE:anything'},
-            'anything',
-        ],
+        [{'variantType': 'cnv', 'gene': 'GENE', 'cnvState': 'amplification'}, 'amplification'],
+        [{'variantType': 'other', 'gene2': 'GENE', 'variant': 'GENE:anything'}, 'anything'],
     ],
 )
 def test_create_variant_name_tuple(variant, result):

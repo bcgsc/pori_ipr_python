@@ -6,7 +6,7 @@ from graphkb import GraphKBConnection
 from graphkb.types import Ontology, Record
 from graphkb.vocab import get_term_tree
 from numpy import nan
-from typing import Any, Dict, List, Sequence, Set, Tuple
+from typing import Any, Dict, List, Sequence, Set, Tuple, cast
 
 from .types import IprVariant
 
@@ -47,13 +47,13 @@ def convert_to_rid_set(records: Sequence[Record]) -> Set[str]:
     return {r['@rid'] for r in records}
 
 
-def trim_empty_values(obj, empty_values: Sequence = ('', None, nan)):
+def trim_empty_values(obj: IprVariant, empty_values: Sequence = ('', None, nan)):
     blacklist = ('gene1', 'gene2')  # allow null for sv genes
     keys = list(obj.keys())
 
     for key in keys:
-        if obj[key] in empty_values and key not in blacklist:
-            del obj[key]
+        if obj[key] in empty_values and key not in blacklist:  # type: ignore
+            del obj[key]  # type: ignore
     return obj
 
 
@@ -93,10 +93,8 @@ def find_variant(
     raise KeyError(f'expected variant ({variant_key}, {variant_type}) does not exist')
 
 
-def generate_ontology_preference_key(record: Dict, sources_sort: Dict[str, int] = {}) -> Tuple:
-    """
-    Generate a tuple key for comparing preferred ontology terms.
-    """
+def generate_ontology_preference_key(record: Ontology, sources_sort: Dict[str, int] = {}) -> Tuple:
+    """Generate a tuple key for comparing preferred ontology terms."""
     return (
         record.get('name') == record.get('sourceId'),
         record.get('deprecated', False),
@@ -109,17 +107,20 @@ def generate_ontology_preference_key(record: Dict, sources_sort: Dict[str, int] 
     )
 
 
-def get_alternatives(graphkb_conn: GraphKBConnection, record_id: str) -> List[Record]:
-    return graphkb_conn.query({'target': [record_id], 'queryType': 'similarTo', 'treeEdges': []})
+def get_alternatives(graphkb_conn: GraphKBConnection, record_id: str) -> List[Ontology]:
+    rec_list = graphkb_conn.query(
+        {'target': [record_id], 'queryType': 'similarTo', 'treeEdges': []}
+    )
+    return [cast(Ontology, rec) for rec in rec_list]
 
 
 def get_preferred_drug_representation(
     graphkb_conn: GraphKBConnection, drug_record_id: str
-) -> Record:
+) -> Ontology:
+    """Given a Drug record, follow its linked records to find the preferred
+    representation by following alias, deprecating, and cross reference links.
     """
-    Given a Drug record, follow its linked records to find the preferred
-    representation by following alias, deprecating, and cross reference links
-    """
+
     source_preference = {
         r['@rid']: r['sort']
         for r in graphkb_conn.query({'target': 'Source', 'returnProperties': ['sort', '@rid']})
@@ -128,7 +129,7 @@ def get_preferred_drug_representation(
         get_alternatives(graphkb_conn, drug_record_id),
         key=lambda rec: generate_ontology_preference_key(rec, source_preference),
     )
-    return drugs[0]
+    return cast(Ontology, drugs[0])
 
 
 def get_preferred_gene_name(

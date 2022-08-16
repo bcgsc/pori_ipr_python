@@ -3,7 +3,7 @@ import json
 from graphkb import GraphKBConnection
 from graphkb.constants import RELEVANCE_BASE_TERMS
 from graphkb.statement import categorize_relevance
-from graphkb.types import Record
+from graphkb.types import Ontology, Record
 from graphkb.util import convert_to_rid_list
 from graphkb.vocab import get_term_tree
 from typing import Callable, Dict, List, Sequence, Set, Tuple
@@ -24,7 +24,7 @@ GRAPHKB_GUI = 'https://graphkb.bcgsc.ca'
 
 
 def filter_by_record_class(
-    record_list: List[Record], *record_classes, exclude: bool = False
+    record_list: Sequence[Record], *record_classes, exclude: bool = False
 ) -> List[Record]:
     """Given a list of records, return the subset matching a class or list of classes."""
 
@@ -44,16 +44,13 @@ def natural_join(word_list: List[str]) -> str:
 
 
 def natural_join_records(
-    records: List[Dict], covert_to_word: Callable[[Dict], str] = lambda x: x['displayName']
+    records: Sequence[Record], covert_to_word: Callable[[Dict], str] = lambda x: x['displayName']
 ) -> str:
     word_list = sorted(list({covert_to_word(rec) for rec in records}))
     return natural_join(word_list)
 
 
-def create_graphkb_link(
-    record_ids: List[str],
-    record_class: str = 'Statement',
-) -> str:
+def create_graphkb_link(record_ids: List[str], record_class: str = 'Statement') -> str:
     """
     Create a link for a set of statements to the GraphKB client
     """
@@ -67,16 +64,15 @@ def create_graphkb_link(
 
 def substitute_sentence_template(
     template: str,
-    conditions: List[Record],
-    subjects: List[Record],
-    relevance: Record,
-    evidence: List[Record],
+    conditions: List[Ontology],
+    subjects: List[Ontology],
+    relevance: Ontology,
+    evidence: List[Ontology],
     statement_rids: List[str] = [],
     disease_matches: Set[str] = set(),
 ) -> str:
-    """
-    Create the filled-in sentence template for a given template and list of substitutions
-    which may be the result of the aggregation of 1 or more statements
+    """Create the filled-in sentence template for a given template and list of substitutions
+    which may be the result of the aggregation of 1 or more statements.
     """
     disease_conditions = filter_by_record_class(conditions, 'Disease')
     variant_conditions = filter_by_record_class(
@@ -92,7 +88,7 @@ def substitute_sentence_template(
     )
     result = template.replace(r'{relevance}', relevance['displayName'])
 
-    def merge_diseases(diseases: List[Dict]) -> str:
+    def merge_diseases(diseases: List[Ontology]) -> str:
         if len(convert_to_rid_set(diseases) - disease_matches) >= 2 and all(
             [d['@class'] == 'Disease' for d in diseases]
         ):
@@ -268,7 +264,7 @@ def create_section_html(
                         {'biotype': 'gene'},
                     ]
                 },
-            },
+            }
         ),
         key=generate_ontology_preference_key,
     )
