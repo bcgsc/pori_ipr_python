@@ -321,8 +321,8 @@ def create_graphkb_sv_notation(row: IprFusionVariant) -> str:
     """Generate GKB/IPR fusion style notation from a structural variant."""
     gene1 = row['gene1'] or '?'
     gene2 = row['gene2'] or '?'
-    exon1 = row['exon1'] or '?'
-    exon2 = row['exon2'] or '?'
+    exon1 = str(row['exon1']) if row['exon1'] else '?'
+    exon2 = str(row['exon2']) if row['exon2'] else '?'
     if not row['gene1']:
         gene1, gene2 = gene2, gene1
         exon1, exon2 = exon2, exon1
@@ -330,9 +330,9 @@ def create_graphkb_sv_notation(row: IprFusionVariant) -> str:
         raise ValueError(
             f'both genes cannot be blank for a structural variant {row["key"]}. At least 1 gene must be entered'
         )
-    # force exons to integer repr
-    exon1 = str(exon1).removesuffix(".0")
-    exon2 = str(exon2).removesuffix(".0")
+    # force exons to integer repr string
+    exon1 = exon1[:-2] if exon1.endswith(".0") else exon1
+    exon2 = exon2[:-2] if exon2.endswith(".0") else exon2
     return f'({gene1},{gene2}):fusion(e.{exon1},e.{exon2})'
 
 
