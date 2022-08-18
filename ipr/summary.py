@@ -9,6 +9,8 @@ from graphkb.vocab import get_term_tree
 from typing import Callable, Dict, List, Sequence, Set, Tuple
 from urllib.parse import urlencode
 
+from ipr.inputs import create_graphkb_sv_notation
+
 from .types import GkbStatement, IprVariant, KbMatch
 from .util import (
     convert_to_rid_set,
@@ -200,11 +202,9 @@ def display_variant(variant: IprVariant) -> str:
     if variant.get('kbCategory'):
         return f'{variant.get("kbCategory")} of {gene}'
 
-    # Special display of fusions with exons
-    exon1 = variant.get("exon1")
-    exon2 = variant.get("exon2")
-    if exon1 or exon2:
-        return f'{gene}:fusion(e.{exon1 or"?"},e.{exon2 or "?"})'
+    # Special display of IprFusionVariant with exons
+    if variant.get("exon1") or variant.get("exon2"):
+        return create_graphkb_sv_notation(variant)  # type: ignore
 
     # Use chosen legacy 'proteinChange' or an hgvs description of lowest detail.
     hgvs = variant.get(
