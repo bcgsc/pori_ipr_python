@@ -91,10 +91,7 @@ def test_get_gene_information(gene, flags, monkeypatch):
     )
     monkeypatch.setattr(gkb_match, 'get_equivalent_features', lambda conn, term: [{'@rid': term}])
 
-    info = get_gene_information(
-        graphkb_conn,
-        [gene],
-    )
+    info = get_gene_information(graphkb_conn, [gene])
 
     assert info, f"get_gene_information failed for {gene}"
     gene_info = [i for i in info if i['name'] == gene]

@@ -17,7 +17,7 @@ from ipr.inputs import (
     preprocess_structural_variants,
     validate_report_content,
 )
-from ipr.types import IprGeneVariant, IprStructuralVariant
+from ipr.types import IprFusionVariant, IprGeneVariant
 from ipr.util import logger
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'test_data')
@@ -143,17 +143,17 @@ def test_load_expression_variants() -> None:
 class TestCheckVariantLinks:
     def test_sm_missing_copy_empty_ok(self) -> None:
         genes = check_variant_links(
-            small_mutations=[IprGeneVariant({'gene': 'KRAS'})],
+            small_mutations=[IprGeneVariant({'gene': 'KRAS'})],  # type: ignore
             copy_variants=[],
-            expression_variants=[IprGeneVariant({'gene': 'KRAS', 'variant': ''})],
+            expression_variants=[IprGeneVariant({'gene': 'KRAS', 'variant': ''})],  # type: ignore
             structural_variants=[],
         )
         assert genes == {'KRAS'}
 
     def test_sm_missing_exp_empty_ok(self) -> None:
         genes = check_variant_links(
-            small_mutations=[IprGeneVariant({'gene': 'KRAS'})],
-            copy_variants=[IprGeneVariant({'gene': 'KRAS', 'variant': ''})],
+            small_mutations=[IprGeneVariant({'gene': 'KRAS'})],  # type: ignore
+            copy_variants=[IprGeneVariant({'gene': 'KRAS', 'variant': ''})],  # type: ignore
             expression_variants=[],
             structural_variants=[],
         )
@@ -162,9 +162,9 @@ class TestCheckVariantLinks:
     def test_sm_missing_copy(self) -> None:
         with mock.patch.object(logger, 'verbose') as mock_debug:
             check_variant_links(
-                small_mutations=[IprGeneVariant({'gene': 'KRAS'})],
-                copy_variants=[IprGeneVariant({'gene': 'CDK', 'variant': ''})],
-                expression_variants=[IprGeneVariant({'gene': 'KRAS', 'variant': ''})],
+                small_mutations=[IprGeneVariant({'gene': 'KRAS'})],  # type: ignore
+                copy_variants=[IprGeneVariant({'gene': 'CDK', 'variant': ''})],  # type: ignore
+                expression_variants=[IprGeneVariant({'gene': 'KRAS', 'variant': ''})],  # type: ignore
                 structural_variants=[],
             )
             assert mock_debug.called
@@ -172,21 +172,21 @@ class TestCheckVariantLinks:
     def test_sm_missing_exp(self) -> None:
         with mock.patch.object(logger, 'verbose') as mock_debug:
             check_variant_links(
-                small_mutations=[IprGeneVariant({'gene': 'KRAS'})],
-                copy_variants=[IprGeneVariant({'gene': 'KRAS', 'variant': ''})],
-                expression_variants=[IprGeneVariant({'gene': 'CDK', 'variant': ''})],
+                small_mutations=[IprGeneVariant({'gene': 'KRAS'})],  # type: ignore
+                copy_variants=[IprGeneVariant({'gene': 'KRAS', 'variant': ''})],  # type: ignore
+                expression_variants=[IprGeneVariant({'gene': 'CDK', 'variant': ''})],  # type: ignore
                 structural_variants=[],
             )
             assert mock_debug.called
 
     def test_with_valid_inputs(self) -> None:
         genes = check_variant_links(
-            small_mutations=[IprGeneVariant({'gene': 'KRAS'})],
+            small_mutations=[IprGeneVariant({'gene': 'KRAS'})],  # type: ignore
             copy_variants=[
-                IprGeneVariant({'gene': 'KRAS', 'variant': ''}),
-                IprGeneVariant({'gene': 'CDK', 'variant': ''}),
+                IprGeneVariant({'gene': 'KRAS', 'variant': ''}),  # type: ignore
+                IprGeneVariant({'gene': 'CDK', 'variant': ''}),  # type: ignore
             ],
-            expression_variants=[IprGeneVariant({'gene': 'KRAS', 'variant': ''})],
+            expression_variants=[IprGeneVariant({'gene': 'KRAS', 'variant': ''})],  # type: ignore
             structural_variants=[],
         )
         assert genes == {'KRAS'}
@@ -196,10 +196,10 @@ class TestCheckVariantLinks:
             check_variant_links(
                 small_mutations=[],
                 copy_variants=[
-                    IprGeneVariant({'gene': 'BRAF', 'variant': 'copy gain'}),
-                    IprGeneVariant({'gene': 'KRAS', 'variant': ''}),
+                    IprGeneVariant({'gene': 'BRAF', 'variant': 'copy gain'}),  # type: ignore
+                    IprGeneVariant({'gene': 'KRAS', 'variant': ''}),  # type: ignore
                 ],
-                expression_variants=[IprGeneVariant({'gene': 'KRAS', 'variant': ''})],
+                expression_variants=[IprGeneVariant({'gene': 'KRAS', 'variant': ''})],  # type: ignore
                 structural_variants=[],
             )
             assert mock_debug.called
@@ -208,9 +208,9 @@ class TestCheckVariantLinks:
         with mock.patch.object(logger, 'verbose') as mock_debug:
             check_variant_links(
                 small_mutations=[],
-                copy_variants=[IprGeneVariant({'gene': 'KRAS', 'variant': ''})],
+                copy_variants=[IprGeneVariant({'gene': 'KRAS', 'variant': ''})],  # type: ignore
                 expression_variants=[
-                    IprGeneVariant({'gene': 'BRAF', 'variant': 'increased expression'})
+                    IprGeneVariant({'gene': 'BRAF', 'variant': 'increased expression'})  # type: ignore
                 ],
                 structural_variants=[],
             )
@@ -220,32 +220,32 @@ class TestCheckVariantLinks:
 class TestCreateGraphkbSvNotation:
     def test_both_genes_and_exons(self) -> None:
         notation = create_graphkb_sv_notation(
-            IprStructuralVariant({'gene1': 'A', 'gene2': 'B', 'exon1': 1, 'exon2': 2})
+            IprFusionVariant({'gene1': 'A', 'gene2': 'B', 'exon1': 1, 'exon2': 2})  # type: ignore
         )
         assert notation == '(A,B):fusion(e.1,e.2)'
 
     def test_one_exon_missing(self) -> None:
         notation = create_graphkb_sv_notation(
-            IprStructuralVariant({'gene1': 'A', 'gene2': 'B', 'exon1': '', 'exon2': 2})
+            IprFusionVariant({'gene1': 'A', 'gene2': 'B', 'exon1': '', 'exon2': 2})  # type: ignore
         )
         assert notation == '(A,B):fusion(e.?,e.2)'
 
     def test_one_gene_missing(self) -> None:
         notation = create_graphkb_sv_notation(
-            IprStructuralVariant({'gene1': 'A', 'gene2': '', 'exon1': 1, 'exon2': 2})
+            IprFusionVariant({'gene1': 'A', 'gene2': '', 'exon1': 1, 'exon2': 2})  # type: ignore
         )
         assert notation == '(A,?):fusion(e.1,e.2)'
 
     def test_first_gene_missing(self) -> None:
         notation = create_graphkb_sv_notation(
-            IprStructuralVariant({'gene1': '', 'gene2': 'B', 'exon1': 1, 'exon2': 2})
+            IprFusionVariant({'gene1': '', 'gene2': 'B', 'exon1': 1, 'exon2': 2})  # type: ignore
         )
         assert notation == '(B,?):fusion(e.2,e.1)'
 
     def test_no_genes_error(self) -> None:
         with pytest.raises(ValueError):
             create_graphkb_sv_notation(
-                IprStructuralVariant({'gene1': '', 'gene2': '', 'exon1': 1, 'exon2': 2, 'key': 'x'})
+                IprFusionVariant({'gene1': '', 'gene2': '', 'exon1': 1, 'exon2': 2, 'key': 'x'})  # type: ignore
             )
 
 

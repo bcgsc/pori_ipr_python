@@ -3,7 +3,7 @@ upload variant and report information to IPR
 """
 import pandas
 from graphkb import GraphKBConnection
-from typing import Dict, List
+from typing import Dict, List, Sequence
 
 from .types import IprVariant, KbMatch
 from .util import (
@@ -15,7 +15,7 @@ from .util import (
 
 
 def create_therapeutic_options(
-    graphkb_conn: GraphKBConnection, kb_matches: List[KbMatch], variants: List[IprVariant]
+    graphkb_conn: GraphKBConnection, kb_matches: List[KbMatch], variants: Sequence[IprVariant]
 ) -> List[Dict]:
     """
     Generate therapeutic options summary from the list of kb-matches

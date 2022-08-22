@@ -3,13 +3,13 @@ import json
 from graphkb import GraphKBConnection
 from graphkb.constants import RELEVANCE_BASE_TERMS
 from graphkb.statement import categorize_relevance
-from graphkb.types import Record, Statement
+from graphkb.types import Ontology, Record
 from graphkb.util import convert_to_rid_list
 from graphkb.vocab import get_term_tree
 from typing import Callable, Dict, List, Sequence, Set, Tuple
 from urllib.parse import urlencode
 
-from .types import IprVariant, KbMatch
+from .types import GkbStatement, IprVariant, KbMatch
 from .util import (
     convert_to_rid_set,
     generate_ontology_preference_key,
@@ -24,11 +24,9 @@ GRAPHKB_GUI = 'https://graphkb.bcgsc.ca'
 
 
 def filter_by_record_class(
-    record_list: List[Dict], *record_classes, exclude: bool = False
-) -> List[Dict]:
-    """
-    Given a list of records, return the subset matching a class or list of classes
-    """
+    record_list: Sequence[Record], *record_classes, exclude: bool = False
+) -> List[Record]:
+    """Given a list of records, return the subset matching a class or list of classes."""
 
     def check(name: str) -> bool:
         if exclude:
@@ -46,16 +44,13 @@ def natural_join(word_list: List[str]) -> str:
 
 
 def natural_join_records(
-    records: List[Dict], covert_to_word: Callable[[Dict], str] = lambda x: x['displayName']
+    records: Sequence[Record], covert_to_word: Callable[[Dict], str] = lambda x: x['displayName']
 ) -> str:
     word_list = sorted(list({covert_to_word(rec) for rec in records}))
     return natural_join(word_list)
 
 
-def create_graphkb_link(
-    record_ids: List[str],
-    record_class: str = 'Statement',
-) -> str:
+def create_graphkb_link(record_ids: List[str], record_class: str = 'Statement') -> str:
     """
     Create a link for a set of statements to the GraphKB client
     """
@@ -69,16 +64,15 @@ def create_graphkb_link(
 
 def substitute_sentence_template(
     template: str,
-    conditions: List[Record],
-    subjects: List[Record],
-    relevance: Record,
-    evidence: List[Record],
+    conditions: List[Ontology],
+    subjects: List[Ontology],
+    relevance: Ontology,
+    evidence: List[Ontology],
     statement_rids: List[str] = [],
     disease_matches: Set[str] = set(),
 ) -> str:
-    """
-    Create the filled-in sentence template for a given template and list of substitutions
-    which may be the result of the aggregation of 1 or more statements
+    """Create the filled-in sentence template for a given template and list of substitutions
+    which may be the result of the aggregation of 1 or more statements.
     """
     disease_conditions = filter_by_record_class(conditions, 'Disease')
     variant_conditions = filter_by_record_class(
@@ -94,7 +88,7 @@ def substitute_sentence_template(
     )
     result = template.replace(r'{relevance}', relevance['displayName'])
 
-    def merge_diseases(diseases: List[Dict]) -> str:
+    def merge_diseases(diseases: List[Ontology]) -> str:
         if len(convert_to_rid_set(diseases) - disease_matches) >= 2 and all(
             [d['@class'] == 'Disease' for d in diseases]
         ):
@@ -142,15 +136,15 @@ def substitute_sentence_template(
 def aggregate_statements(
     graphkb_conn: GraphKBConnection,
     template: str,
-    statements: List[Statement],
+    statements: List[GkbStatement],
     disease_matches: Set[str],
 ) -> Dict[str, str]:
     """
     Group Statements that only differ in disease conditions and evidence
     """
-    hash_other: Dict[Tuple, List[Statement]] = {}
+    hash_other: Dict[Tuple, List[GkbStatement]] = {}
 
-    def generate_key(statement: Statement) -> Tuple:
+    def generate_key(statement: GkbStatement) -> Tuple:
         result = [
             cond['displayName']
             for cond in filter_by_record_class(statement['conditions'], 'Disease', exclude=True)
@@ -197,16 +191,34 @@ def aggregate_statements(
     return result
 
 
-def display_variants(gene_name: str, variants: List[IprVariant]) -> str:
-    def display_variant(variant: IprVariant) -> str:
-        if 'gene' in variant and 'proteinChange' in variant:
-            return f'{variant["gene"]}:{variant["proteinChange"]}'
-        if 'gene1' in variant and 'gene2' in variant:
-            return f'({variant["gene1"]},{variant["gene2"]}):fusion(e.{variant.get("exon1", "?")},e.{variant.get("exon2", "?")})'
-        if 'kbCategory' in variant and variant['kbCategory']:
-            return f'{variant["kbCategory"]} of {variant["gene"]}'
+def display_variant(variant: IprVariant) -> str:
+    """Short, human readable variant description string."""
+    gene = variant.get('gene', '')
+    if not gene and 'gene1' in variant and 'gene2' in variant:
+        gene = f'({variant.get("gene1", "")},{variant.get("gene1", "")})'
 
-        raise ValueError(f'Unable to form display_variant of {variant["variant"]}: {variant}')
+    if variant.get('kbCategory'):
+        return f'{variant.get("kbCategory")} of {gene}'
+
+    # Special display of fusions with exons
+    exon1 = variant.get("exon1")
+    exon2 = variant.get("exon2")
+    if exon1 or exon2:
+        return f'{gene}:fusion(e.{exon1 or"?"},e.{exon2 or "?"})'
+
+    # Use chosen legacy 'proteinChange' or an hgvs description of lowest detail.
+    hgvs = variant.get(
+        'proteinChange',
+        variant.get('hgvsProtein', variant.get('hgvsCds', variant.get('hgvsGenomic', ''))),
+    )
+
+    if gene and hgvs:
+        return f'{gene}:{hgvs}'
+
+    raise ValueError(f'Unable to form display_variant of {variant["variant"]}: {variant}')
+
+
+def display_variants(gene_name: str, variants: List[IprVariant]) -> str:
 
     result = sorted(list({v for v in [display_variant(e) for e in variants] if gene_name in v}))
     variants_text = natural_join(result)
@@ -223,7 +235,7 @@ def create_section_html(
     graphkb_conn: GraphKBConnection,
     gene_name: str,
     sentences_by_statement_id: Dict[str, str],
-    statements: Dict[str, Statement],
+    statements: Dict[str, GkbStatement],
     exp_variants: List[IprVariant],
 ) -> str:
     """
@@ -252,7 +264,7 @@ def create_section_html(
                         {'biotype': 'gene'},
                     ]
                 },
-            },
+            }
         ),
         key=generate_ontology_preference_key,
     )
@@ -297,7 +309,7 @@ def create_section_html(
 
 
 def section_statements_by_genes(
-    graphkb_conn: GraphKBConnection, statements: Sequence[Statement]
+    graphkb_conn: GraphKBConnection, statements: Sequence[GkbStatement]
 ) -> Dict[str, Set[str]]:
     """
     Determine the statements associated with each gene name
@@ -324,13 +336,13 @@ def summarize(
     graphkb_conn: GraphKBConnection,
     matches: Sequence[KbMatch],
     disease_name: str,
-    variants: List[IprVariant],
+    variants: Sequence[IprVariant],
 ) -> str:
     """
     Given a list of GraphKB matches generate a text summary to add to the report
     """
-    templates: Dict[str, List[Statement]] = {}
-    statements: Dict[str, Statement] = {}
+    templates: Dict[str, List[GkbStatement]] = {}
+    statements: Dict[str, GkbStatement] = {}
     variants_by_keys = {v['key']: v for v in variants}
     variant_keys_by_statement_ids: Dict[str, Set[str]] = {}
 

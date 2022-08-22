@@ -3,11 +3,14 @@ import json
 import logging
 import pandas as pd
 from graphkb import GraphKBConnection
-from graphkb.types import Record
+from graphkb.types import Ontology, Record
 from graphkb.vocab import get_term_tree
-from typing import Any, Dict, List, Set, Tuple
+from numpy import nan
+from typing import Any, Dict, List, Sequence, Set, Tuple, cast
 
 from .types import IprVariant
+
+GENE_NEIGHBORS_MAX = 3
 
 # name the logger after the package to make it simple to disable for packages using this one as a dependency
 # https://stackoverflow.com/questions/11029717/how-do-i-disable-log-messages-from-the-requests-library
@@ -40,33 +43,18 @@ def hash_key(key: Tuple[str]) -> str:
     return hash_code
 
 
-def convert_to_rid_set(records: List[Record]) -> Set[str]:
+def convert_to_rid_set(records: Sequence[Record]) -> Set[str]:
     return {r['@rid'] for r in records}
 
 
-def trim_empty_values(obj: Dict, empty_values: List = ['', None]) -> Dict:
-    blacklist = ['gene1', 'gene2']  # allow null for sv genes
+def trim_empty_values(obj: IprVariant, empty_values: Sequence = ('', None, nan)):
+    blacklist = ('gene1', 'gene2')  # allow null for sv genes
     keys = list(obj.keys())
 
     for key in keys:
-        if obj[key] in empty_values and key not in blacklist:
-            del obj[key]
+        if obj[key] in empty_values and key not in blacklist:  # type: ignore
+            del obj[key]  # type: ignore
     return obj
-
-
-def create_variant_name(variant: IprVariant) -> str:
-    """
-    Given an IPR variant row, create the variant representation to be used as the name
-    of the variant
-    """
-    variant_type = variant['variantType']
-    if variant_type == 'exp':
-        gene = variant['gene']
-        return f'{gene} ({variant["expressionState"]})'
-    elif variant_type == 'cnv':
-        gene = variant['gene']
-        return f'{gene} ({variant["cnvState"]})'
-    return variant['variant']
 
 
 def create_variant_name_tuple(variant: IprVariant) -> Tuple[str, str]:
@@ -75,15 +63,16 @@ def create_variant_name_tuple(variant: IprVariant) -> Tuple[str, str]:
     of the variant
     """
     variant_type = variant['variantType']
-    gene = variant['gene'] if 'gene' in variant else variant['gene1']
+    gene = str(variant.get('gene', variant.get('gene1', '')))
     if variant_type == 'exp':
-        gene = variant['gene']
-        return (gene, variant['expressionState'])
+        return (gene, str(variant.get('expressionState', '')))
     elif variant_type == 'cnv':
-        gene = variant['gene']
-        return (gene, variant['cnvState'])
-    variant_split = variant['variant'].split(':', 1)[1]
-    gene2 = variant.get('gene2')
+        return (gene, str(variant.get('cnvState', '')))
+    variant_split = (
+        variant['variant'].split(':', 1)[1] if ':' in variant['variant'] else variant['variant']
+    )
+
+    gene2 = str(variant.get('gene2', ''))
     if gene and gene2:
         gene = f'{gene}, {gene2}'
     elif gene2:
@@ -92,7 +81,9 @@ def create_variant_name_tuple(variant: IprVariant) -> Tuple[str, str]:
     return (gene, variant_split)
 
 
-def find_variant(all_variants: List[IprVariant], variant_type: str, variant_key: str) -> IprVariant:
+def find_variant(
+    all_variants: Sequence[IprVariant], variant_type: str, variant_key: str
+) -> IprVariant:
     """
     Find a variant in a list of variants by its key and type
     """
@@ -102,10 +93,8 @@ def find_variant(all_variants: List[IprVariant], variant_type: str, variant_key:
     raise KeyError(f'expected variant ({variant_key}, {variant_type}) does not exist')
 
 
-def generate_ontology_preference_key(record: Dict, sources_sort: Dict[str, int] = {}) -> Tuple:
-    """
-    Generate a tuple key for comparing preferred ontology terms.
-    """
+def generate_ontology_preference_key(record: Ontology, sources_sort: Dict[str, int] = {}) -> Tuple:
+    """Generate a tuple key for comparing preferred ontology terms."""
     return (
         record.get('name') == record.get('sourceId'),
         record.get('deprecated', False),
@@ -118,15 +107,20 @@ def generate_ontology_preference_key(record: Dict, sources_sort: Dict[str, int] 
     )
 
 
-def get_alternatives(graphkb_conn: GraphKBConnection, record_id: str) -> List[Dict]:
-    return graphkb_conn.query({'target': [record_id], 'queryType': 'similarTo', 'treeEdges': []})
+def get_alternatives(graphkb_conn: GraphKBConnection, record_id: str) -> List[Ontology]:
+    rec_list = graphkb_conn.query(
+        {'target': [record_id], 'queryType': 'similarTo', 'treeEdges': []}
+    )
+    return [cast(Ontology, rec) for rec in rec_list]
 
 
-def get_preferred_drug_representation(graphkb_conn: GraphKBConnection, drug_record_id: str) -> Dict:
+def get_preferred_drug_representation(
+    graphkb_conn: GraphKBConnection, drug_record_id: str
+) -> Ontology:
+    """Given a Drug record, follow its linked records to find the preferred
+    representation by following alias, deprecating, and cross reference links.
     """
-    Given a Drug record, follow its linked records to find the preferred
-    representation by following alias, deprecating, and cross reference links
-    """
+
     source_preference = {
         r['@rid']: r['sort']
         for r in graphkb_conn.query({'target': 'Source', 'returnProperties': ['sort', '@rid']})
@@ -135,18 +129,19 @@ def get_preferred_drug_representation(graphkb_conn: GraphKBConnection, drug_reco
         get_alternatives(graphkb_conn, drug_record_id),
         key=lambda rec: generate_ontology_preference_key(rec, source_preference),
     )
-    return drugs[0]
+    return cast(Ontology, drugs[0])
 
 
-def get_preferred_gene_name(graphkb_conn: GraphKBConnection, record_id: str) -> str:
-    """
-    Given some Feature record ID return the preferred gene name
-    """
+def get_preferred_gene_name(
+    graphkb_conn: GraphKBConnection, record_id: str, neighbors: int = GENE_NEIGHBORS_MAX
+) -> str:
+    """Given some Feature record ID return the preferred gene name."""
     record = graphkb_conn.get_record_by_id(record_id)
     biotype = record.get('biotype', '')
     genes = []
-    expanded = graphkb_conn.query({'target': [record_id], 'neighbors': 3})[0]
-
+    expanded_gene_names = graphkb_conn.query({'target': [record_id], 'neighbors': neighbors})
+    assert len(expanded_gene_names) == 1, "get_preferred_gene_name should have single result"
+    expanded: Dict[str, List] = expanded_gene_names[0]  # type: ignore
     if biotype != 'gene':
         for edge in expanded.get('out_ElementOf', []):
             target = edge['in']
@@ -177,11 +172,9 @@ def get_preferred_gene_name(graphkb_conn: GraphKBConnection, record_id: str) -> 
     if genes:
         return genes[0]['displayName']
     # fallback to the input displayName
-    return record['displayName']
+    return str(record.get('displayName', ''))
 
 
 def pandas_falsy(field: Any) -> bool:
-    """
-    Check if a field is python falsy or pandas null
-    """
+    """Check if a field is python falsy or pandas null."""
     return bool(pd.isnull(field) or not field)
