@@ -220,7 +220,7 @@ def create_report(
     )
 
     all_variants: Sequence[IprVariant]
-    all_variants = expression_variants + copy_variants + structural_variants + small_mutations
+    all_variants = expression_variants + copy_variants + structural_variants + small_mutations  # type: ignore
 
     if match_germline:  # verify germline kb statements matched germline observed variants
         alterations = germline_kb_matches(alterations, all_variants)

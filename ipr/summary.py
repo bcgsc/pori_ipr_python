@@ -274,8 +274,8 @@ def create_section_html(
         # exclude sections where they are not linked to an experimental variant. this can occur when there are co-occurent statements collected
         return ''
     if genes and genes[0].get('description', ''):
-        description = '. '.join(genes[0]['description'].split('. ')[:2])
-        sourceId = genes[0]['sourceId']
+        description = '. '.join(genes[0]['description'].split('. ')[:2])  # type: ignore
+        sourceId = genes[0].get('sourceId', '')
 
         output.append(
             f'''
@@ -311,9 +311,7 @@ def create_section_html(
 def section_statements_by_genes(
     graphkb_conn: GraphKBConnection, statements: Sequence[GkbStatement]
 ) -> Dict[str, Set[str]]:
-    """
-    Determine the statements associated with each gene name
-    """
+    """Create Dict of statement @rid sets indexed by preferred gene names in conditions."""
     genes: Dict[str, Set[str]] = {}
 
     for statement in statements:
@@ -322,13 +320,12 @@ def section_statements_by_genes(
                 gene = get_preferred_gene_name(graphkb_conn, condition['@rid'])
                 genes.setdefault(gene, set()).add(statement['@rid'])
             else:
-                if condition.get('reference1', ''):
-                    gene = get_preferred_gene_name(graphkb_conn, condition['reference1'])
-                    genes.setdefault(gene, set()).add(statement['@rid'])
+                for cond_ref_key in ('reference1', 'reference2'):
+                    cond_ref_gene = condition.get(cond_ref_key)
+                    if cond_ref_gene:
+                        gene = get_preferred_gene_name(graphkb_conn, str(cond_ref_gene))
+                        genes.setdefault(gene, set()).add(statement['@rid'])
 
-                if condition.get('reference2', ''):
-                    gene = get_preferred_gene_name(graphkb_conn, condition['reference2'])
-                    genes.setdefault(gene, set()).add(statement['@rid'])
     return genes
 
 
@@ -338,9 +335,7 @@ def summarize(
     disease_name: str,
     variants: Sequence[IprVariant],
 ) -> str:
-    """
-    Given a list of GraphKB matches generate a text summary to add to the report
-    """
+    """Given a list of GraphKB matches, generate a text summary to add to the report."""
     templates: Dict[str, List[GkbStatement]] = {}
     statements: Dict[str, GkbStatement] = {}
     variants_by_keys = {v['key']: v for v in variants}
