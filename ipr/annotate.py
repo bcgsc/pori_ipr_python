@@ -350,13 +350,13 @@ def annotate_positional_variants(
     disease_name: str,
     show_progress: bool = False,
 ) -> List[KbMatch]:
-    """
-    Annotate variant calls with information from GraphKB and return these annotations in the IPR
-    alterations format
+    """Annotate SNP, INDEL or fusion variant calls with GraphKB and return in IPR match format.
 
     Args:
         graphkb_conn (GraphKBConnection): the graphkb api connection object
         variants (list.<dict>): list of variants. Defaults to [].
+        disease_name (str): GraphKB disease name for statement matching.  'cancer' is most general
+        show_progress (bool): Progressbar displayed for long runs.
 
     Returns:
         list of kbMatches records for IPR
@@ -384,9 +384,9 @@ def annotate_positional_variants(
                 for ipr_row in get_ipr_statements_from_variants(
                     graphkb_conn, matches, disease_name
                 ):
-                    new_row = KbMatch({'variant': row['key'], 'variantType': row['variantType']})
-                    new_row.update(ipr_row)
-                    alterations.append(new_row)
+                    ipr_row['variant'] = row['key']
+                    ipr_row['variantType'] = row['variantType']
+                    alterations.append(ipr_row)
 
             except FeatureNotFoundError as err:
                 logger.debug(f'failed to match positional variants ({variant}): {err}')
