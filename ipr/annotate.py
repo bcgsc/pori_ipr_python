@@ -159,6 +159,7 @@ def get_statements_from_variants(
         + [f'evidence.{p}' for p in GENERIC_RETURN_PROPERTIES]
         + [f'relevance.{p}' for p in GENERIC_RETURN_PROPERTIES]
         + [f'evidenceLevel.{p}' for p in GENERIC_RETURN_PROPERTIES]
+        # TODO: GERO-289 - IPR evidence equivalents
         + ['reviewStatus']
     )
 
@@ -241,7 +242,7 @@ def annotate_expression_variants(
     disease_name: str,
     show_progress: bool = False,
 ) -> List[KbMatch]:
-    """Annotate allowed copy variants with GraphKB in the IPR alterations format.
+    """Annotate expression variants with GraphKB in the IPR alterations format.
 
     Args:
         graphkb_conn: the graphkb api connection object
@@ -254,7 +255,7 @@ def annotate_expression_variants(
     alterations = []
     problem_genes = set()
 
-    logger.info(f"Starting annotation of {len(variants)} category_variants")
+    logger.info(f"Starting annotation of {len(variants)} expression category_variants")
     iterfunc = progressbar if show_progress else iter
     for row in iterfunc(variants):
         gene = row['gene']
@@ -269,7 +270,7 @@ def annotate_expression_variants(
             matches = gkb_match.match_expression_variant(graphkb_conn, gene, variant)
             for ipr_row in get_ipr_statements_from_variants(graphkb_conn, matches, disease_name):
                 ipr_row['variant'] = row['key']
-                ipr_row['variantType'] = row['variantType']
+                ipr_row['variantType'] = row.get('variantType', 'exp')
                 alterations.append(ipr_row)
         except FeatureNotFoundError as err:
             problem_genes.add(gene)
@@ -307,7 +308,7 @@ def annotate_copy_variants(
     alterations = []
     problem_genes = set()
 
-    logger.info(f"Starting annotation of {len(variants)} category_variants")
+    logger.info(f"Starting annotation of {len(variants)} copy category_variants")
     iterfunc = progressbar if show_progress else iter
     for row in iterfunc(variants):
         gene = row['gene']
@@ -323,7 +324,7 @@ def annotate_copy_variants(
             matches = gkb_match.match_copy_variant(graphkb_conn, gene, variant)
             for ipr_row in get_ipr_statements_from_variants(graphkb_conn, matches, disease_name):
                 ipr_row['variant'] = row['key']
-                ipr_row['variantType'] = row['variantType']
+                ipr_row['variantType'] = row.get('variantType', 'cnv')
                 alterations.append(ipr_row)
         except FeatureNotFoundError as err:
             problem_genes.add(gene)
@@ -385,7 +386,9 @@ def annotate_positional_variants(
                     graphkb_conn, matches, disease_name
                 ):
                     ipr_row['variant'] = row['key']
-                    ipr_row['variantType'] = row['variantType']
+                    ipr_row['variantType'] = row.get(
+                        'variantType', 'mut' if row.get('gene') else 'sv'
+                    )
                     alterations.append(ipr_row)
 
             except FeatureNotFoundError as err:
