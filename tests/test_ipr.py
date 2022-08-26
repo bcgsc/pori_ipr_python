@@ -165,7 +165,7 @@ def graphkb_conn():
 def base_graphkb_statement(
     disease_id: str = 'disease', relevance_rid: str = 'other'
 ) -> GkbStatement:
-    statement = GkbStatement(
+    statement = GkbStatement(  # type: ignore
         {
             'conditions': [
                 {'@class': 'Disease', '@rid': disease_id, 'displayName': 'disease_display_name'},
@@ -230,7 +230,7 @@ class TestConvertStatementsToAlterations:
     def test_multiple_disease_not_match(self, graphkb_conn) -> None:
         statement = base_graphkb_statement('disease')
         statement['conditions'].append(
-            {'@class': 'Disease', '@rid': 'other', 'displayName': 'disease_display_name'}
+            {'@class': 'Disease', '@rid': 'other', 'displayName': 'disease_display_name'}  # type: ignore
         )
         result = convert_statements_to_alterations(
             graphkb_conn, [statement], 'disease', {'variant_rid'}
@@ -285,7 +285,7 @@ class TestConvertStatementsToAlterations:
     def test_unapproved_therapeutic(self, graphkb_conn) -> None:
         statement = base_graphkb_statement()
         statement['relevance']['@rid'] = 'therapeutic'
-        statement['evidenceLevel'] = [{'@rid': 'other', 'displayName': 'level'}]
+        statement['evidenceLevel'] = [{'@rid': 'other', 'displayName': 'level'}]  # type: ignore
 
         result = convert_statements_to_alterations(
             graphkb_conn, [statement], 'disease', {'variant_rid'}
@@ -297,7 +297,7 @@ class TestConvertStatementsToAlterations:
     def test_approved_therapeutic(self, graphkb_conn) -> None:
         statement = base_graphkb_statement()
         statement['relevance']['@rid'] = 'therapeutic'
-        statement['evidenceLevel'] = [{'@rid': APPROVED_EVIDENCE_RIDS[0], 'displayName': 'level'}]
+        statement['evidenceLevel'] = [{'@rid': APPROVED_EVIDENCE_RIDS[0], 'displayName': 'level'}]  # type: ignore
 
         result = convert_statements_to_alterations(
             graphkb_conn, [statement], 'disease', {'variant_rid'}

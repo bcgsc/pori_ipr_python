@@ -105,14 +105,12 @@ def convert_statements_to_alterations(
     for statement in statements:
         variants = [c for c in statement['conditions'] if c['@class'] in VARIANT_CLASSES]
         diseases = [c for c in statement['conditions'] if c['@class'] == 'Disease']
+        disease_match = len(diseases) == 1 and diseases[0]['@rid'] in disease_matches
         pmid = ';'.join([e['displayName'] for e in statement['evidence']])
 
-        relevance_id = statement['relevance']['@rid']
-        review_status = statement.get('reviewStatus', '')
-
-        disease_match = len(diseases) == 1 and diseases[0]['@rid'] in disease_matches
-
-        ipr_section = gkb_statement.categorize_relevance(graphkb_conn, relevance_id)
+        ipr_section = gkb_statement.categorize_relevance(
+            graphkb_conn, statement['relevance']['@rid']
+        )
         approved_therapy = False
         if ipr_section == 'therapeutic':
             for level in statement['evidenceLevel'] or []:
@@ -143,11 +141,11 @@ def convert_statements_to_alterations(
                     'reference': pmid,
                     'relevance': statement['relevance']['displayName'],
                     'kbRelevanceId': statement['relevance']['@rid'],
-                    'externalSource': statement['source']['displayName']
+                    'externalSource': str(statement['source'].get('displayName', ''))
                     if statement['source']
                     else None,
                     'externalStatementId': statement.get('sourceId'),
-                    'reviewStatus': review_status,
+                    'reviewStatus': statement.get('reviewStatus'),
                 }
             )
             rows.append(row)
