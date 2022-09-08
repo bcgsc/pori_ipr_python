@@ -442,17 +442,21 @@ def get_evidencelevel_mapping(graphkb_conn: GraphKBConnection) -> Dict[str, str]
         lambda d: d["source"] == ipr_source_rid, evidence_levels
     )
     cross_references_mapping = dict()
+    ipr_rids_to_displayname = dict()
     for level in ipr_evidence_levels:
         d = map(
             lambda i: (i, level["displayName"]), level.get("out_CrossReferenceOf", [])
         )
         cross_references_mapping.update(d)
+        ipr_rids_to_displayname[level["@rid"]] = level["displayName"]
 
     # Update EvidenceLevel mapping to corresponding IPR EvidenceLevel displayName
     def link_refs(refs):
         for rid in refs[1]:
             if cross_references_mapping.get(rid):
                 return (refs[0], cross_references_mapping[rid])
+        if refs[0] in ipr_rids_to_displayname:  # self-referencing IPR levels
+            return (refs[0], ipr_rids_to_displayname[refs[0]])
         return (refs[0], "NA")
 
     evidence_levels_mapping = dict(map(link_refs, evidence_levels_mapping.items()))
