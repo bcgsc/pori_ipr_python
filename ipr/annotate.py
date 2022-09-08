@@ -416,3 +416,45 @@ def annotate_positional_variants(
     )
 
     return alterations
+
+
+def get_evidencelevel_mapping(graphkb_conn: GraphKBConnection) -> Dict[str, str]:
+    """
+    Args:
+        graphkb_conn (GraphKBConnection): the graphkb api connection object
+
+    Returns:
+        dictionary mapping all EvidenceLevel RIDs to corresponding IPR EvidenceLevel displayName
+    """
+
+    # Get all EvidenceLevel from GraphKB
+    # Note: not specifying any returnProperties allows for retreiving in/out_CrossReferenceOf
+    evidence_levels = graphkb_conn.query({"target": "EvidenceLevel"})
+
+    # Map EvidenceLevel RIDs to list of incoming CrossReferenceOf
+    evidence_levels_mapping = dict(
+        map(lambda d: (d["@rid"], d.get("in_CrossReferenceOf", [])), evidence_levels)
+    )
+
+    # Filter IPR EvidenceLevel and map each outgoing CrossReferenceOf to displayName
+    ipr_source_rid = graphkb_conn.get_source("ipr")["@rid"]
+    ipr_evidence_levels = filter(
+        lambda d: d["source"] == ipr_source_rid, evidence_levels
+    )
+    cross_references_mapping = dict()
+    for level in ipr_evidence_levels:
+        d = map(
+            lambda i: (i, level["displayName"]), level.get("out_CrossReferenceOf", [])
+        )
+        cross_references_mapping.update(d)
+
+    # Update EvidenceLevel mapping to corresponding IPR EvidenceLevel displayName
+    def link_refs(refs):
+        for rid in refs[1]:
+            if cross_references_mapping.get(rid):
+                return (refs[0], cross_references_mapping[rid])
+        return (refs[0], "NA")
+
+    evidence_levels_mapping = dict(map(link_refs, evidence_levels_mapping.items()))
+
+    return evidence_levels_mapping
