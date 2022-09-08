@@ -71,7 +71,6 @@ def graphkb_conn():
     return graphkb_conn
 
 
-@pytest.mark.skipif(False, reason="TODO: GERO-299 incomplete; cds and genomic fail test.")
 def test_annotate_nonsense_vs_missense(graphkb_conn):
     """Verify missense (point mutation) is not mistaken for a nonsense (stop codon) mutation."""
     disease = 'cancer'
