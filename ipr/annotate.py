@@ -370,17 +370,30 @@ def annotate_positional_variants(
     iterfunc = progressbar if show_progress else iter
     for row in iterfunc(variants):
 
-        if not row.get('gene', '') and (not row.get('gene1', '') or not row.get('gene2', '')):
+        if not row.get('gene') and (not row.get('gene1') or not row.get('gene2')):
             # https://www.bcgsc.ca/jira/browse/GERO-56?focusedCommentId=1234791&page=com.atlassian.jira.plugin.system.issuetabpanels:comment-tabpanel#comment-1234791
             # should not match single gene SVs
             continue
 
         for var_key in VARIANT_KEYS:
-            variant = row.get(var_key, '')
+            variant = row.get(var_key)
             if not variant:
                 continue
             try:
                 matches = gkb_match.match_positional_variant(graphkb_conn, variant)
+
+                # GERO-299 - check for conflicting nonsense and missense categories
+                missense = [m for m in matches if 'missense' in m.get('displayName', '')]
+                nonsense = [m for m in matches if 'nonsense' in m.get('displayName', '')]
+                if missense and nonsense:
+                    conflict_names = sorted(
+                        set([m.get('displayName', '') for m in nonsense + missense])
+                    )
+                    logger.error(
+                        f'Conflicting nonsense and misense categories for {variant}: {conflict_names}'
+                    )
+                    logger.error("GERO-299 Dropping all conflicting missense/nonsense categories.")
+                    matches = [m for m in matches if m not in missense and m not in nonsense]
 
                 for ipr_row in get_ipr_statements_from_variants(
                     graphkb_conn, matches, disease_name
