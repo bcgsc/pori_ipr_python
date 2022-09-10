@@ -200,7 +200,8 @@ def get_second_pass_variants(
 def get_ipr_statements_from_variants(
     graphkb_conn: GraphKBConnection, matches: List[Variant], disease_name: str
 ) -> List[KbMatch]:
-    """
+    """IPR upload formatted GraphKB statements from the list of variants.
+
     Matches to GraphKB statements from the list of input variants. From these results matches
     again with the inferred variants. Then returns the results formatted for upload to IPR
     """
@@ -380,7 +381,6 @@ def annotate_positional_variants(
                 continue
             try:
                 matches = gkb_match.match_positional_variant(graphkb_conn, variant)
-
                 for ipr_row in get_ipr_statements_from_variants(
                     graphkb_conn, matches, disease_name
                 ):
@@ -416,49 +416,3 @@ def annotate_positional_variants(
     )
 
     return alterations
-
-
-def get_evidencelevel_mapping(graphkb_conn: GraphKBConnection) -> Dict[str, str]:
-    """
-    Args:
-        graphkb_conn (GraphKBConnection): the graphkb api connection object
-
-    Returns:
-        dictionary mapping all EvidenceLevel RIDs to corresponding IPR EvidenceLevel displayName
-    """
-
-    # Get all EvidenceLevel from GraphKB
-    # Note: not specifying any returnProperties allows for retreiving in/out_CrossReferenceOf
-    evidence_levels = graphkb_conn.query({"target": "EvidenceLevel"})
-
-    # Map EvidenceLevel RIDs to list of incoming CrossReferenceOf
-    evidence_levels_mapping = dict(
-        map(lambda d: (d["@rid"], d.get("in_CrossReferenceOf", [])), evidence_levels)
-    )
-
-    # Filter IPR EvidenceLevel and map each outgoing CrossReferenceOf to displayName
-    ipr_source_rid = graphkb_conn.get_source("ipr")["@rid"]
-    ipr_evidence_levels = filter(
-        lambda d: d["source"] == ipr_source_rid, evidence_levels
-    )
-    cross_references_mapping = dict()
-    ipr_rids_to_displayname = dict()
-    for level in ipr_evidence_levels:
-        d = map(
-            lambda i: (i, level["displayName"]), level.get("out_CrossReferenceOf", [])
-        )
-        cross_references_mapping.update(d)
-        ipr_rids_to_displayname[level["@rid"]] = level["displayName"]
-
-    # Update EvidenceLevel mapping to corresponding IPR EvidenceLevel displayName
-    def link_refs(refs):
-        for rid in refs[1]:
-            if cross_references_mapping.get(rid):
-                return (refs[0], cross_references_mapping[rid])
-        if refs[0] in ipr_rids_to_displayname:  # self-referencing IPR levels
-            return (refs[0], ipr_rids_to_displayname[refs[0]])
-        return (refs[0], "NA")
-
-    evidence_levels_mapping = dict(map(link_refs, evidence_levels_mapping.items()))
-
-    return evidence_levels_mapping
