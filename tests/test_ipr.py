@@ -1,7 +1,7 @@
 import pytest
 from graphkb import statement as gkb_statement
 from graphkb import vocab as gkb_vocab
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 from ipr.ipr import convert_statements_to_alterations, germline_kb_matches
 from ipr.types import GkbStatement
@@ -157,7 +157,10 @@ def graphkb_conn():
             ret_val = self.return_values[self.index] if self.index < len(self.return_values) else []
             return ret_val
 
-    conn = Mock(query=QueryMock(), cache={})
+    def mock_get_source(source):
+        return {'@rid': 0}
+
+    conn = Mock(query=QueryMock(), cache={}, get_source=mock_get_source)
 
     return conn
 
@@ -282,29 +285,35 @@ class TestConvertStatementsToAlterations:
         row = result[0]
         assert row['category'] == 'diagnostic'
 
-    def test_unapproved_therapeutic(self, graphkb_conn) -> None:
+    @patch("ipr.ipr.get_evidencelevel_mapping")
+    def test_unapproved_therapeutic(self, mock_get_evidencelevel_mapping, graphkb_conn) -> None:
+        mock_get_evidencelevel_mapping.return_value = {"other": "test"}
+        
         statement = base_graphkb_statement()
-        statement['relevance']['@rid'] = 'therapeutic'
-        statement['evidenceLevel'] = [{'@rid': 'other', 'displayName': 'level'}]  # type: ignore
+        statement["relevance"]["@rid"] = "therapeutic"
+        statement["evidenceLevel"] = [{"@rid": "other", "displayName": "level"}]  # type: ignore
 
         result = convert_statements_to_alterations(
-            graphkb_conn, [statement], 'disease', {'variant_rid'}
+            graphkb_conn, [statement], "disease", {"variant_rid"}
         )
         assert len(result) == 1
         row = result[0]
-        assert row['category'] == 'therapeutic'
+        assert row["category"] == "therapeutic"
 
-    def test_approved_therapeutic(self, graphkb_conn) -> None:
+    @patch("ipr.ipr.get_evidencelevel_mapping")
+    def test_approved_therapeutic(self, mock_get_evidencelevel_mapping, graphkb_conn) -> None:
+        mock_get_evidencelevel_mapping.return_value = {APPROVED_EVIDENCE_RIDS[0]: "test"}
+        
         statement = base_graphkb_statement()
-        statement['relevance']['@rid'] = 'therapeutic'
-        statement['evidenceLevel'] = [{'@rid': APPROVED_EVIDENCE_RIDS[0], 'displayName': 'level'}]  # type: ignore
+        statement["relevance"]["@rid"] = "therapeutic"
+        statement["evidenceLevel"] = [{"@rid": APPROVED_EVIDENCE_RIDS[0], "displayName": "level"}]  # type: ignore
 
         result = convert_statements_to_alterations(
-            graphkb_conn, [statement], 'disease', {'variant_rid'}
+            graphkb_conn, [statement], "disease", {"variant_rid"}
         )
         assert len(result) == 1
         row = result[0]
-        assert row['category'] == 'therapeutic'
+        assert row["category"] == "therapeutic"
 
 
 class TestKbmatchFilters:
