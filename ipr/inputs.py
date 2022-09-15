@@ -451,7 +451,7 @@ def check_variant_links(
 
     if missing_information_genes:
         for err_msg in sorted(missing_information_errors):
-            logger.verbose(err_msg)  # type: ignore
+            logger.debug(err_msg)
         link_err_msg = (
             f'Missing information variant links on {len(missing_information_genes)} genes'
         )

@@ -42,7 +42,7 @@ class IprGene(TypedDict):
 
 
 class IprVariantBase(TypedDict):
-    """Required properties of all variants for IPR"""
+    """Required properties of all variants for IPR."""
 
     key: str
     variantType: str
@@ -67,15 +67,18 @@ class IprExprVariant(IprGeneVariant):
 
 
 class IprStructVarBase(IprVariantBase):
-    proteinChange: str  # TODO - make proteinChange optional and use hgvsNotations
+    """One of the hgvs notations or proteinChange is required."""
+
     hgvsProtein: Optional[str]
     hgvsCds: Optional[str]
     hgvsGenomic: Optional[str]
+    proteinChange: Optional[str]  # Older - being deprecated
 
 
 class IprSmallMutationVariant(IprStructVarBase):
     """SNPs and small INDELs"""
 
+    # variantType == 'mut'
     gene: str  # equivalent of gene1 in IprFusionVariant
     germline: Optional[bool]
     startPosition: Optional[int]
@@ -92,6 +95,7 @@ class IprSmallMutationVariant(IprStructVarBase):
 
 
 class IprFusionVariant(IprStructVarBase):
+    # variantType = 'sv
     gene1: str
     gene2: str
     exon1: int
