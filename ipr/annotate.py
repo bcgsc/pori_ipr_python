@@ -201,7 +201,8 @@ def get_second_pass_variants(
 def get_ipr_statements_from_variants(
     graphkb_conn: GraphKBConnection, matches: List[Variant], disease_name: str
 ) -> List[KbMatch]:
-    """
+    """IPR upload formatted GraphKB statements from the list of variants.
+
     Matches to GraphKB statements from the list of input variants. From these results matches
     again with the inferred variants. Then returns the results formatted for upload to IPR
     """

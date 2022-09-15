@@ -19,6 +19,7 @@ class KbMatch(TypedDict):
     kbContextId: str
     disease: str
     evidenceLevel: str
+    iprEvidenceLevel: Optional[str]
     kbStatementId: str
     kbVariant: str
     kbVariantId: str
