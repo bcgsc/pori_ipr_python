@@ -226,9 +226,9 @@ def create_report(
         alterations = germline_kb_matches(alterations, all_variants)
 
     if custom_kb_match_filter:
-        logger.info(f'custom_kb_match_filter on {len(alterations)}')
+        logger.info(f'custom_kb_match_filter on {len(alterations)} variants')
         alterations = custom_kb_match_filter(alterations)
-        logger.info(f'\t Left with {len(alterations)}')
+        logger.info(f'\t custom_kb_match_filter left {len(alterations)} variants')
 
     key_alterations, variant_counts = create_key_alterations(alterations, all_variants)
 
