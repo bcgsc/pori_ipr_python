@@ -28,7 +28,7 @@ from .types import (
     IprStructuralVariant,
     KbMatch,
 )
-from .util import convert_to_rid_set, logger
+from .util import Hashabledict, convert_to_rid_set, logger
 
 REPORTED_COPY_VARIANTS = (INPUT_COPY_CATEGORIES.AMP, INPUT_COPY_CATEGORIES.DEEP)
 
@@ -442,7 +442,7 @@ def annotate_positional_variants(
                     ipr_row['variantType'] = row.get(
                         'variantType', 'mut' if row.get('gene') else 'sv'
                     )
-                    alterations.append(ipr_row)
+                    alterations.append(Hashabledict(ipr_row))
 
             except FeatureNotFoundError as err:
                 logger.debug(f'failed to match positional variants ({variant}): {err}')
@@ -467,6 +467,9 @@ def annotate_positional_variants(
         logger.error(f'{len(problem_genes)} gene finding failures for positional variants')
     if errors:
         logger.error(f'skipped {errors} positional variants due to errors')
+
+    # drop duplicates
+    alterations = list(set(alterations))
     logger.info(
         f'matched {len(variants)} positional variants to {len(alterations)} graphkb annotations'
     )
