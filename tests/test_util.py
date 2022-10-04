@@ -1,6 +1,6 @@
 import pytest
 
-from ipr.util import create_variant_name, trim_empty_values
+from ipr.util import create_variant_name_tuple, trim_empty_values
 
 
 @pytest.mark.parametrize(
@@ -17,18 +17,13 @@ def test_trim_empty_values(input, output_keys):
     [
         [
             {'variantType': 'exp', 'gene': 'GENE', 'expressionState': 'increased expression'},
-            'GENE (increased expression)',
+            'increased expression',
         ],
-        [
-            {'variantType': 'cnv', 'gene': 'GENE', 'cnvState': 'amplification'},
-            'GENE (amplification)',
-        ],
-        [
-            {'variantType': 'other', 'variant': 'anything'},
-            'anything',
-        ],
+        [{'variantType': 'cnv', 'gene': 'GENE', 'cnvState': 'amplification'}, 'amplification'],
+        [{'variantType': 'other', 'gene2': 'GENE', 'variant': 'GENE:anything'}, 'anything'],
     ],
 )
-def test_create_variant_name(variant, result):
-    name = create_variant_name(variant)
+def test_create_variant_name_tuple(variant, result):
+    gene, name = create_variant_name_tuple(variant)
     assert name == result
+    assert gene == 'GENE'

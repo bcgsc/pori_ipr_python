@@ -9,7 +9,13 @@ from Bio.Data.IUPACData import protein_letters_3to1
 from graphkb.match import INPUT_COPY_CATEGORIES, INPUT_EXPRESSION_CATEGORIES
 from typing import Callable, Dict, Iterable, List, Set, Tuple, cast
 
-from .types import IprGeneVariant, IprStructuralVariant, IprVariant
+from .types import (
+    IprCopyVariant,
+    IprExprVariant,
+    IprFusionVariant,
+    IprSmallMutationVariant,
+    IprVariant,
+)
 from .util import hash_key, logger, pandas_falsy
 
 protein_letters_3to1.setdefault('Ter', '*')
@@ -168,7 +174,7 @@ def validate_variant_rows(
     return result
 
 
-def preprocess_copy_variants(rows: Iterable[Dict]) -> List[IprVariant]:
+def preprocess_copy_variants(rows: Iterable[Dict]) -> List[IprCopyVariant]:
     """
     Validate the input rows contain the minimum required fields and
     generate any default values where possible
@@ -186,45 +192,48 @@ def preprocess_copy_variants(rows: Iterable[Dict]) -> List[IprVariant]:
         return tuple(['cnv'] + [row[key] for key in COPY_KEY])
 
     result = validate_variant_rows(rows, COPY_REQ, COPY_OPTIONAL, row_key)
-
-    for row in result:
-        if row['kbCategory'] and not pd.isnull(row['kbCategory']):
-            if row['kbCategory'] not in INPUT_COPY_CATEGORIES.values():
-                raise ValueError(f'invalid copy variant kbCategory value ({row["kbCategory"]})')
-            if not row['cnvState']:  # apply default short display name
-                row['cnvState'] = display_name_mapping[row['kbCategory']]
-        row['variant'] = row['kbCategory']
+    ret_list = [cast(IprCopyVariant, var) for var in result]
+    for row in ret_list:
+        kb_cat = row.get('kbCategory')
+        kb_cat = '' if pd.isnull(kb_cat) else str(kb_cat)
+        if kb_cat:
+            if kb_cat not in INPUT_COPY_CATEGORIES.values():
+                raise ValueError(f'invalid copy variant kbCategory value ({kb_cat})')
+            if not row.get('cnvState'):  # apply default short display name
+                row['cnvState'] = display_name_mapping[kb_cat]
+        row['variant'] = kb_cat
         row['variantType'] = 'cnv'
 
-    return result
+    return ret_list
 
 
-def preprocess_small_mutations(rows: Iterable[Dict]) -> List[IprGeneVariant]:
+def preprocess_small_mutations(rows: Iterable[Dict]) -> List[IprSmallMutationVariant]:
     """
     Validate the input rows contain the minimum required fields and
     generate any default values where possible
     """
 
-    def row_key(row: Dict) -> Tuple[str, ...]:
+    def row_key(row: IprSmallMutationVariant) -> Tuple[str, ...]:
         key_vals = []
         for kval in [row.get(key, '') for key in SMALL_MUT_KEY]:
-            key_vals.append(kval if pd.notnull(kval) else '')
+            key_vals.append(str(kval) if pd.notnull(kval) else '')
         return tuple(['small mutation'] + key_vals)
 
     result = validate_variant_rows(rows, SMALL_MUT_REQ, SMALL_MUT_OPTIONAL, row_key)
     if not result:
-        return result
+        return []
 
-    def pick_variant(row: Dict) -> str:
-        if not pandas_falsy(row['proteinChange']):
+    def pick_variant(row: IprSmallMutationVariant) -> str:
+        protein_change = row.get('proteinChange')
+        if not pandas_falsy(protein_change):
             for longAA, shortAA in protein_letters_3to1.items():
-                row['proteinChange'] = row['proteinChange'].replace(longAA, shortAA)
-            hgvsp = '{}:{}'.format(row['gene'], row['proteinChange'])
+                protein_change = str(protein_change).replace(longAA, shortAA)
+            hgvsp = '{}:{}'.format(row['gene'], protein_change)
             return hgvsp
 
         for field in ['hgvsProtein', 'hgvsCds', 'hgvsGenomic']:
-            if not pandas_falsy(row[field]):
-                return row[field]
+            if not pandas_falsy(row.get(field)):
+                return str(row.get(field))
 
         raise ValueError(
             'Variant field cannot be empty. Must include proteinChange or one of the hgvs fields (hgvsProtein, hgvsCds, hgvsGenomic) to build the variant string'
@@ -233,28 +242,33 @@ def preprocess_small_mutations(rows: Iterable[Dict]) -> List[IprGeneVariant]:
     # 'location' and 'refAlt' are not currently used for matching; still optional and allowed blank
 
     # change 3 letter AA to 1 letter AA notation
-    for row in result:
-        row['variant'] = pick_variant(row)
-        row['variantType'] = 'mut'
+    # for row in result:
+    def convert_sm(row: IprVariant) -> IprSmallMutationVariant:
+        ret = cast(IprSmallMutationVariant, row)
+        ret['variant'] = pick_variant(ret)
+        ret['variantType'] = 'mut'
 
-        if row.get('startPosition') and not row.get('endPosition'):
-            row['endPosition'] = row['startPosition']
+        if ret.get('startPosition') and not ret.get('endPosition'):
+            ret['endPosition'] = ret['startPosition']
 
         # default depth to alt + ref if not given
-        for sample_type in ['normal', 'rna', 'tumour']:
+        for sample_type in ('normal', 'rna', 'tumour'):
             if (
-                row.get(f'{sample_type}RefCount', '')
-                and row.get(f'{sample_type}AltCount', '')
-                and not row.get(f'{sample_type}Depth', '')
+                ret.get(f'{sample_type}RefCount')
+                and ret.get(f'{sample_type}AltCount')
+                and not ret.get(f'{sample_type}Depth')
             ):
-                row[f'{sample_type}Depth'] = (
-                    row[f'{sample_type}RefCount'] + row[f'{sample_type}AltCount']
+                ret[f'{sample_type}Depth'] = (  # type: ignore
+                    ret[f'{sample_type}RefCount'] + ret[f'{sample_type}AltCount']  # type: ignore
                 )
+        return ret
 
-    return result
+    res_list = [convert_sm(var) for var in result]
+
+    return res_list
 
 
-def preprocess_expression_variants(rows: Iterable[Dict]) -> List[IprGeneVariant]:
+def preprocess_expression_variants(rows: Iterable[Dict]) -> List[IprExprVariant]:
     """
     Validate the input rows contain the minimum required fields and
     generate any default values where possible
@@ -263,7 +277,8 @@ def preprocess_expression_variants(rows: Iterable[Dict]) -> List[IprGeneVariant]
     def row_key(row: Dict) -> Tuple[str, ...]:
         return tuple(['expression'] + [row[key] for key in EXP_KEY])
 
-    result = validate_variant_rows(rows, EXP_REQ, EXP_OPTIONAL, row_key)
+    variants = validate_variant_rows(rows, EXP_REQ, EXP_OPTIONAL, row_key)
+    result = [cast(IprExprVariant, var) for var in variants]
     float_columns = [
         col
         for col in EXP_REQ + EXP_OPTIONAL
@@ -302,14 +317,12 @@ def preprocess_expression_variants(rows: Iterable[Dict]) -> List[IprGeneVariant]
     return result
 
 
-def create_graphkb_sv_notation(row: IprStructuralVariant) -> str:
-    """
-    Generate GKB style structural variant notation from a structural variant input row
-    """
-    gene1 = row['gene1'] if row['gene1'] else '?'
-    gene2 = row['gene2'] if row['gene2'] else '?'
-    exon1 = row['exon1'] if row['exon1'] else '?'
-    exon2 = row['exon2'] if row['exon2'] else '?'
+def create_graphkb_sv_notation(row: IprFusionVariant) -> str:
+    """Generate GKB/IPR fusion style notation from a structural variant."""
+    gene1 = row['gene1'] or '?'
+    gene2 = row['gene2'] or '?'
+    exon1 = str(row['exon1']) if row['exon1'] else '?'
+    exon2 = str(row['exon2']) if row['exon2'] else '?'
     if not row['gene1']:
         gene1, gene2 = gene2, gene1
         exon1, exon2 = exon2, exon1
@@ -317,10 +330,13 @@ def create_graphkb_sv_notation(row: IprStructuralVariant) -> str:
         raise ValueError(
             f'both genes cannot be blank for a structural variant {row["key"]}. At least 1 gene must be entered'
         )
+    # force exons to integer repr string
+    exon1 = exon1[:-2] if exon1.endswith(".0") else exon1
+    exon2 = exon2[:-2] if exon2.endswith(".0") else exon2
     return f'({gene1},{gene2}):fusion(e.{exon1},e.{exon2})'
 
 
-def preprocess_structural_variants(rows: Iterable[Dict]) -> List[IprVariant]:
+def preprocess_structural_variants(rows: Iterable[Dict]) -> List[IprFusionVariant]:
     """
     Validate the input rows contain the minimum required fields and
     generate any default values where possible
@@ -329,9 +345,9 @@ def preprocess_structural_variants(rows: Iterable[Dict]) -> List[IprVariant]:
     def row_key(row: Dict) -> Tuple[str, ...]:
         return tuple(['sv'] + [row[key] for key in SV_KEY])
 
-    result = validate_variant_rows(rows, SV_REQ, SV_OPTIONAL, row_key)
+    variants = validate_variant_rows(rows, SV_REQ, SV_OPTIONAL, row_key)
+    result = [cast(IprFusionVariant, var) for var in variants]
     # genes are optional for structural variants
-
     for row in result:
         row['variant'] = create_graphkb_sv_notation(row)
         row['variantType'] = 'sv'
@@ -347,10 +363,10 @@ def preprocess_structural_variants(rows: Iterable[Dict]) -> List[IprVariant]:
 
 
 def check_variant_links(
-    small_mutations: List[IprGeneVariant],
-    expression_variants: List[IprGeneVariant],
-    copy_variants: List[IprGeneVariant],
-    structural_variants: List[IprStructuralVariant],
+    small_mutations: List[IprSmallMutationVariant],
+    expression_variants: List[IprExprVariant],
+    copy_variants: List[IprCopyVariant],
+    structural_variants: List[IprFusionVariant],
 ) -> Set[str]:
     """
     Check matching information for any genes with variants.
@@ -373,6 +389,7 @@ def check_variant_links(
     expression_variant_genes = {variant['gene'] for variant in expression_variants}
     genes_with_variants = set()  # filter excess copy variants
 
+    variant = IprVariant  # to silence type errors
     for variant in copy_variants:
         gene = variant['gene']
         if not gene:
@@ -434,7 +451,7 @@ def check_variant_links(
 
     if missing_information_genes:
         for err_msg in sorted(missing_information_errors):
-            logger.verbose(err_msg)  # type: ignore
+            logger.debug(err_msg)
         link_err_msg = (
             f'Missing information variant links on {len(missing_information_genes)} genes'
         )
@@ -442,7 +459,7 @@ def check_variant_links(
     return genes_with_variants
 
 
-def check_comparators(content: Dict, expresssionVariants: Iterable[Dict] = []) -> None:
+def check_comparators(content: Dict, expresssionVariants: List[IprExprVariant] = []) -> None:
     """
     Given the optional content dictionary, check that based on the analyses present the
     correct/sufficient comparators have also been specified
@@ -466,8 +483,8 @@ def check_comparators(content: Dict, expresssionVariants: Iterable[Dict] = []) -
     if expresssionVariants:
         required_comparators = {'expression (disease)'}
 
-        def all_none(row: Dict, columns: List[str]) -> bool:
-            return all([row.get(col) is None or row[col] == '' for col in columns])
+        def all_none(row: IprExprVariant, columns: List[str]) -> bool:
+            return all([row.get(col) is None or row.get(col) == '' for col in columns])
 
         for exp in expresssionVariants:
             if not all_none(
@@ -517,12 +534,7 @@ def extend_with_default(validator_class):
             if "default" in subschema:
                 instance.setdefault(property, subschema["default"])
 
-        for error in validate_properties(
-            validator,
-            properties,
-            instance,
-            schema,
-        ):
+        for error in validate_properties(validator, properties, instance, schema):
             yield error
 
     def check_null(checker, instance):
@@ -535,9 +547,7 @@ def extend_with_default(validator_class):
     type_checker = validator_class.TYPE_CHECKER.redefine("null", check_null)
 
     return jsonschema.validators.extend(
-        validator_class,
-        validators={"properties": set_defaults},
-        type_checker=type_checker,
+        validator_class, validators={"properties": set_defaults}, type_checker=type_checker
     )
 
 

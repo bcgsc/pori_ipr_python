@@ -5,24 +5,25 @@ by other reporting systems
 from graphkb import GraphKBConnection
 from graphkb import statement as gkb_statement
 from graphkb import vocab as gkb_vocab
-from graphkb.types import Ontology, Statement
-from typing import Dict, Iterable, List, Set, Tuple
+from graphkb.types import Record
+from typing import Dict, Iterable, List, Sequence, Set, Tuple
 
 from .constants import APPROVED_EVIDENCE_LEVELS, GERMLINE_BASE_TERMS, VARIANT_CLASSES
-from .types import ImageDefinition, IprGene, IprStructuralVariant, IprVariant, KbMatch
+from .types import GkbStatement, ImageDefinition, IprFusionVariant, IprGene, IprVariant, KbMatch
 from .util import convert_to_rid_set, find_variant, logger
 
 
-def display_evidence_levels(statement: Statement) -> str:
+def display_evidence_levels(statement: GkbStatement) -> str:
     result = []
-
     for evidence_level in statement.get('evidenceLevel', []) or []:
-        result.append(evidence_level['displayName'])
-
+        if isinstance(evidence_level, str):
+            result.append(evidence_level)
+        elif 'displayName' in evidence_level:
+            result.append(evidence_level['displayName'])
     return ';'.join(sorted(result))
 
 
-def get_approved_evidence_levels(graphkb_conn: GraphKBConnection) -> List[Ontology]:
+def get_approved_evidence_levels(graphkb_conn: GraphKBConnection) -> List[Record]:
     filters = []
     for source, names in APPROVED_EVIDENCE_LEVELS.items():
         filters.append(
@@ -37,10 +38,10 @@ def get_approved_evidence_levels(graphkb_conn: GraphKBConnection) -> List[Ontolo
 
 
 def filter_structural_variants(
-    structural_variants: List[IprStructuralVariant],
+    structural_variants: List[IprFusionVariant],
     kb_matches: List[KbMatch],
     gene_annotations: List[IprGene],
-) -> List[IprStructuralVariant]:
+) -> List[IprFusionVariant]:
     """
     Filter structural variants to remove non-high quality events unless they are matched/annotated or
     they involve a gene that is a known fusion partner
@@ -65,14 +66,56 @@ def filter_structural_variants(
     return result
 
 
+def get_evidencelevel_mapping(graphkb_conn: GraphKBConnection) -> Dict[str, str]:
+    """IPR evidence level equivalents of GraphKB evidence returned as a dictionary.
+
+    Args:
+        graphkb_conn (GraphKBConnection): the graphkb api connection object
+
+    Returns:
+        dictionary mapping all EvidenceLevel RIDs to corresponding IPR EvidenceLevel displayName
+    """
+    # Get all EvidenceLevel from GraphKB
+    # Note: not specifying any returnProperties allows for retreiving in/out_CrossReferenceOf
+    evidence_levels = graphkb_conn.query({"target": "EvidenceLevel"})
+
+    # Map EvidenceLevel RIDs to list of incoming CrossReferenceOf
+    evidence_levels_mapping = dict(
+        map(lambda d: (d["@rid"], d.get("in_CrossReferenceOf", [])), evidence_levels)
+    )
+
+    # Filter IPR EvidenceLevel and map each outgoing CrossReferenceOf to displayName
+    ipr_source_rid = graphkb_conn.get_source("ipr")["@rid"]
+    ipr_evidence_levels = filter(lambda d: d["source"] == ipr_source_rid, evidence_levels)
+    cross_references_mapping = dict()
+    ipr_rids_to_displayname = dict()
+    for level in ipr_evidence_levels:
+        d = map(lambda i: (i, level["displayName"]), level.get("out_CrossReferenceOf", []))
+        cross_references_mapping.update(d)
+        ipr_rids_to_displayname[level["@rid"]] = level["displayName"]
+
+    # Update EvidenceLevel mapping to corresponding IPR EvidenceLevel displayName
+    def link_refs(refs):
+        for rid in refs[1]:
+            if cross_references_mapping.get(rid):
+                return (refs[0], cross_references_mapping[rid])
+        if refs[0] in ipr_rids_to_displayname:  # self-referencing IPR levels
+            return (refs[0], ipr_rids_to_displayname[refs[0]])
+        return (refs[0], "")
+
+    evidence_levels_mapping = dict(map(link_refs, evidence_levels_mapping.items()))
+    evidence_levels_mapping[""] = ""
+
+    return evidence_levels_mapping
+
+
 def convert_statements_to_alterations(
     graphkb_conn: GraphKBConnection,
-    statements: List[Statement],
+    statements: List[GkbStatement],
     disease_name: str,
     variant_matches: Iterable[str],
 ) -> List[KbMatch]:
-    """
-    Given a set of statements matched from graphkb, convert these into their IPR equivalent representations
+    """Convert statements matched from graphkb into IPR equivalent representations.
 
     Args:
         graphkb_conn: the graphkb connection object
@@ -100,18 +143,17 @@ def convert_statements_to_alterations(
     rows = []
 
     approved = convert_to_rid_set(get_approved_evidence_levels(graphkb_conn))
+    ev_map = get_evidencelevel_mapping(graphkb_conn)
 
     for statement in statements:
         variants = [c for c in statement['conditions'] if c['@class'] in VARIANT_CLASSES]
         diseases = [c for c in statement['conditions'] if c['@class'] == 'Disease']
+        disease_match = len(diseases) == 1 and diseases[0]['@rid'] in disease_matches
         pmid = ';'.join([e['displayName'] for e in statement['evidence']])
 
-        relevance_id = statement['relevance']['@rid']
-        review_status = statement['reviewStatus'] if 'reviewStatus' in statement else ''
-
-        disease_match = len(diseases) == 1 and diseases[0]['@rid'] in disease_matches
-
-        ipr_section = gkb_statement.categorize_relevance(graphkb_conn, relevance_id)
+        ipr_section = gkb_statement.categorize_relevance(
+            graphkb_conn, statement['relevance']['@rid']
+        )
         approved_therapy = False
         if ipr_section == 'therapeutic':
             for level in statement['evidenceLevel'] or []:
@@ -121,6 +163,11 @@ def convert_statements_to_alterations(
 
         if ipr_section == 'prognostic' and not disease_match:
             continue  # GERO-72 / GERO-196
+
+        evidence_level_str = display_evidence_levels(statement)
+        evidence_levels = statement.get('evidenceLevel') or []
+        ipr_evidence_levels = [ev_map[el.get('@rid', '')] for el in evidence_levels if el]
+        ipr_evidence_levels_str = ';'.join(sorted(set([el for el in ipr_evidence_levels])))
 
         for variant in variants:
             if variant['@rid'] not in variant_matches:
@@ -134,7 +181,8 @@ def convert_statements_to_alterations(
                     ),
                     'kbContextId': (statement['subject']['@rid'] if statement['subject'] else None),
                     'disease': ';'.join(sorted(d['displayName'] for d in diseases)),
-                    'evidenceLevel': display_evidence_levels(statement),
+                    'evidenceLevel': evidence_level_str,
+                    'iprEvidenceLevel': ipr_evidence_levels_str,
                     'kbStatementId': statement['@rid'],
                     'kbVariant': variant['displayName'],
                     'kbVariantId': variant['@rid'],
@@ -142,11 +190,11 @@ def convert_statements_to_alterations(
                     'reference': pmid,
                     'relevance': statement['relevance']['displayName'],
                     'kbRelevanceId': statement['relevance']['@rid'],
-                    'externalSource': statement['source']['displayName']
+                    'externalSource': str(statement['source'].get('displayName', ''))
                     if statement['source']
                     else None,
                     'externalStatementId': statement.get('sourceId'),
-                    'reviewStatus': review_status,
+                    'reviewStatus': statement.get('reviewStatus'),
                 }
             )
             rows.append(row)
@@ -154,8 +202,8 @@ def convert_statements_to_alterations(
 
 
 def select_expression_plots(
-    kb_matches: List[KbMatch], all_variants: List[IprVariant]
-) -> List[Dict[str, ImageDefinition]]:
+    kb_matches: List[KbMatch], all_variants: Sequence[IprVariant]
+) -> List[ImageDefinition]:
     """
     Given the list of expression variants, determine which expression
     historgram plots should be included in the IPR upload. This filters them
@@ -179,18 +227,18 @@ def select_expression_plots(
     for variant in all_variants:
         if (variant['variantType'], variant['key']) in selected_variants:
             for key in ['gene', 'gene1', 'gene2']:
-                if key in variant and variant[key]:
-                    selected_genes.add(variant[key])
-        if variant.get('histogramImage', ''):
-            gene = variant['gene']
-            images_by_gene[gene] = ImageDefinition(
-                {'key': f'expDensity.{gene}', 'path': variant['histogramImage']}
-            )
+                gene = variant.get(key)
+                if gene:
+                    selected_genes.add(str(gene))
+        gene = str(variant.get('gene', ''))
+        hist = str(variant.get('histogramImage', ''))
+        if hist:
+            images_by_gene[gene] = ImageDefinition({'key': f'expDensity.{gene}', 'path': hist})
     return [images_by_gene[gene] for gene in selected_genes if gene in images_by_gene]
 
 
 def create_key_alterations(
-    kb_matches: List[KbMatch], all_variants: List[IprVariant]
+    kb_matches: List[KbMatch], all_variants: Sequence[IprVariant]
 ) -> Tuple[List[Dict], Dict]:
     """
     Creates the list of genomic key alterations which summarizes all the variants matched by the KB
@@ -216,11 +264,9 @@ def create_key_alterations(
             continue
 
         if variant_type == 'exp':
-            gene = variant['gene']
-            alterations.append(f'{gene} ({variant["expressionState"]})')
+            alterations.append(f'{variant.get("gene","")} ({variant.get("expressionState")})')
         elif variant_type == 'cnv':
-            gene = variant['gene']
-            alterations.append(f'{gene} ({variant["cnvState"]})')
+            alterations.append(f'{variant.get("gene","")} ({variant.get("cnvState")})')
         # only show germline if relevant
         elif kb_match['category'] in GERMLINE_BASE_TERMS and variant.get('germline'):
             alterations.append(f"germline {variant['variant']}")
@@ -244,7 +290,7 @@ def create_key_alterations(
 
 
 def germline_kb_matches(
-    kb_matches: List[KbMatch], all_variants: List[IprVariant], assume_somatic: bool = True
+    kb_matches: List[KbMatch], all_variants: Sequence[IprVariant], assume_somatic: bool = True
 ) -> List[KbMatch]:
     """Filter kb_matches for matching to germline or somatic events using the 'germline' optional property.
 
@@ -267,7 +313,7 @@ def germline_kb_matches(
         logger.info(f"checking germline status of {GERMLINE_BASE_TERMS}")
         for alt in germ_alts:
             var_list = [v for v in all_variants if v['key'] == alt['variant']]
-            germline_var_list = [v for v in var_list if 'germline' in v and v['germline']]
+            germline_var_list = [v for v in var_list if v.get('germline')]
             unknown_var_list = [v for v in var_list if 'germline' not in v]
             if germline_var_list:
                 logger.debug(
