@@ -151,6 +151,7 @@ def get_statements_from_variants(
     Returns:
         list.<dict>: list of Statement records from graphkb
     """
+    # TODO: Get from graphkb.constant.STATEMENT_RETURN_PROPERTIES
     return_props = (
         BASE_RETURN_PROPERTIES
         + ['sourceId', 'source.name', 'source.displayName']
@@ -469,9 +470,45 @@ def annotate_positional_variants(
         logger.error(f'skipped {errors} positional variants due to errors')
 
     # drop duplicates
-    alterations = list(set(alterations))
+    alterations: List[KbMatch] = list(set(alterations))
     logger.info(
         f'matched {len(variants)} positional variants to {len(alterations)} graphkb annotations'
     )
 
     return alterations
+
+
+def annotate_msi(
+    graphkb_conn: GraphKBConnection,
+    msi_category: str,
+    disease_name: str,
+) -> List[KbMatch]:
+    """Annotate microsatellite instablity from GraphKB in the IPR alterations format.
+
+    Match to GraphKb Category variants with similar names
+    Args:
+        graphkb_conn: the graphkb api connection object
+        msi_category: such as 'microsatellite instability'
+
+    Returns:
+        list of kbMatches records for IPR
+    """
+    gkb_matches = []
+    msi_categories = graphkb_conn.query(
+        {
+            'target': {
+                'target': 'CategoryVariant',
+                'filters': {
+                    'reference1': {'target': 'Signature', 'filters': {'name': msi_category}}
+                },
+            },
+            'queryType': 'similarTo',
+            'returnProperties': ['@rid', 'displayName'],
+        },
+    )
+    if msi_categories:
+        for ipr_row in get_ipr_statements_from_variants(graphkb_conn, msi_categories, disease_name):
+            ipr_row['variant'] = msi_category
+            ipr_row['variantType'] = 'signature'
+            gkb_matches.append(ipr_row)
+    return gkb_matches

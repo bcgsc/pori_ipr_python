@@ -10,6 +10,7 @@ from typing import Dict, List, Sequence
 from .annotate import (
     annotate_copy_variants,
     annotate_expression_variants,
+    annotate_msi,
     annotate_positional_variants,
     get_gene_information,
 )
@@ -142,8 +143,7 @@ def create_report(
     match_germline: bool = False,
     custom_kb_match_filter=None,
 ) -> Dict:
-    """
-    Run the matching and create the report JSON for upload to IPR
+    """Run the matching and create the report JSON for upload to IPR.
 
     Args:
         username: the username for connecting to GraphKB and IPR
@@ -173,13 +173,20 @@ def create_report(
     # validate the JSON content follows the specification
     validate_report_content(content)
     kb_disease_match = content['kbDiseaseMatch']
+
     # validate the input variants
     small_mutations = preprocess_small_mutations(content.get('smallMutations', []))
-    copy_variants = preprocess_copy_variants(content.get('copyVariants', []))
     structural_variants = preprocess_structural_variants(content.get('structuralVariants', []))
+    copy_variants = preprocess_copy_variants(content.get('copyVariants', []))
     expression_variants = preprocess_expression_variants(content.get('expressionVariants', []))
-    check_comparators(content, expression_variants)
+    if expression_variants:
+        check_comparators(content, expression_variants)
 
+    genes_with_variants = check_variant_links(
+        small_mutations, expression_variants, copy_variants, structural_variants
+    )
+
+    # Setup connections
     ipr_conn = IprConnection(username, password, ipr_url)
     if graphkb_url:
         logger.info(f'connecting to graphkb: {graphkb_url}')
@@ -188,32 +195,53 @@ def create_report(
         graphkb_conn = GraphKBConnection()
     graphkb_conn.login(username, password)
 
-    genes_with_variants = check_variant_links(
-        small_mutations, expression_variants, copy_variants, structural_variants
-    )
+    gkb_matches: List[KbMatch] = []
 
-    # filter excess variants not required for extra gene information
+    # Signature category variants
+    if 'tmburMutationBurden' in content.keys():
+        logger.warning(
+            'GERO-296 - not yet implemented - high tumour mutation burden category matching.'
+        )
+
+    msi = content.get('msi', [])
+    if msi:
+        if isinstance(msi, list):
+            msi_cat = msi[0].get('kbCategory')
+        elif isinstance(msi, str):
+            msi_cat = msi
+        else:
+            msi_cat = msi.get('kbCategory')
+        logger.info(f'Checking msi {msi_cat}')
+        msi_categories = annotate_msi(graphkb_conn, msi_cat, kb_disease_match)
+        if msi_categories:
+            logger.warning(
+                f"GERO-295 - MSI display not yet implemented - {len(msi_categories)} - msi statements."
+            )
+            gkb_matches.extend(msi_categories)
+
     logger.info(f'annotating {len(small_mutations)} small mutations')
-    alterations: List[KbMatch] = annotate_positional_variants(
-        graphkb_conn, small_mutations, kb_disease_match, show_progress=interactive
+    gkb_matches.extend(
+        annotate_positional_variants(
+            graphkb_conn, small_mutations, kb_disease_match, show_progress=interactive
+        )
     )
 
     logger.info(f'annotating {len(structural_variants)} structural variants')
-    alterations.extend(
+    gkb_matches.extend(
         annotate_positional_variants(
             graphkb_conn, structural_variants, kb_disease_match, show_progress=interactive
         )
     )
 
     logger.info(f'annotating {len(copy_variants)} copy variants')
-    alterations.extend(
+    gkb_matches.extend(
         annotate_copy_variants(
             graphkb_conn, copy_variants, kb_disease_match, show_progress=interactive
         )
     )
 
     logger.info(f'annotating {len(expression_variants)} expression variants')
-    alterations.extend(
+    gkb_matches.extend(
         annotate_expression_variants(
             graphkb_conn, expression_variants, kb_disease_match, show_progress=interactive
         )
@@ -223,21 +251,21 @@ def create_report(
     all_variants = expression_variants + copy_variants + structural_variants + small_mutations  # type: ignore
 
     if match_germline:  # verify germline kb statements matched germline observed variants
-        alterations = germline_kb_matches(alterations, all_variants)
+        gkb_matches = germline_kb_matches(gkb_matches, all_variants)
 
     if custom_kb_match_filter:
-        logger.info(f'custom_kb_match_filter on {len(alterations)} variants')
-        alterations = custom_kb_match_filter(alterations)
-        logger.info(f'\t custom_kb_match_filter left {len(alterations)} variants')
+        logger.info(f'custom_kb_match_filter on {len(gkb_matches)} variants')
+        gkb_matches = custom_kb_match_filter(gkb_matches)
+        logger.info(f'\t custom_kb_match_filter left {len(gkb_matches)} variants')
 
-    key_alterations, variant_counts = create_key_alterations(alterations, all_variants)
+    key_alterations, variant_counts = create_key_alterations(gkb_matches, all_variants)
 
     logger.info('fetching gene annotations')
     gene_information = get_gene_information(graphkb_conn, sorted(genes_with_variants))
 
     if generate_therapeutics:
         logger.info('generating therapeutic options')
-        targets = create_therapeutic_options(graphkb_conn, alterations, all_variants)
+        targets = create_therapeutic_options(graphkb_conn, gkb_matches, all_variants)
     else:
         targets = []
 
@@ -245,7 +273,7 @@ def create_report(
     if generate_comments:
         comments = {
             'comments': summarize(
-                graphkb_conn, alterations, disease_name=kb_disease_match, variants=all_variants
+                graphkb_conn, gkb_matches, disease_name=kb_disease_match, variants=all_variants
             )
         }
     else:
@@ -255,7 +283,7 @@ def create_report(
     output = json.loads(json.dumps(content))
     output.update(
         {
-            'kbMatches': [trim_empty_values(a) for a in alterations],
+            'kbMatches': [trim_empty_values(a) for a in gkb_matches],
             'copyVariants': [
                 trim_empty_values(c) for c in copy_variants if c['gene'] in genes_with_variants
             ],
@@ -271,7 +299,7 @@ def create_report(
             'structuralVariants': [
                 trim_empty_values(s)
                 for s in filter_structural_variants(
-                    structural_variants, alterations, gene_information
+                    structural_variants, gkb_matches, gene_information
                 )
             ],
             'genes': gene_information,
@@ -281,7 +309,7 @@ def create_report(
             'therapeuticTarget': targets,
         }
     )
-    output.setdefault('images', []).extend(select_expression_plots(alterations, all_variants))
+    output.setdefault('images', []).extend(select_expression_plots(gkb_matches, all_variants))
 
     output = clean_unsupported_content(output)
     ipr_result = None
