@@ -71,6 +71,7 @@ def graphkb_conn():
     return graphkb_conn
 
 
+@pytest.mark.skipif(True, reason="SDEV-3381 - github workflow failures.")
 def test_annotate_nonsense_vs_missense(graphkb_conn):
     """Verify missense (point mutation) is not mistaken for a nonsense (stop codon) mutation."""
     disease = 'cancer'
