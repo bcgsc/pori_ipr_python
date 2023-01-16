@@ -131,6 +131,7 @@ def test_annotate_structural_variants_tp53(graphkb_conn):
         assert not missing, f"{key} missing{missing}: {diff}"
 
 
+@pytest.mark.skipif(EXCLUDE_INTEGRATION_TESTS, reason="SDEV-3381 - github workflow failures.")
 def test_get_therapeutic_associated_genes(graphkb_conn):
     gene_list = get_therapeutic_associated_genes(graphkb_conn=graphkb_conn)
     assert gene_list, 'No get_therapeutic_associated_genes found'
