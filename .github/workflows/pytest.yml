@@ -42,6 +42,8 @@ jobs:
       env:
         IPR_USER: ${{ secrets.IPR_TEST_USER }}
         IPR_PASS: ${{ secrets.IPR_TEST_PASSWORD }}
+        # SDEV-3381 - Turn off integration tests temporarily, till efficiency is increased
+        EXCLUDE_INTEGRATION_TESTS: 1
     - name: Upload pytest test results
       uses: actions/upload-artifact@master
       with:
