@@ -66,8 +66,10 @@ SMALL_MUT_OPTIONAL = [
     'startPosition',
     'transcript',
     'tumourAltCount',
+    'tumourAltCopies',
     'tumourDepth',
     'tumourRefCount',
+    'tumourRefCopies',
     'zygosity',
 ]
 

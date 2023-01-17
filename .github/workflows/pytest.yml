@@ -16,12 +16,12 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ['3.6', '3.8', '3.10']
+        python-version: ['3.8', '3.9', '3.10']
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v3
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
@@ -42,15 +42,17 @@ jobs:
       env:
         IPR_USER: ${{ secrets.IPR_TEST_USER }}
         IPR_PASS: ${{ secrets.IPR_TEST_PASSWORD }}
+        # SDEV-3381 - Turn off integration tests temporarily, till efficiency is increased
+        EXCLUDE_INTEGRATION_TESTS: 1
     - name: Upload pytest test results
       uses: actions/upload-artifact@master
       with:
         name: pytest-results-${{ matrix.python-version }}
         path: junit/test-results-${{ matrix.python-version }}.xml
         # Use always() to always run this step to publish test results when there are test failures
-      if: matrix.python-version == 3.8
+      if: matrix.python-version == 3.9
     - name: Update code coverage report to CodeCov
-      uses: codecov/codecov-action@v1
+      uses: codecov/codecov-action@v3
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         file: ./coverage.xml
@@ -58,4 +60,4 @@ jobs:
         env_vars: OS,PYTHON
         name: codecov-umbrella
         fail_ci_if_error: true
-      if: matrix.python-version == 3.8
+      if: matrix.python-version == 3.9
