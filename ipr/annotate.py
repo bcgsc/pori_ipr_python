@@ -7,11 +7,8 @@ from graphkb import GraphKBConnection
 from graphkb import genes as gkb_genes
 from graphkb import match as gkb_match
 from graphkb import vocab as gkb_vocab
-from graphkb.constants import (
-    BASE_RETURN_PROPERTIES,
-    BASE_THERAPEUTIC_TERMS,
-    GENERIC_RETURN_PROPERTIES,
-)
+from graphkb.constants import BASE_THERAPEUTIC_TERMS, STATEMENT_RETURN_PROPERTIES
+from graphkb.genes import get_therapeutic_associated_genes
 from graphkb.match import INPUT_COPY_CATEGORIES
 from graphkb.types import Variant
 from graphkb.util import FeatureNotFoundError, convert_to_rid_list
@@ -31,41 +28,6 @@ from .types import (
 from .util import Hashabledict, convert_to_rid_set, logger
 
 REPORTED_COPY_VARIANTS = (INPUT_COPY_CATEGORIES.AMP, INPUT_COPY_CATEGORIES.DEEP)
-
-
-def get_therapeutic_associated_genes(graphkb_conn: GraphKBConnection) -> Set[str]:
-    """Set of all genes related to a cancer-associated statement in Graphkb."""
-    therapeutic_relevance = gkb_vocab.get_terms_set(graphkb_conn, BASE_THERAPEUTIC_TERMS)
-    statements = graphkb_conn.query(
-        {
-            'target': 'Statement',
-            'filters': {'relevance': sorted(list(therapeutic_relevance))},
-            'returnProperties': [
-                'conditions.@rid',
-                'conditions.@class',
-                'conditions.reference1.@class',
-                'conditions.reference1.@rid',
-                'conditions.reference2.@class',
-                'conditions.reference2.@rid',
-                'reviewStatus',
-            ],
-        }
-    )
-    genes = set()
-    gkb_thera_statements = [cast(GkbStatement, s) for s in statements]
-    for statement in gkb_thera_statements:
-        if statement['reviewStatus'] == FAILED_REVIEW_STATUS:
-            continue
-        for condition in statement['conditions']:
-            if condition['@class'] == 'Feature':
-                genes.add(condition['@rid'])
-            elif condition['@class'].endswith('Variant'):
-                cond = cast(Variant, condition)
-                if cond['reference1'] and cond['reference1']['@class'] == 'Feature':
-                    genes.add(cond['reference1']['@rid'])
-                if cond['reference2'] and cond['reference2']['@class'] == 'Feature':
-                    genes.add(cond['reference2']['@rid'])
-    return genes
 
 
 def get_gene_information(
@@ -122,7 +84,9 @@ def get_gene_information(
         gkb_genes.get_oncokb_tumour_supressors(graphkb_conn)
     )
     logger.info('fetching therapeutic associated genes lists')
-    gene_flags['therapeuticAssociated'] = get_therapeutic_associated_genes(graphkb_conn)
+    gene_flags['therapeuticAssociated'] = convert_to_rid_set(
+        get_therapeutic_associated_genes(graphkb_conn)
+    )
 
     result = []
     for gene_name in gene_names:
@@ -151,24 +115,11 @@ def get_statements_from_variants(
     Returns:
         list.<dict>: list of Statement records from graphkb
     """
-    # TODO: Get from graphkb.constant.STATEMENT_RETURN_PROPERTIES
-    return_props = (
-        BASE_RETURN_PROPERTIES
-        + ['sourceId', 'source.name', 'source.displayName']
-        + [f'conditions.{p}' for p in GENERIC_RETURN_PROPERTIES]
-        + [f'subject.{p}' for p in GENERIC_RETURN_PROPERTIES]
-        + [f'evidence.{p}' for p in GENERIC_RETURN_PROPERTIES]
-        + [f'relevance.{p}' for p in GENERIC_RETURN_PROPERTIES]
-        + [f'evidenceLevel.{p}' for p in GENERIC_RETURN_PROPERTIES]
-        # TODO: GERO-289 - IPR evidence equivalents
-        + ['reviewStatus']
-    )
-
     statements = graphkb_conn.query(
         {
             'target': 'Statement',
             'filters': {'conditions': convert_to_rid_list(variants), 'operator': 'CONTAINSANY'},
-            'returnProperties': return_props,
+            'returnProperties': STATEMENT_RETURN_PROPERTIES,
         }
     )
     return [
