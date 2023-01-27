@@ -14,6 +14,7 @@ from ipr.annotate import (
 from ipr.constants import FAILED_REVIEW_STATUS
 from ipr.types import IprSmallMutationVariant
 
+from .constants import EXCLUDE_INTEGRATION_TESTS
 from .util import QueryMock
 
 # TP53 examples from https://www.bcgsc.ca/jira/browse/SDEV-3122
@@ -71,6 +72,7 @@ def graphkb_conn():
     return graphkb_conn
 
 
+@pytest.mark.skipif(EXCLUDE_INTEGRATION_TESTS, reason="SDEV-3381 - github workflow failures.")
 def test_annotate_nonsense_vs_missense(graphkb_conn):
     """Verify missense (point mutation) is not mistaken for a nonsense (stop codon) mutation."""
     disease = 'cancer'
@@ -82,6 +84,7 @@ def test_annotate_nonsense_vs_missense(graphkb_conn):
         assert matched, f"should have matched in {key}: {TP53_MUT_DICT[key]}"
 
 
+@pytest.mark.skipif(EXCLUDE_INTEGRATION_TESTS, reason="SDEV-3381 - github workflow failures.")
 def test_annotate_nonsense_vs_missense_protein(graphkb_conn):
     """Verify missense (point mutation) is not mistaken for a nonsense (stop codon) mutation."""
     disease = 'cancer'
@@ -93,6 +96,7 @@ def test_annotate_nonsense_vs_missense_protein(graphkb_conn):
         assert matched, f"should have matched in {key}: {TP53_MUT_DICT[key]}"
 
 
+@pytest.mark.skipif(EXCLUDE_INTEGRATION_TESTS, reason="SDEV-3381 - github workflow failures.")
 def test_annotate_structural_variants_tp53(graphkb_conn):
     """Verify alternate TP53 variants match."""
     disease = 'cancer'
@@ -127,6 +131,7 @@ def test_annotate_structural_variants_tp53(graphkb_conn):
         assert not missing, f"{key} missing{missing}: {diff}"
 
 
+@pytest.mark.skipif(EXCLUDE_INTEGRATION_TESTS, reason="SDEV-3381 - github workflow failures.")
 def test_get_therapeutic_associated_genes(graphkb_conn):
     gene_list = get_therapeutic_associated_genes(graphkb_conn=graphkb_conn)
     assert gene_list, 'No get_therapeutic_associated_genes found'
