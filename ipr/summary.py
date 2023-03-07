@@ -127,7 +127,6 @@ def substitute_sentence_template(
     link_url = create_graphkb_link(statement_rids) if statement_rids else ''
 
     if r'{evidence}' in template:
-
         evidence_str = ', '.join(sorted(list({e['displayName'] for e in evidence})))
         if link_url:
             evidence_str = f'<a href="{link_url}" target="_blank" rel="noopener">{evidence_str}</a>'
@@ -220,7 +219,6 @@ def display_variant(variant: IprVariant) -> str:
 
 
 def display_variants(gene_name: str, variants: List[IprVariant]) -> str:
-
     result = sorted(list({v for v in [display_variant(e) for e in variants] if gene_name in v}))
     variants_text = natural_join(result)
     if len(result) > 1:
@@ -302,7 +300,6 @@ def create_section_html(
         },
         {s for (s, v) in sentence_categories.items() if v == 'resistance'},
     ]:
-
         content = '. '.join(sorted(list(section - sentences_used)))
         sentences_used.update(section)
         output.append(f'<p>{content}</p>')

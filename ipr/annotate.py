@@ -141,7 +141,7 @@ def get_second_pass_variants(
         if s['subject'] and s['subject']['@class'] in ('Feature', 'Signature')
     }
 
-    for (reference1, variant_type) in inferred_variants:
+    for reference1, variant_type in inferred_variants:
         variants = gkb_match.match_category_variant(graphkb_conn, reference1, variant_type)
 
         for variant in variants:
@@ -322,7 +322,6 @@ def annotate_positional_variants(
 
     iterfunc = progressbar if show_progress else iter
     for row in iterfunc(variants):
-
         if not row.get('gene') and (not row.get('gene1') or not row.get('gene2')):
             # https://www.bcgsc.ca/jira/browse/GERO-56?focusedCommentId=1234791&page=com.atlassian.jira.plugin.system.issuetabpanels:comment-tabpanel#comment-1234791
             # should not match single gene SVs

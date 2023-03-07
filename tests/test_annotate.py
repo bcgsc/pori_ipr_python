@@ -154,7 +154,6 @@ def test_get_therapeutic_associated_genes(graphkb_conn):
     ],
 )
 def test_get_gene_information(gene, flags, monkeypatch):
-
     # mock the API connection class
     graphkb_conn = Mock(
         query=QueryMock(
