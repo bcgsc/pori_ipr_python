@@ -33,7 +33,7 @@ from .ipr import (
 )
 from .summary import summarize
 from .therapeutic_options import create_therapeutic_options
-from .types import IprVariant, KbMatch
+from .types import IprCopyVariant, IprVariant, KbMatch
 from .util import LOG_LEVELS, logger, trim_empty_values
 
 CACHE_GENE_MINIMUM = 5000
@@ -133,7 +133,7 @@ def create_report(
     content: Dict,
     ipr_url: str = DEFAULT_URL,
     log_level: str = 'info',
-    output_json_path: str = None,
+    output_json_path: str = '',
     always_write_output_json: bool = False,
     ipr_upload: bool = True,
     interactive: bool = False,
@@ -204,20 +204,27 @@ def create_report(
         )
 
     msi = content.get('msi', [])
+    msi_matches = []
+    msi_variant: IprVariant = {}
     if msi:
+        # only one msi variant per library
         if isinstance(msi, list):
             msi_cat = msi[0].get('kbCategory')
         elif isinstance(msi, str):
             msi_cat = msi
         else:
             msi_cat = msi.get('kbCategory')
-        logger.info(f'Checking msi {msi_cat}')
-        msi_categories = annotate_msi(graphkb_conn, msi_cat, kb_disease_match)
-        if msi_categories:
-            logger.warning(
-                f"GERO-295 - MSI display not yet implemented - {len(msi_categories)} - msi statements."
-            )
-            gkb_matches.extend(msi_categories)
+            msi_variant = msi.copy()
+        logger.info(f'Matching GKB msi {msi_cat}')
+        msi_matches = annotate_msi(graphkb_conn, msi_cat, kb_disease_match)
+        if msi_matches:
+            msi_variant['kbCategory'] = msi_cat  # type: ignore
+            msi_variant['variant'] = msi_cat
+            msi_variant['key'] = msi_cat
+            msi_variant['variantType'] = 'msi'
+            logger.info(f"GERO-295 '{msi_cat}' matches {len(msi_matches)} msi statements.")
+            gkb_matches.extend(msi_matches)
+            logger.debug(f"\tgkb_matches: {len(gkb_matches)}")
 
     logger.info(f'annotating {len(small_mutations)} small mutations')
     gkb_matches.extend(
@@ -225,6 +232,7 @@ def create_report(
             graphkb_conn, small_mutations, kb_disease_match, show_progress=interactive
         )
     )
+    logger.debug(f"\tgkb_matches: {len(gkb_matches)}")
 
     logger.info(f'annotating {len(structural_variants)} structural variants')
     gkb_matches.extend(
@@ -232,6 +240,7 @@ def create_report(
             graphkb_conn, structural_variants, kb_disease_match, show_progress=interactive
         )
     )
+    logger.debug(f"\tgkb_matches: {len(gkb_matches)}")
 
     logger.info(f'annotating {len(copy_variants)} copy variants')
     gkb_matches.extend(
@@ -239,6 +248,7 @@ def create_report(
             graphkb_conn, copy_variants, kb_disease_match, show_progress=interactive
         )
     )
+    logger.debug(f"\tgkb_matches: {len(gkb_matches)}")
 
     logger.info(f'annotating {len(expression_variants)} expression variants')
     gkb_matches.extend(
@@ -246,12 +256,17 @@ def create_report(
             graphkb_conn, expression_variants, kb_disease_match, show_progress=interactive
         )
     )
+    logger.debug(f"\tgkb_matches: {len(gkb_matches)}")
 
     all_variants: Sequence[IprVariant]
     all_variants = expression_variants + copy_variants + structural_variants + small_mutations  # type: ignore
+    if msi_matches:
+        all_variants.append(msi_variant)  # type: ignore
 
     if match_germline:  # verify germline kb statements matched germline observed variants
         gkb_matches = germline_kb_matches(gkb_matches, all_variants)
+        if gkb_matches:
+            logger.info(f"Removing {len(gkb_matches)} germline events without medical matches.")
 
     if custom_kb_match_filter:
         logger.info(f'custom_kb_match_filter on {len(gkb_matches)} variants')

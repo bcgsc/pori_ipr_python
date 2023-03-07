@@ -460,6 +460,6 @@ def annotate_msi(
     if msi_categories:
         for ipr_row in get_ipr_statements_from_variants(graphkb_conn, msi_categories, disease_name):
             ipr_row['variant'] = msi_category
-            ipr_row['variantType'] = 'signature'
+            ipr_row['variantType'] = 'msi'
             gkb_matches.append(ipr_row)
     return gkb_matches

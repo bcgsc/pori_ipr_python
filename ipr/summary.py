@@ -17,6 +17,7 @@ from .util import (
     generate_ontology_preference_key,
     get_preferred_drug_representation,
     get_preferred_gene_name,
+    logger,
 )
 
 OTHER_DISEASES = 'other disease types'
@@ -348,7 +349,11 @@ def summarize(
 
     exp_variants_by_statements: Dict[str, List[IprVariant]] = {}
     for rid, keys in variant_keys_by_statement_ids.items():
-        exp_variants_by_statements[rid] = [variants_by_keys[key] for key in keys]
+        try:
+            exp_variants_by_statements[rid] = [variants_by_keys[key] for key in keys]
+        except KeyError as err:
+            logger.warning(f"No specific variant matched for {rid}:{keys}")
+            exp_variants_by_statements[rid] = []
 
     disease_matches = convert_to_rid_set(
         get_term_tree(graphkb_conn, disease_name, ontology_class='Disease')
