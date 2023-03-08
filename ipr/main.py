@@ -33,7 +33,7 @@ from .ipr import (
 )
 from .summary import summarize
 from .therapeutic_options import create_therapeutic_options
-from .types import IprCopyVariant, IprVariant, KbMatch
+from .types import IprVariant, KbMatch
 from .util import LOG_LEVELS, logger, trim_empty_values
 
 CACHE_GENE_MINIMUM = 5000

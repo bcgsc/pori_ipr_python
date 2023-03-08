@@ -6,8 +6,7 @@ from requests.exceptions import HTTPError
 from graphkb import GraphKBConnection
 from graphkb import genes as gkb_genes
 from graphkb import match as gkb_match
-from graphkb import vocab as gkb_vocab
-from graphkb.constants import BASE_THERAPEUTIC_TERMS, STATEMENT_RETURN_PROPERTIES
+from graphkb.constants import STATEMENT_RETURN_PROPERTIES
 from graphkb.genes import get_therapeutic_associated_genes
 from graphkb.match import INPUT_COPY_CATEGORIES
 from graphkb.types import Variant
