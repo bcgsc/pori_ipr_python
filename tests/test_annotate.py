@@ -105,7 +105,7 @@ def test_annotate_structural_variants_tp53(graphkb_conn):
     known_issues = set(['TP53:p.M237X'])  # SDEV-3122 -
     # GERO-299 - nonsense - stop codon - should not match.  This is missense not nonsense (#164:933).
     nonsense = [a for a in pref if a['kbVariant'] == 'TP53 nonsense']
-    # assert not nonsense
+    assert not nonsense
     pref_vars = set([m['kbVariant'] for m in pref])
     assert pref_vars, f"No matches to {TP53_MUT_DICT[pref]}"
     print(pref_vars)
