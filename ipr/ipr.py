@@ -240,11 +240,10 @@ def select_expression_plots(
 def create_key_alterations(
     kb_matches: List[KbMatch], all_variants: Sequence[IprVariant]
 ) -> Tuple[List[Dict], Dict]:
-    """
-    Creates the list of genomic key alterations which summarizes all the variants matched by the KB
-    This list of matches is also used to create the variant counts
-    """
+    """Create the list of significant variants matched by the KB.
 
+    This list of matches is also used to create the variant counts.
+    """
     alterations = []
     type_mapping = {
         'mut': 'smallMutations',
@@ -253,7 +252,7 @@ def create_key_alterations(
         'exp': 'expressionOutliers',
     }
     counts: Dict[str, Set] = {v: set() for v in type_mapping.values()}
-
+    skipped_variant_types = []
     for kb_match in kb_matches:
         variant_type = kb_match['variantType']
         variant_key = kb_match['variant']
@@ -261,7 +260,11 @@ def create_key_alterations(
             continue
 
         if variant_type not in type_mapping.keys():
-            logger.warning(f"No handling of kbmatch {variant_type}.  Skipping {variant_key}")
+            if variant_type not in skipped_variant_types:
+                skipped_variant_types.append(variant_type)
+                logger.warning(
+                    f"No summary key alterations for {variant_type}.  Skipping {variant_key}"
+                )
             continue
         try:
             variant = find_variant(all_variants, variant_type, variant_key)
