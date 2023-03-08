@@ -349,7 +349,7 @@ def summarize(
         try:
             exp_variants_by_statements[rid] = [variants_by_keys[key] for key in keys]
         except KeyError as err:
-            logger.warning(f"No specific variant matched for {rid}:{keys}")
+            logger.warning(f"No specific variant matched for {rid}:{keys} - {err}")
             exp_variants_by_statements[rid] = []
 
     disease_matches = convert_to_rid_set(
