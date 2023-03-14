@@ -87,7 +87,7 @@ def get_evidencelevel_mapping(graphkb_conn: GraphKBConnection) -> Dict[str, str]
     # Filter IPR EvidenceLevel and map each outgoing CrossReferenceOf to displayName
     ipr_source_rid = graphkb_conn.get_source("ipr")["@rid"]
     ipr_evidence_levels = filter(lambda d: d["source"] == ipr_source_rid, evidence_levels)
-    cross_references_mapping = dict()
+    cross_references_mapping: Dict[str, str] = dict()
     ipr_rids_to_displayname = dict()
     for level in ipr_evidence_levels:
         d = map(lambda i: (i, level["displayName"]), level.get("out_CrossReferenceOf", []))
@@ -240,11 +240,10 @@ def select_expression_plots(
 def create_key_alterations(
     kb_matches: List[KbMatch], all_variants: Sequence[IprVariant]
 ) -> Tuple[List[Dict], Dict]:
-    """
-    Creates the list of genomic key alterations which summarizes all the variants matched by the KB
-    This list of matches is also used to create the variant counts
-    """
+    """Create the list of significant variants matched by the KB.
 
+    This list of matches is also used to create the variant counts.
+    """
     alterations = []
     type_mapping = {
         'mut': 'smallMutations',
@@ -253,15 +252,28 @@ def create_key_alterations(
         'exp': 'expressionOutliers',
     }
     counts: Dict[str, Set] = {v: set() for v in type_mapping.values()}
-
+    skipped_variant_types = []
     for kb_match in kb_matches:
         variant_type = kb_match['variantType']
         variant_key = kb_match['variant']
-        variant = find_variant(all_variants, variant_type, variant_key)
-        counts[type_mapping[variant_type]].add(variant_key)
-
         if kb_match['category'] == 'unknown':
             continue
+
+        if variant_type not in type_mapping.keys():
+            if variant_type not in skipped_variant_types:
+                skipped_variant_types.append(variant_type)
+                logger.warning(
+                    f"No summary key alterations for {variant_type}.  Skipping {variant_key}"
+                )
+            continue
+        try:
+            variant = find_variant(all_variants, variant_type, variant_key)
+        except KeyError as err:
+            logger.error(err)
+            logger.error(f"No variant match found for {variant_key}")
+            continue
+
+        counts[type_mapping[variant_type]].add(variant_key)
 
         if variant_type == 'exp':
             alterations.append(f'{variant.get("gene","")} ({variant.get("expressionState")})')
@@ -278,10 +290,8 @@ def create_key_alterations(
 
     # count the un-matched variants
     for variant in all_variants:
-        variant_key = variant['key']
-
-        if variant['variant'] and variant_key not in counted_variants:
-            counts['variantsUnknown'].add(variant_key)
+        if variant['variant'] and variant['key'] not in counted_variants:
+            counts['variantsUnknown'].add(variant['key'])
 
     return (
         [{'geneVariant': alt} for alt in set(alterations)],
@@ -342,11 +352,13 @@ def germline_kb_matches(
         for alt in somatic_alts:
             var_list = [v for v in all_variants if v['key'] == alt['variant']]
             somatic_var_list = [v for v in var_list if not v.get('germline', not assume_somatic)]
-            if somatic_var_list:
-                ret_list.append(alt)
-            else:
+            if var_list and not somatic_var_list:
                 logger.debug(
                     f"Dropping germline match to somatic statement kbStatementId:{alt['kbStatementId']}: {alt['kbVariant']} {alt['category']}"
                 )
+            elif somatic_var_list:
+                ret_list.append(alt)  # match to somatic variant
+            else:
+                ret_list.append(alt)  # alteration not in any specific keys matches to check.
 
     return ret_list

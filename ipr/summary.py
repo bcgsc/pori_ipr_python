@@ -17,6 +17,7 @@ from .util import (
     generate_ontology_preference_key,
     get_preferred_drug_representation,
     get_preferred_gene_name,
+    logger,
 )
 
 OTHER_DISEASES = 'other disease types'
@@ -126,7 +127,6 @@ def substitute_sentence_template(
     link_url = create_graphkb_link(statement_rids) if statement_rids else ''
 
     if r'{evidence}' in template:
-
         evidence_str = ', '.join(sorted(list({e['displayName'] for e in evidence})))
         if link_url:
             evidence_str = f'<a href="{link_url}" target="_blank" rel="noopener">{evidence_str}</a>'
@@ -219,7 +219,6 @@ def display_variant(variant: IprVariant) -> str:
 
 
 def display_variants(gene_name: str, variants: List[IprVariant]) -> str:
-
     result = sorted(list({v for v in [display_variant(e) for e in variants] if gene_name in v}))
     variants_text = natural_join(result)
     if len(result) > 1:
@@ -301,7 +300,6 @@ def create_section_html(
         },
         {s for (s, v) in sentence_categories.items() if v == 'resistance'},
     ]:
-
         content = '. '.join(sorted(list(section - sentences_used)))
         sentences_used.update(section)
         output.append(f'<p>{content}</p>')
@@ -348,7 +346,11 @@ def summarize(
 
     exp_variants_by_statements: Dict[str, List[IprVariant]] = {}
     for rid, keys in variant_keys_by_statement_ids.items():
-        exp_variants_by_statements[rid] = [variants_by_keys[key] for key in keys]
+        try:
+            exp_variants_by_statements[rid] = [variants_by_keys[key] for key in keys]
+        except KeyError as err:
+            logger.warning(f"No specific variant matched for {rid}:{keys} - {err}")
+            exp_variants_by_statements[rid] = []
 
     disease_matches = convert_to_rid_set(
         get_term_tree(graphkb_conn, disease_name, ontology_class='Disease')

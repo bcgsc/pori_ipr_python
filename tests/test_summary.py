@@ -83,8 +83,8 @@ class TestSubstituteSentenceTemplate:
         relevance = {'displayName': 'senitivity'}
         disease_matches = {'1'}
         diseases = [
-            {'@class': 'Disease', '@rid': '2', 'displayName': f'disease 1'},
-            {'@class': 'Disease', '@rid': '3', 'displayName': f'disease 2'},
+            {'@class': 'Disease', '@rid': '2', 'displayName': 'disease 1'},
+            {'@class': 'Disease', '@rid': '3', 'displayName': 'disease 2'},
         ]
         variants = [
             {
@@ -107,9 +107,9 @@ class TestSubstituteSentenceTemplate:
         relevance = {'displayName': 'senitivity'}
         disease_matches = {'1'}
         diseases = [
-            {'@class': 'Disease', '@rid': '2', 'displayName': f'disease 2'},
-            {'@class': 'Disease', '@rid': '1', 'displayName': f'disease 1'},
-            {'@class': 'Disease', '@rid': '3', 'displayName': f'disease 3'},
+            {'@class': 'Disease', '@rid': '2', 'displayName': 'disease 2'},
+            {'@class': 'Disease', '@rid': '1', 'displayName': 'disease 1'},
+            {'@class': 'Disease', '@rid': '3', 'displayName': 'disease 3'},
         ]
         variants = [
             {
@@ -132,9 +132,9 @@ class TestSubstituteSentenceTemplate:
         relevance = {'displayName': 'senitivity'}
         disease_matches = {'1', '2', '3'}
         diseases = [
-            {'@class': 'Disease', '@rid': '2', 'displayName': f'disease 2'},
-            {'@class': 'Disease', '@rid': '1', 'displayName': f'disease 1'},
-            {'@class': 'Disease', '@rid': '3', 'displayName': f'disease 3'},
+            {'@class': 'Disease', '@rid': '2', 'displayName': 'disease 2'},
+            {'@class': 'Disease', '@rid': '1', 'displayName': 'disease 1'},
+            {'@class': 'Disease', '@rid': '3', 'displayName': 'disease 3'},
         ]
         variants = [
             {
