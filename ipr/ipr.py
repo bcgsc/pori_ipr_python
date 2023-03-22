@@ -144,6 +144,8 @@ def convert_statements_to_alterations(
 
     approved = convert_to_rid_set(get_approved_evidence_levels(graphkb_conn))
     ev_map = get_evidencelevel_mapping(graphkb_conn)
+    # GERO-318 - add all IPR-A evidence equivalents to the approved set
+    approved.update(set([ev for (ev, ipr) in ev_map.items() if ipr == 'IPR-A']))
 
     for statement in statements:
         variants = [c for c in statement['conditions'] if c['@class'] in VARIANT_CLASSES]
