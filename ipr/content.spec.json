@@ -978,7 +978,7 @@
                         "pattern": "^(\\w+:\\d+\\|\\w+:\\d+)?$",
                         "type": "string"
                     },
-                    "cTermTranscript": {
+                    "ctermTranscript": {
                         "default": null,
                         "description": "the 5' transcript name",
                         "example": "ENST0004.5",
@@ -1036,7 +1036,7 @@
                             "null"
                         ]
                     },
-                    "nTermTranscript": {
+                    "ntermTranscript": {
                         "default": null,
                         "description": "the 3' transcript name",
                         "example": "ENST0001.2",
