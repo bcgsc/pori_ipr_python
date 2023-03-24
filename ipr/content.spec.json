@@ -637,6 +637,11 @@
                         "example": 1,
                         "type": "integer"
                     },
+                    "pearson": {
+                        "description": "pearson correlation",
+                        "example": 0.48,
+                        "type": "number"
+                    },
                     "selected": {
                         "default": false,
                         "description": "Flag used to determine if this signature should be highlight on the main summary page of the report",
