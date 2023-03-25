@@ -790,11 +790,6 @@
                         "example": "X",
                         "type": "string"
                     },
-                    "detectedIn": {
-                        "description": "the sample types this variant was detected in",
-                        "example": "DNA/RNA",
-                        "type": "string"
-                    },
                     "endPosition": {
                         "description": "the genomic end poition of this variant",
                         "example": 1234,
