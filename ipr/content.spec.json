@@ -65,6 +65,10 @@
                         ],
                         "type": "string"
                     },
+                    "description": {
+                        "description": "Long description of the comparator",
+                        "type": "string"
+                    },
                     "name": {
                         "description": "comparator name",
                         "examples": [
@@ -76,6 +80,10 @@
                     "size": {
                         "description": "the number of samples included in the cohort/reference distribution",
                         "type": "number"
+                    },
+                    "version": {
+                        "description": "version string",
+                        "type": "string"
                     }
                 },
                 "required": [
@@ -108,6 +116,13 @@
                         "example": -2,
                         "type": [
                             "integer",
+                            "null"
+                        ]
+                    },
+                    "comments": {
+                        "description": "variant freeform comments",
+                        "type": [
+                            "string",
                             "null"
                         ]
                     },
@@ -151,6 +166,14 @@
                         "description": "the loss-of-heterozygosity category for this gene region",
                         "example": "HET",
                         "type": "string"
+                    },
+                    "library": {
+                        "description": "Library id string",
+                        "example": "P01234",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     },
                     "start": {
                         "description": "the genomic start position of the copy segment this gene copy number was called from",
@@ -214,6 +237,13 @@
                             "number",
                             "null",
                             "string"
+                        ]
+                    },
+                    "comments": {
+                        "description": "variant freeform comments",
+                        "type": [
+                            "string",
+                            "null"
                         ]
                     },
                     "diseaseFoldChange": {
@@ -291,6 +321,14 @@
                             {
                                 "type": "null"
                             }
+                        ]
+                    },
+                    "library": {
+                        "description": "Library id string",
+                        "example": "P01234",
+                        "type": [
+                            "string",
+                            "null"
                         ]
                     },
                     "primarySiteFoldChange": {
@@ -790,6 +828,13 @@
                         "example": "X",
                         "type": "string"
                     },
+                    "comments": {
+                        "description": "variant freeform comments",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
                     "endPosition": {
                         "description": "the genomic end poition of this variant",
                         "example": 1234,
@@ -802,6 +847,13 @@
                         "description": "the gene name",
                         "example": "KRAS",
                         "type": "string"
+                    },
+                    "germline": {
+                        "description": "germline variant",
+                        "type": [
+                            "boolean",
+                            "null"
+                        ]
                     },
                     "hgvsCds": {
                         "description": "HGVS coding sequence notation for this variant",
@@ -825,6 +877,14 @@
                         "description": "HGVS protein notation for this variant",
                         "example": "KRAS:p.G12D",
                         "pattern": "^(\\S+:p\\.\\S+)?$",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "library": {
+                        "description": "Library id string",
+                        "example": "P01234",
                         "type": [
                             "string",
                             "null"
@@ -987,6 +1047,13 @@
                             "null"
                         ]
                     },
+                    "comments": {
+                        "description": "variant freeform comments",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
                     "conventionalName": {
                         "description": "cytogenetic descriptor",
                         "type": "string"
@@ -1029,10 +1096,25 @@
                         "pattern": "^((\\w|-)+)?$",
                         "type": "string"
                     },
+                    "germline": {
+                        "description": "germline variant",
+                        "type": [
+                            "boolean",
+                            "null"
+                        ]
+                    },
                     "highQuality": {
                         "description": "This structural variant has a high level of supporting evidence",
                         "type": [
                             "boolean",
+                            "null"
+                        ]
+                    },
+                    "library": {
+                        "description": "Library id string",
+                        "example": "P01234",
+                        "type": [
+                            "string",
                             "null"
                         ]
                     },
