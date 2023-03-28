@@ -21,6 +21,11 @@ from .util import hash_key, logger, pandas_falsy
 protein_letters_3to1.setdefault('Ter', '*')
 
 SPECIFICATION = os.path.join(os.path.dirname(__file__), 'content.spec.json')
+# content in the local specification should match the values in IPR_API_SPEC_JSON_URL
+IPR_API_SPEC_JSON_URL = 'https://ipr-api.bcgsc.ca/api/spec.json'
+
+
+# TODO: GERO-307 - use SPECIFICATION json to derive the variant required and optional details defined below
 
 # 'cnvState' is for display
 COPY_REQ = ['gene', 'kbCategory']
@@ -35,6 +40,9 @@ COPY_OPTIONAL = [
     'size',
     'log2Cna',
     'cna',
+    'comments',
+    'library',
+    'germline',
 ]
 
 SMALL_MUT_REQ = ['gene', 'proteinChange']
@@ -49,12 +57,14 @@ SMALL_MUT_KEY = SMALL_MUT_REQ + [
 ]
 SMALL_MUT_OPTIONAL = [
     'altSeq',
+    'comments',
     'chromosome',
     'endPosition',
     'germline',
     'hgvsCds',
     'hgvsGenomic',
     'hgvsProtein',
+    'library',
     'ncbiBuild',
     'normalAltCount',
     'normalDepth',
@@ -81,6 +91,7 @@ EXP_OPTIONAL = [
     'biopsySiteQC',
     'biopsySiteZScore',
     'biopsySitekIQR',
+    'comments',
     'diseaseFoldChange',
     'diseasekIQR',
     'diseasePercentile',
@@ -88,6 +99,7 @@ EXP_OPTIONAL = [
     'diseaseZScore',
     'expressionState',
     'histogramImage',
+    'library',
     'primarySiteFoldChange',
     'primarySitekIQR',
     'primarySitePercentile',
@@ -125,6 +137,11 @@ SV_OPTIONAL = [
     'frame',
     'omicSupport',
     'highQuality',
+    'comments',
+    'library',
+    # GERO-307 - tumourAltCount and tumourDepth are available but not rnaAltCount and rnaDepth
+    'tumourAltCount',
+    'tumourDepth',
 ]
 
 

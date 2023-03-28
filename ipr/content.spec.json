@@ -119,6 +119,14 @@
                             "null"
                         ]
                     },
+                    "cnvState": {
+                        "description": "displayed category name",
+                        "example": "Homozygous Deletion",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
                     "comments": {
                         "description": "variant freeform comments",
                         "type": [
@@ -137,6 +145,13 @@
                         "description": "the gene name",
                         "example": "KRAS",
                         "type": "string"
+                    },
+                    "germline": {
+                        "description": "germline variant",
+                        "type": [
+                            "boolean",
+                            "null"
+                        ]
                     },
                     "kbCategory": {
                         "default": null,
