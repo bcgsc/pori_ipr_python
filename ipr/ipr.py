@@ -72,7 +72,7 @@ def get_evidencelevel_mapping(graphkb_conn: GraphKBConnection) -> Dict[str, str]
 
     # Filter IPR EvidenceLevel and map each outgoing CrossReferenceOf to displayName
     ipr_source_rid = graphkb_conn.get_source("ipr")["@rid"]
-    ipr_evidence_levels = filter(lambda d: d["source"] == ipr_source_rid, evidence_levels)
+    ipr_evidence_levels = filter(lambda d: d.get("source") == ipr_source_rid, evidence_levels)
     cross_references_mapping: Dict[str, str] = dict()
     ipr_rids_to_displayname = dict()
     for level in ipr_evidence_levels:
