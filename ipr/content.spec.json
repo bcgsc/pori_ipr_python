@@ -65,6 +65,10 @@
                         ],
                         "type": "string"
                     },
+                    "description": {
+                        "description": "Long description of the comparator",
+                        "type": "string"
+                    },
                     "name": {
                         "description": "comparator name",
                         "examples": [
@@ -76,6 +80,10 @@
                     "size": {
                         "description": "the number of samples included in the cohort/reference distribution",
                         "type": "number"
+                    },
+                    "version": {
+                        "description": "version string",
+                        "type": "string"
                     }
                 },
                 "required": [
@@ -111,6 +119,21 @@
                             "null"
                         ]
                     },
+                    "cnvState": {
+                        "description": "displayed category name",
+                        "example": "Homozygous Deletion",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "comments": {
+                        "description": "variant freeform comments",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
                     "end": {
                         "description": "the genomic end position of the copy segment this gene copy number was called from",
                         "type": [
@@ -122,6 +145,13 @@
                         "description": "the gene name",
                         "example": "KRAS",
                         "type": "string"
+                    },
+                    "germline": {
+                        "description": "germline variant",
+                        "type": [
+                            "boolean",
+                            "null"
+                        ]
                     },
                     "kbCategory": {
                         "default": null,
@@ -151,6 +181,14 @@
                         "description": "the loss-of-heterozygosity category for this gene region",
                         "example": "HET",
                         "type": "string"
+                    },
+                    "library": {
+                        "description": "Library id string",
+                        "example": "P01234",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     },
                     "start": {
                         "description": "the genomic start position of the copy segment this gene copy number was called from",
@@ -214,6 +252,13 @@
                             "number",
                             "null",
                             "string"
+                        ]
+                    },
+                    "comments": {
+                        "description": "variant freeform comments",
+                        "type": [
+                            "string",
+                            "null"
                         ]
                     },
                     "diseaseFoldChange": {
@@ -291,6 +336,14 @@
                             {
                                 "type": "null"
                             }
+                        ]
+                    },
+                    "library": {
+                        "description": "Library id string",
+                        "example": "P01234",
+                        "type": [
+                            "string",
+                            "null"
                         ]
                     },
                     "primarySiteFoldChange": {
@@ -637,6 +690,11 @@
                         "example": 1,
                         "type": "integer"
                     },
+                    "pearson": {
+                        "description": "pearson correlation",
+                        "example": 0.48,
+                        "type": "number"
+                    },
                     "selected": {
                         "default": false,
                         "description": "Flag used to determine if this signature should be highlight on the main summary page of the report",
@@ -785,10 +843,12 @@
                         "example": "X",
                         "type": "string"
                     },
-                    "detectedIn": {
-                        "description": "the sample types this variant was detected in",
-                        "example": "DNA/RNA",
-                        "type": "string"
+                    "comments": {
+                        "description": "variant freeform comments",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     },
                     "endPosition": {
                         "description": "the genomic end poition of this variant",
@@ -802,6 +862,13 @@
                         "description": "the gene name",
                         "example": "KRAS",
                         "type": "string"
+                    },
+                    "germline": {
+                        "description": "germline variant",
+                        "type": [
+                            "boolean",
+                            "null"
+                        ]
                     },
                     "hgvsCds": {
                         "description": "HGVS coding sequence notation for this variant",
@@ -825,6 +892,14 @@
                         "description": "HGVS protein notation for this variant",
                         "example": "KRAS:p.G12D",
                         "pattern": "^(\\S+:p\\.\\S+)?$",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "library": {
+                        "description": "Library id string",
+                        "example": "P01234",
                         "type": [
                             "string",
                             "null"
@@ -978,10 +1053,17 @@
                         "pattern": "^(\\w+:\\d+\\|\\w+:\\d+)?$",
                         "type": "string"
                     },
-                    "cTermTranscript": {
+                    "ctermTranscript": {
                         "default": null,
                         "description": "the 5' transcript name",
                         "example": "ENST0004.5",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "comments": {
+                        "description": "variant freeform comments",
                         "type": [
                             "string",
                             "null"
@@ -1029,6 +1111,13 @@
                         "pattern": "^((\\w|-)+)?$",
                         "type": "string"
                     },
+                    "germline": {
+                        "description": "germline variant",
+                        "type": [
+                            "boolean",
+                            "null"
+                        ]
+                    },
                     "highQuality": {
                         "description": "This structural variant has a high level of supporting evidence",
                         "type": [
@@ -1036,7 +1125,15 @@
                             "null"
                         ]
                     },
-                    "nTermTranscript": {
+                    "library": {
+                        "description": "Library id string",
+                        "example": "P01234",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "ntermTranscript": {
                         "default": null,
                         "description": "the 3' transcript name",
                         "example": "ENST0001.2",
