@@ -1130,6 +1130,14 @@
                             "null"
                         ]
                     },
+                    "frame": {
+                        "description": "Optional descriptive string for in-frame vs frame-shift SV",
+                        "example": "frame-shift",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
                     "gene1": {
                         "description": "the 5' (n-terminal) gene name",
                         "example": "EWSR1",
