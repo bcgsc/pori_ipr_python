@@ -518,6 +518,14 @@
                         "description": "the sequencing protocol used for ths sample",
                         "example": "DNA",
                         "type": "string"
+                    },
+                    "library": {
+                        "description": "Library id string",
+                        "example": "P01234",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     }
                 },
                 "type": "object"
