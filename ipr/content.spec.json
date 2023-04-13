@@ -993,6 +993,14 @@
                             "null"
                         ]
                     },
+                    "tumourAltCopies": {
+                        "description": "the number of gene copies in the tumour genome supporting the mutation",
+                        "example": 1,
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
                     "tumourAltCount": {
                         "description": "the number of alternate reads in the tumour genome supporting the mutation",
                         "example": 1,
@@ -1011,6 +1019,14 @@
                     },
                     "tumourRefCount": {
                         "description": "the number of reference reads in the tumour genome",
+                        "example": 1,
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "tumourRefCopies": {
+                        "description": "the number of wildtype gene copies in tumour genome",
                         "example": 1,
                         "type": [
                             "integer",
