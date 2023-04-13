@@ -1188,6 +1188,15 @@
                             "null"
                         ]
                     },
+                    "mavis_product_id": {
+                        "default": null,
+                        "description": "mavis product id / other tool description strings",
+                        "example": "MAVIS-2.5.35-RT3556GHTR",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
                     "svg": {
                         "description": "svg image file content for this SV",
                         "type": [
