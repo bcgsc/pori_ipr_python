@@ -200,7 +200,7 @@
                     "size": {
                         "description": "size of the copy change segment in the chromosome",
                         "type": [
-                            "integer",
+                            "number",
                             "null"
                         ]
                     }
