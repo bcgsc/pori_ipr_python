@@ -1210,6 +1210,22 @@
                             "string",
                             "null"
                         ]
+                    },
+                    "tumourAltCount": {
+                        "description": "the number of alternate reads in the tumour genome supporting the mutation",
+                        "example": 1,
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "tumourDepth": {
+                        "description": "the total number of reads at this position in the tumour genome",
+                        "example": 2,
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
                     }
                 },
                 "required": [
