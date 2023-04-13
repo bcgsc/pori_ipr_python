@@ -8,7 +8,7 @@ from graphkb import vocab as gkb_vocab
 from graphkb.types import Record
 from typing import Dict, Iterable, List, Sequence, Set, Tuple
 
-from .constants import APPROVED_EVIDENCE_LEVELS, GERMLINE_BASE_TERMS, VARIANT_CLASSES
+from .constants import GERMLINE_BASE_TERMS, VARIANT_CLASSES
 from .types import GkbStatement, ImageDefinition, IprFusionVariant, IprGene, IprVariant, KbMatch
 from .util import convert_to_rid_set, find_variant, logger
 
@@ -21,20 +21,6 @@ def display_evidence_levels(statement: GkbStatement) -> str:
         elif 'displayName' in evidence_level:
             result.append(evidence_level['displayName'])
     return ';'.join(sorted(result))
-
-
-def get_approved_evidence_levels(graphkb_conn: GraphKBConnection) -> List[Record]:
-    filters = []
-    for source, names in APPROVED_EVIDENCE_LEVELS.items():
-        filters.append(
-            {
-                'AND': [
-                    {'source': {'target': 'Source', 'filters': {'name': source}}},
-                    {'name': names, 'operator': 'IN'},
-                ]
-            }
-        )
-    return graphkb_conn.query({'target': 'EvidenceLevel', 'filters': {'OR': filters}})
 
 
 def filter_structural_variants(
@@ -86,7 +72,7 @@ def get_evidencelevel_mapping(graphkb_conn: GraphKBConnection) -> Dict[str, str]
 
     # Filter IPR EvidenceLevel and map each outgoing CrossReferenceOf to displayName
     ipr_source_rid = graphkb_conn.get_source("ipr")["@rid"]
-    ipr_evidence_levels = filter(lambda d: d["source"] == ipr_source_rid, evidence_levels)
+    ipr_evidence_levels = filter(lambda d: d.get("source") == ipr_source_rid, evidence_levels)
     cross_references_mapping: Dict[str, str] = dict()
     ipr_rids_to_displayname = dict()
     for level in ipr_evidence_levels:
@@ -141,9 +127,9 @@ def convert_statements_to_alterations(
         raise ValueError(f'failed to match disease ({disease_name}) to graphkb')
 
     rows = []
-
-    approved = convert_to_rid_set(get_approved_evidence_levels(graphkb_conn))
     ev_map = get_evidencelevel_mapping(graphkb_conn)
+    # GERO-318 - add all IPR-A evidence equivalents to the approvedTherapy flag
+    approved = set([ev for (ev, ipr) in ev_map.items() if ipr == 'IPR-A'])
 
     for statement in statements:
         variants = [c for c in statement['conditions'] if c['@class'] in VARIANT_CLASSES]
