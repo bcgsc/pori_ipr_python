@@ -142,6 +142,8 @@ SV_OPTIONAL = [
     # GERO-307 - tumourAltCount and tumourDepth are available but not rnaAltCount and rnaDepth
     'tumourAltCount',
     'tumourDepth',
+    'germline',
+    'mavis_product_id',
 ]
 
 
