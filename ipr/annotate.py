@@ -331,7 +331,22 @@ def annotate_positional_variants(
             if not variant:
                 continue
             try:
-                matches = gkb_match.match_positional_variant(graphkb_conn, variant)
+                try:
+                    matches = gkb_match.match_positional_variant(graphkb_conn, variant)
+                except HTTPError:
+                    # DEVSU-1885 - fix malformed single deletion described as substitution of blank
+                    # eg.
+                    if (
+                        variant[-1] == '>'
+                        and 'g.' in variant
+                        and variant[-2].isalpha()
+                        and variant[-3].isnumeric()
+                    ):
+                        logger.warning(
+                            f"Assuming malformed deletion variant {variant} is {variant[:-2] + 'del'}"
+                        )
+                        variant = variant[:-2] + 'del'
+                        matches = gkb_match.match_positional_variant(graphkb_conn, variant)
 
                 # GERO-299 - check for conflicting nonsense and missense categories
                 missense = [
