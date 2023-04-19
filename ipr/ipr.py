@@ -5,12 +5,11 @@ by other reporting systems
 from graphkb import GraphKBConnection
 from graphkb import statement as gkb_statement
 from graphkb import vocab as gkb_vocab
-from graphkb.types import Record
 from typing import Dict, Iterable, List, Sequence, Set, Tuple
 
 from .constants import GERMLINE_BASE_TERMS, VARIANT_CLASSES
 from .types import GkbStatement, ImageDefinition, IprFusionVariant, IprGene, IprVariant, KbMatch
-from .util import convert_to_rid_set, find_variant, logger
+from .util import find_variant, logger
 
 
 def display_evidence_levels(statement: GkbStatement) -> str:
