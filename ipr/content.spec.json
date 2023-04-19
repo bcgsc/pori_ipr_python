@@ -196,6 +196,13 @@
                             "integer",
                             "null"
                         ]
+                    },
+                    "size": {
+                        "description": "size of the copy change segment in the chromosome",
+                        "type": [
+                            "number",
+                            "null"
+                        ]
                     }
                 },
                 "required": [
@@ -511,6 +518,14 @@
                         "description": "the sequencing protocol used for ths sample",
                         "example": "DNA",
                         "type": "string"
+                    },
+                    "library": {
+                        "description": "Library id string",
+                        "example": "P01234",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     }
                 },
                 "type": "object"
@@ -993,6 +1008,14 @@
                             "null"
                         ]
                     },
+                    "tumourAltCopies": {
+                        "description": "the number of gene copies in the tumour genome supporting the mutation",
+                        "example": 1,
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
                     "tumourAltCount": {
                         "description": "the number of alternate reads in the tumour genome supporting the mutation",
                         "example": 1,
@@ -1011,6 +1034,14 @@
                     },
                     "tumourRefCount": {
                         "description": "the number of reference reads in the tumour genome",
+                        "example": 1,
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "tumourRefCopies": {
+                        "description": "the number of wildtype gene copies in tumour genome",
                         "example": 1,
                         "type": [
                             "integer",
@@ -1099,6 +1130,14 @@
                             "null"
                         ]
                     },
+                    "frame": {
+                        "description": "Optional descriptive string for in-frame vs frame-shift SV",
+                        "example": "frame-shift",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
                     "gene1": {
                         "description": "the 5' (n-terminal) gene name",
                         "example": "EWSR1",
@@ -1149,6 +1188,15 @@
                             "null"
                         ]
                     },
+                    "mavis_product_id": {
+                        "default": null,
+                        "description": "mavis product id / other tool description strings",
+                        "example": "MAVIS-2.5.35-RT3556GHTR",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
                     "svg": {
                         "description": "svg image file content for this SV",
                         "type": [
@@ -1160,6 +1208,22 @@
                         "description": "The title to accompany this SV",
                         "type": [
                             "string",
+                            "null"
+                        ]
+                    },
+                    "tumourAltCount": {
+                        "description": "the number of alternate reads in the tumour genome supporting the mutation",
+                        "example": 1,
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "tumourDepth": {
+                        "description": "the total number of reads at this position in the tumour genome",
+                        "example": 2,
+                        "type": [
+                            "integer",
                             "null"
                         ]
                     }
