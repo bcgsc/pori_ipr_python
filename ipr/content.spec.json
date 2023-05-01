@@ -1197,6 +1197,22 @@
                             "null"
                         ]
                     },
+                    "rnaAltCount": {
+                        "description": "the number of alternate reads in the rna supporting the mutation",
+                        "example": 1,
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "rnaDepth": {
+                        "description": "the total number of reads at this position in the rna",
+                        "example": 2,
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
                     "svg": {
                         "description": "svg image file content for this SV",
                         "type": [
