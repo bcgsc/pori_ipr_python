@@ -11,6 +11,7 @@ from graphkb.genes import get_therapeutic_associated_genes
 from graphkb.match import INPUT_COPY_CATEGORIES
 from graphkb.types import Variant
 from graphkb.util import FeatureNotFoundError, convert_to_rid_list
+from pandas import isnull
 from progressbar import progressbar
 from typing import Any, Dict, List, Sequence, Set, cast
 
@@ -329,7 +330,7 @@ def annotate_positional_variants(
         for var_key in VARIANT_KEYS:
             variant = row.get(var_key)
             matches = []
-            if not variant:
+            if not variant or isnull(variant):
                 continue
             try:
                 try:
