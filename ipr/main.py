@@ -203,6 +203,7 @@ def create_report(
     tmb_matches = []
     if 'tmburMutationBurden' in content.keys():
         tmb_val = 0.0
+        tmb = {}
         try:
             tmb = content.get('tmburMutationBurden', {})
             tmb_val = tmb['genomeIndelTmb'] + tmb['genomeSnvTmb']
@@ -213,17 +214,17 @@ def create_report(
             logger.warning(
                 f'GERO-296 - tmburMutationBurden high -checking graphkb matches for {TMB_HIGH_CATEGORY}'
             )
-            if 'key' in tmb:
-                tmb_key = tmb['key']
-            else:
-                # Add a key to tmburMutationBurden that the matches can link to.
-                tmb_key = tmb['key'] = TMB_HIGH_CATEGORY
+            if not tmb.get('key'):
+                tmb['key'] = TMB_HIGH_CATEGORY
+            if not tmb.get('kbCategory'):
+                tmb['kbCategory'] = TMB_HIGH_CATEGORY
+
             # GERO-296 - try matching to graphkb
             tmb_matches = annotate_tmb(graphkb_conn, kb_disease_match, TMB_HIGH_CATEGORY)
             if tmb_matches:
                 tmb_variant['kbCategory'] = TMB_HIGH_CATEGORY  # type: ignore
                 tmb_variant['variant'] = TMB_HIGH_CATEGORY
-                tmb_variant['key'] = tmb_key
+                tmb_variant['key'] = tmb['key']
                 tmb_variant['variantType'] = 'tmb'
                 logger.info(
                     f"GERO-296 '{TMB_HIGH_CATEGORY}' matches {len(tmb_matches)} statements."
