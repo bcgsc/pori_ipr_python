@@ -337,7 +337,7 @@ def annotate_positional_variants(
                     matches = gkb_match.match_positional_variant(graphkb_conn, variant)
                 except HTTPError:
                     # DEVSU-1885 - fix malformed single deletion described as substitution of blank
-                    # eg.
+                    # eg. deletion described as substitution with nothing: 'chr1:g.150951027T>'
                     if (
                         variant[-1] == '>'
                         and 'g.' in variant
