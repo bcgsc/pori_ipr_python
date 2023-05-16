@@ -139,7 +139,8 @@ SV_OPTIONAL = [
     'highQuality',
     'comments',
     'library',
-    # GERO-307 - tumourAltCount and tumourDepth are available but not rnaAltCount and rnaDepth
+    'rnaAltCount',
+    'rnaDepth',
     'tumourAltCount',
     'tumourDepth',
     'germline',
