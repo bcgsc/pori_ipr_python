@@ -12,10 +12,11 @@ from .annotate import (
     annotate_expression_variants,
     annotate_msi,
     annotate_positional_variants,
+    annotate_tmb,
     get_gene_information,
 )
 from .connection import IprConnection
-from .constants import DEFAULT_URL
+from .constants import DEFAULT_URL, TMB_HIGH, TMB_HIGH_CATEGORY
 from .inputs import (
     check_comparators,
     check_variant_links,
@@ -198,10 +199,38 @@ def create_report(
     gkb_matches: List[KbMatch] = []
 
     # Signature category variants
+    tmb_variant: IprVariant = {}
+    tmb_matches = []
     if 'tmburMutationBurden' in content.keys():
-        logger.warning(
-            'GERO-296 - not yet implemented - high tumour mutation burden category matching.'
-        )
+        tmb_val = 0.0
+        tmb = {}
+        try:
+            tmb = content.get('tmburMutationBurden', {})
+            tmb_val = tmb['genomeIndelTmb'] + tmb['genomeSnvTmb']
+        except Exception as err:
+            logger.error(f"tmburMutationBurden parsing failure: {err}")
+
+        if tmb_val >= TMB_HIGH:
+            logger.warning(
+                f'GERO-296 - tmburMutationBurden high -checking graphkb matches for {TMB_HIGH_CATEGORY}'
+            )
+            if not tmb.get('key'):
+                tmb['key'] = TMB_HIGH_CATEGORY
+            if not tmb.get('kbCategory'):
+                tmb['kbCategory'] = TMB_HIGH_CATEGORY
+
+            # GERO-296 - try matching to graphkb
+            tmb_matches = annotate_tmb(graphkb_conn, kb_disease_match, TMB_HIGH_CATEGORY)
+            if tmb_matches:
+                tmb_variant['kbCategory'] = TMB_HIGH_CATEGORY  # type: ignore
+                tmb_variant['variant'] = TMB_HIGH_CATEGORY
+                tmb_variant['key'] = tmb['key']
+                tmb_variant['variantType'] = 'tmb'
+                logger.info(
+                    f"GERO-296 '{TMB_HIGH_CATEGORY}' matches {len(tmb_matches)} statements."
+                )
+                gkb_matches.extend(tmb_matches)
+                logger.debug(f"\tgkb_matches: {len(gkb_matches)}")
 
     msi = content.get('msi', [])
     msi_matches = []
@@ -216,7 +245,7 @@ def create_report(
             msi_cat = msi.get('kbCategory')
             msi_variant = msi.copy()
         logger.info(f'Matching GKB msi {msi_cat}')
-        msi_matches = annotate_msi(graphkb_conn, msi_cat, kb_disease_match)
+        msi_matches = annotate_msi(graphkb_conn, kb_disease_match, msi_cat)
         if msi_matches:
             msi_variant['kbCategory'] = msi_cat  # type: ignore
             msi_variant['variant'] = msi_cat
@@ -262,6 +291,8 @@ def create_report(
     all_variants = expression_variants + copy_variants + structural_variants + small_mutations  # type: ignore
     if msi_matches:
         all_variants.append(msi_variant)  # type: ignore
+    if tmb_matches:
+        all_variants.append(tmb_variant)  # type: ignore
 
     if match_germline:  # verify germline kb statements matched germline observed variants
         gkb_matches = germline_kb_matches(gkb_matches, all_variants)

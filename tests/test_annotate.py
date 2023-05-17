@@ -72,7 +72,6 @@ def graphkb_conn():
     return graphkb_conn
 
 
-@pytest.mark.skipif(EXCLUDE_INTEGRATION_TESTS, reason="SDEV-3381 - github workflow failures.")
 def test_annotate_nonsense_vs_missense(graphkb_conn):
     """Verify missense (point mutation) is not mistaken for a nonsense (stop codon) mutation."""
     disease = 'cancer'
@@ -84,7 +83,6 @@ def test_annotate_nonsense_vs_missense(graphkb_conn):
         assert matched, f"should have matched in {key}: {TP53_MUT_DICT[key]}"
 
 
-@pytest.mark.skipif(EXCLUDE_INTEGRATION_TESTS, reason="SDEV-3381 - github workflow failures.")
 def test_annotate_nonsense_vs_missense_protein(graphkb_conn):
     """Verify missense (point mutation) is not mistaken for a nonsense (stop codon) mutation."""
     disease = 'cancer'
@@ -96,13 +94,11 @@ def test_annotate_nonsense_vs_missense_protein(graphkb_conn):
         assert matched, f"should have matched in {key}: {TP53_MUT_DICT[key]}"
 
 
-@pytest.mark.skipif(EXCLUDE_INTEGRATION_TESTS, reason="SDEV-3381 - github workflow failures.")
 def test_annotate_structural_variants_tp53(graphkb_conn):
     """Verify alternate TP53 variants match."""
     disease = 'cancer'
     ref_key = 'prot_only'
     pref = annotate_positional_variants(graphkb_conn, [TP53_MUT_DICT[ref_key]], disease)
-    known_issues = set(['TP53:p.M237X'])  # SDEV-3122 -
     # GERO-299 - nonsense - stop codon - should not match.  This is missense not nonsense (#164:933).
     nonsense = [a for a in pref if a['kbVariant'] == 'TP53 nonsense']
     assert not nonsense
@@ -117,21 +113,16 @@ def test_annotate_structural_variants_tp53(graphkb_conn):
         diff = pref_vars.symmetric_difference(alt_vars)
         missing = pref_vars.difference(alt_vars)
 
-        known_issues = set([])
-        if 'hgvsCds' in alt_rep:
-            known_issues.add('TP53 nonsense')  # GERO-299
-        if 'p.M237' not in alt_rep:
-            known_issues.add('TP53:p.M237X')  # SDEV-3122 - not matching imprecise mutations
+        known_issues = set()
         if key == 'genome_only':
+            # genome_only matched to more precise type 'TP53 deleterious mutation' but not 'TP53 mutation'
             known_issues.add('TP53 mutation')
 
-        # strangely genome_only matched to more precise type 'TP53 deleterious mutation' but not 'TP53 mutation'
         missing = pref_vars.difference(alt_vars).difference(known_issues)
         print(alt_vars)
         assert not missing, f"{key} missing{missing}: {diff}"
 
 
-@pytest.mark.skipif(EXCLUDE_INTEGRATION_TESTS, reason="SDEV-3381 - github workflow failures.")
 def test_get_therapeutic_associated_genes(graphkb_conn):
     gene_list = get_therapeutic_associated_genes(graphkb_conn=graphkb_conn)
     assert gene_list, 'No get_therapeutic_associated_genes found'

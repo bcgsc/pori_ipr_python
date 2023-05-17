@@ -11,10 +11,11 @@ from graphkb.genes import get_therapeutic_associated_genes
 from graphkb.match import INPUT_COPY_CATEGORIES
 from graphkb.types import Variant
 from graphkb.util import FeatureNotFoundError, convert_to_rid_list
+from pandas import isnull
 from progressbar import progressbar
 from typing import Any, Dict, List, Sequence, Set, cast
 
-from .constants import FAILED_REVIEW_STATUS
+from .constants import FAILED_REVIEW_STATUS, TMB_HIGH_CATEGORY
 from .ipr import convert_statements_to_alterations
 from .types import (
     GkbStatement,
@@ -328,18 +329,38 @@ def annotate_positional_variants(
 
         for var_key in VARIANT_KEYS:
             variant = row.get(var_key)
-            if not variant:
+            matches = []
+            if not variant or isnull(variant):
                 continue
             try:
-                matches = gkb_match.match_positional_variant(graphkb_conn, variant)
+                try:
+                    matches = gkb_match.match_positional_variant(graphkb_conn, variant)
+                except HTTPError as parse_err:
+                    # DEVSU-1885 - fix malformed single deletion described as substitution of blank
+                    # eg. deletion described as substitution with nothing: 'chr1:g.150951027T>'
+                    if (
+                        variant[-1] == '>'
+                        and 'g.' in variant
+                        and variant[-2].isalpha()
+                        and variant[-3].isnumeric()
+                    ):
+                        logger.warning(
+                            f"Assuming malformed deletion variant {variant} is {variant[:-2] + 'del'}"
+                        )
+                        variant = variant[:-2] + 'del'
+                        matches = gkb_match.match_positional_variant(graphkb_conn, variant)
+                    else:
+                        raise parse_err
 
                 # GERO-299 - check for conflicting nonsense and missense categories
+
                 missense = [
                     m for m in matches if 'missense' in m.get('type', m).get('displayName', '')
                 ]
                 nonsense = [
                     m for m in matches if 'nonsense' in m.get('type', m).get('displayName', '')
                 ]
+
                 missense_cat = [m for m in missense if m.get('@class', '') == 'CategoryVariant']
                 nonsense_cat = [m for m in nonsense if m.get('@class', '') == 'CategoryVariant']
                 if missense_cat and nonsense_cat:
@@ -429,8 +450,8 @@ def annotate_positional_variants(
 
 def annotate_msi(
     graphkb_conn: GraphKBConnection,
-    msi_category: str,
-    disease_name: str,
+    disease_name: str = 'cancer',
+    msi_category: str = 'microsatellite instability',
 ) -> List[KbMatch]:
     """Annotate microsatellite instablity from GraphKB in the IPR alterations format.
 
@@ -459,5 +480,45 @@ def annotate_msi(
         for ipr_row in get_ipr_statements_from_variants(graphkb_conn, msi_categories, disease_name):
             ipr_row['variant'] = msi_category
             ipr_row['variantType'] = 'msi'
+            gkb_matches.append(ipr_row)
+    return gkb_matches
+
+
+def annotate_tmb(
+    graphkb_conn: GraphKBConnection,
+    disease_name: str = 'cancer',
+    category: str = TMB_HIGH_CATEGORY,
+) -> List[KbMatch]:
+    """Annotate Tumour Mutation Burden (tmb) categories from GraphKB in the IPR alterations format.
+
+    Match to GraphKb Category variants with similar names
+    Args:
+        graphkb_conn: the graphkb api connection object
+        disease_name: oncotree disease name for graphkb matching.
+        category: such as 'high mutation burden'
+
+    Returns:
+        list of kbMatches records for IPR
+    """
+    gkb_matches = []
+    categories = graphkb_conn.query(
+        {
+            'target': {
+                'target': 'CategoryVariant',
+                'filters': {
+                    'reference1': {
+                        'target': 'Signature',
+                        'filters': {'OR': [{'name': category}, {'displayName': category}]},
+                    }
+                },
+            },
+            'queryType': 'similarTo',
+            'returnProperties': ['@rid', 'displayName'],
+        },
+    )
+    if categories:
+        for ipr_row in get_ipr_statements_from_variants(graphkb_conn, categories, disease_name):
+            ipr_row['variant'] = category
+            ipr_row['variantType'] = 'tmb'
             gkb_matches.append(ipr_row)
     return gkb_matches
