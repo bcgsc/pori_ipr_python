@@ -335,7 +335,7 @@ def annotate_positional_variants(
             try:
                 try:
                     matches = gkb_match.match_positional_variant(graphkb_conn, variant)
-                except HTTPError:
+                except HTTPError as parse_err:
                     # DEVSU-1885 - fix malformed single deletion described as substitution of blank
                     # eg. deletion described as substitution with nothing: 'chr1:g.150951027T>'
                     if (
@@ -349,6 +349,8 @@ def annotate_positional_variants(
                         )
                         variant = variant[:-2] + 'del'
                         matches = gkb_match.match_positional_variant(graphkb_conn, variant)
+                    else:
+                        raise parse_err
 
                 # GERO-299 - check for conflicting nonsense and missense categories
 
