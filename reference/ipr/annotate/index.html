@@ -15,7 +15,7 @@
         <link rel="next" href="../connection/">
       
       <link rel="icon" href="../../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.4.2, mkdocs-material-9.1.6">
+      <meta name="generator" content="mkdocs-1.4.3, mkdocs-material-9.1.13">
     
     
       
@@ -23,10 +23,7 @@
       
     
     
-      <link rel="stylesheet" href="../../../assets/stylesheets/main.ded33207.min.css">
-      
-        
-        <link rel="stylesheet" href="../../../assets/stylesheets/palette.a0c5b2b5.min.css">
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.85bb2934.min.css">
       
       
 
@@ -52,14 +49,11 @@
   </head>
   
   
-    
-    
-    
-    
-    
-    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="" data-md-color-accent="">
+    <body dir="ltr">
   
     
+    
+      <script>var palette=__md_get("__palette");if(palette&&"object"==typeof palette.color)for(var key of Object.keys(palette.color))document.body.setAttribute("data-md-color-"+key,palette.color[key])</script>
     
     <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
     <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
@@ -381,6 +375,13 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#annotate_tmb" class="md-nav__link">
+    annotate_tmb()
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -604,6 +605,13 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#annotate_tmb" class="md-nav__link">
+    annotate_tmb()
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -756,15 +764,34 @@ again with the inferred variants. Then returns the results formatted for upload 
 <p>Match to GraphKb Category variants with similar names</p>
 <pre><code class="language-python">def annotate_msi(
     graphkb_conn: GraphKBConnection,
-    msi_category: str,
-    disease_name: str,
+    disease_name: str = 'cancer',
+    msi_category: str = 'microsatellite instability',
 ) -&gt; List[KbMatch]:
 </code></pre>
 <p><strong>Args</strong></p>
 <ul>
 <li>graphkb_conn (<code>GraphKBConnection</code>): the graphkb api connection object</li>
-<li>msi_category (<code>str</code>): such as 'microsatellite instability'</li>
 <li>disease_name (<code>str</code>)</li>
+<li>msi_category (<code>str</code>): such as 'microsatellite instability'</li>
+</ul>
+<p><strong>Returns</strong></p>
+<ul>
+<li>List[<a href="../types/#class-kbmatch">KbMatch</a>]: list of kbMatches records for IPR</li>
+</ul>
+<h2 id="annotate_tmb">annotate_tmb()</h2>
+<p>Annotate Tumour Mutation Burden (tmb) categories from GraphKB in the IPR alterations format.</p>
+<p>Match to GraphKb Category variants with similar names</p>
+<pre><code class="language-python">def annotate_tmb(
+    graphkb_conn: GraphKBConnection,
+    disease_name: str = 'cancer',
+    category: str = TMB_HIGH_CATEGORY,
+) -&gt; List[KbMatch]:
+</code></pre>
+<p><strong>Args</strong></p>
+<ul>
+<li>graphkb_conn (<code>GraphKBConnection</code>): the graphkb api connection object</li>
+<li>disease_name (<code>str</code>): oncotree disease name for graphkb matching.</li>
+<li>category (<code>str</code>): such as 'high mutation burden'</li>
 </ul>
 <p><strong>Returns</strong></p>
 <ul>
@@ -810,7 +837,7 @@ again with the inferred variants. Then returns the results formatted for upload 
     <script id="__config" type="application/json">{"base": "../../..", "features": [], "search": "../../../assets/javascripts/workers/search.208ed371.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
     
     
-      <script src="../../../assets/javascripts/bundle.51198bba.min.js"></script>
+      <script src="../../../assets/javascripts/bundle.b4d07000.min.js"></script>
       
     
   </body>
