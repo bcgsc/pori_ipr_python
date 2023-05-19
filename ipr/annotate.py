@@ -335,9 +335,9 @@ def annotate_positional_variants(
             try:
                 try:
                     matches = gkb_match.match_positional_variant(graphkb_conn, variant)
-                except HTTPError:
+                except HTTPError as parse_err:
                     # DEVSU-1885 - fix malformed single deletion described as substitution of blank
-                    # eg.
+                    # eg. deletion described as substitution with nothing: 'chr1:g.150951027T>'
                     if (
                         variant[-1] == '>'
                         and 'g.' in variant
@@ -349,6 +349,8 @@ def annotate_positional_variants(
                         )
                         variant = variant[:-2] + 'del'
                         matches = gkb_match.match_positional_variant(graphkb_conn, variant)
+                    else:
+                        raise parse_err
 
                 # GERO-299 - check for conflicting nonsense and missense categories
 
@@ -403,9 +405,6 @@ def annotate_positional_variants(
                         matches = [
                             m for m in matches if m not in missense_cat and m not in nonsense_cat
                         ]
-                elif nonsense_cat and ':c.' in variant:
-                    logger.error(f"GERO-304 - dropping nonsense variants from hgvsCds {variant}")
-                    matches = [m for m in matches if m not in nonsense_cat]
 
                 for ipr_row in get_ipr_statements_from_variants(
                     graphkb_conn, matches, disease_name
