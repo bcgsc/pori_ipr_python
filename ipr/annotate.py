@@ -329,60 +329,6 @@ def annotate_positional_variants(
                     else:
                         raise parse_err
 
-                # GERO-299 - check for conflicting nonsense and missense categories
-
-                missense = [
-                    m for m in matches if 'missense' in m.get('type', m).get('displayName', '')
-                ]
-                nonsense = [
-                    m for m in matches if 'nonsense' in m.get('type', m).get('displayName', '')
-                ]
-
-                missense_cat = [m for m in missense if m.get('@class', '') == 'CategoryVariant']
-                nonsense_cat = [m for m in nonsense if m.get('@class', '') == 'CategoryVariant']
-                if missense_cat and nonsense_cat:
-                    conflict_names = sorted(
-                        set([m.get('displayName', '') for m in nonsense + missense])
-                    )
-                    logger.error(
-                        f'Conflicting nonsense and misense categories for {variant}: {conflict_names}'
-                    )
-                    # Check if cross referenced positional variants resolve the category conflict.
-                    if nonsense_cat == nonsense and missense_cat != missense:
-                        cross_match = sorted(
-                            set(
-                                [
-                                    m.get('displayName', '')
-                                    for m in missense
-                                    if m not in missense_cat
-                                ]
-                            )
-                        )
-                        logger.error(f"GERO-299 - dropping nonsense category due to: {cross_match}")
-                        matches = [m for m in matches if m not in nonsense_cat]
-                    elif nonsense_cat != nonsense and missense_cat == missense:
-                        cross_match = sorted(
-                            set(
-                                [
-                                    m.get('displayName', '')
-                                    for m in nonsense
-                                    if m not in nonsense_cat
-                                ]
-                            )
-                        )
-                        logger.error(f"GERO-299 - dropping missense category due to: {cross_match}")
-                        matches = [m for m in matches if m not in missense_cat]
-                    else:
-                        conflict_names = sorted(
-                            set([m.get('displayName', '') for m in nonsense_cat + missense_cat])
-                        )
-                        logger.error(
-                            f"GERO-299 Dropping all conflicting missense/nonsense categories: {conflict_names}"
-                        )
-                        matches = [
-                            m for m in matches if m not in missense_cat and m not in nonsense_cat
-                        ]
-
                 for ipr_row in get_ipr_statements_from_variants(
                     graphkb_conn, matches, disease_name
                 ):
