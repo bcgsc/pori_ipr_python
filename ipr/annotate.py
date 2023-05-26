@@ -9,6 +9,7 @@ from graphkb import match as gkb_match
 from graphkb.constants import STATEMENT_RETURN_PROPERTIES
 from graphkb.genes import get_therapeutic_associated_genes
 from graphkb.match import INPUT_COPY_CATEGORIES
+from graphkb.statement import get_statements_from_variants
 from graphkb.types import Variant
 from graphkb.util import FeatureNotFoundError, convert_to_rid_list
 from pandas import isnull
@@ -101,30 +102,6 @@ def get_gene_information(
             result.append(row)
 
     return result
-
-
-def get_statements_from_variants(
-    graphkb_conn: GraphKBConnection, variants: List[Variant]
-) -> List[GkbStatement]:
-    """Given a list of variant records from GraphKB, return all the related statements.
-
-    Args:
-        graphkb_conn (GraphKBConnection): the graphkb api connection object
-        variants (list.<dict>): list of variant records
-
-    Returns:
-        list.<dict>: list of Statement records from graphkb
-    """
-    statements = graphkb_conn.query(
-        {
-            'target': 'Statement',
-            'filters': {'conditions': convert_to_rid_list(variants), 'operator': 'CONTAINSANY'},
-            'returnProperties': STATEMENT_RETURN_PROPERTIES,
-        }
-    )
-    return [
-        cast(GkbStatement, s) for s in statements if s.get('reviewStatus') != FAILED_REVIEW_STATUS
-    ]
 
 
 def get_second_pass_variants(
