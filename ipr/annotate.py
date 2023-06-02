@@ -13,7 +13,7 @@ from graphkb.types import Variant
 from graphkb.util import FeatureNotFoundError
 from pandas import isnull
 from progressbar import progressbar
-from typing import Any, Dict, List, Sequence, Set, cast
+from typing import Any, Dict, List, Sequence, Set
 
 from .constants import TMB_HIGH_CATEGORY
 from .ipr import convert_statements_to_alterations
@@ -40,27 +40,26 @@ def get_gene_information(
         gene_names ([type]): [description]
     """
     logger.info('fetching variant related genes list')
+    stat_ret_props = [
+        '@rid',
+        'sourceId',
+        'source.name',
+        'source.displayName',
+        'conditions.name',
+        'conditions.@rid',
+        'conditions.@class',
+        'conditions.reference1',
+        'conditions.reference2',
+        'reviewStatus',
+    ]
     body: Dict[str, Any] = {
-        'target': 'Variant',
-        'returnProperties': ['@class', 'reference1', 'reference2'],
+        'target': 'Statement',
+        'returnProperties': stat_ret_props,
     }
 
     gene_names = sorted(set(gene_names))
-    if len(gene_names) < 100:
-        # SDEV-3148 - Add a filter for a subset of gene_ids for faster query.
-        logger.info(f"Fetching {len(gene_names)} Variant records from {graphkb_conn.url}")
-        logger.info("get all related gene_ids from gene names")
-        gene_ids = set()
-        for gene_name in gene_names:
-            gene_ids.update(
-                convert_to_rid_set(gkb_match.get_equivalent_features(graphkb_conn, gene_name))
-            )
-        genes = sorted(gene_ids)
-        body['filters'] = {'OR': [{'reference1': genes}, {'reference2': genes}]}
-        logger.info("Query GraphKB gene data")
-    else:
-        logger.info(f"Fetching all Variant records from {graphkb_conn.url}")
-    variants = graphkb_conn.query(body)
+    statements = graphkb_conn.query(body)
+    statements = [s for s in statements if s.get('reviewStatus') != 'failed']
 
     gene_flags: Dict[str, Set[str]] = {
         'cancerRelated': set(),
@@ -68,16 +67,17 @@ def get_gene_information(
         'knownSmallMutation': set(),
     }
 
-    for variant in [cast(Variant, v) for v in variants]:
-        if 'reference1' not in variant:
-            continue
-        gene_flags['cancerRelated'].add(variant['reference1'])
-        if variant['reference2']:
-            gene_flags['cancerRelated'].add(variant['reference2'])
-            gene_flags['knownFusionPartner'].add(variant['reference1'])
-            gene_flags['knownFusionPartner'].add(variant['reference2'])
-        elif variant['@class'] == 'PositionalVariant':
-            gene_flags['knownSmallMutation'].add(variant['reference1'])
+    for ref in statements:
+        for condition in ref['conditions']:
+            if not condition.get('reference1'):
+                continue
+            gene_flags['cancerRelated'].add(condition['reference1'])
+            if condition['reference2']:
+                gene_flags['cancerRelated'].add(condition['reference2'])
+                gene_flags['knownFusionPartner'].add(condition['reference1'])
+                gene_flags['knownFusionPartner'].add(condition['reference2'])
+            elif condition['@class'] == 'PositionalVariant':
+                gene_flags['knownSmallMutation'].add(condition['reference1'])
 
     logger.info('fetching oncogenes list')
     gene_flags['oncogene'] = convert_to_rid_set(gkb_genes.get_oncokb_oncogenes(graphkb_conn))
@@ -99,7 +99,7 @@ def get_gene_information(
         flagged = False
         for flag in gene_flags:
             # make smaller JSON to upload since all default to false already
-            if equivalent & gene_flags[flag]:
+            if equivalent.intersection(gene_flags[flag]):
                 row[flag] = flagged = True
         if flagged:
             result.append(row)

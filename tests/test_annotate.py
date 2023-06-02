@@ -1,20 +1,13 @@
 import os
 import pytest
 from graphkb import GraphKBConnection
-from graphkb import genes as gkb_genes
-from graphkb import match as gkb_match
-from graphkb import vocab as gkb_vocab
-from unittest.mock import Mock
 
 from ipr.annotate import (
     annotate_positional_variants,
     get_gene_information,
     get_therapeutic_associated_genes,
 )
-from ipr.constants import FAILED_REVIEW_STATUS
 from ipr.types import IprSmallMutationVariant
-
-from .util import QueryMock
 
 # TP53 examples from https://www.bcgsc.ca/jira/browse/SDEV-3122
 # Mutations are actually identical but on alternate transcripts.
@@ -130,94 +123,50 @@ def test_get_therapeutic_associated_genes(graphkb_conn):
     ), f'Expected over 500 get_therapeutic_associated_genes but found {len(gene_list)}'
 
 
-@pytest.mark.parametrize(
-    'gene,flags',
-    [
-        ['fusionPartnerGene', ['knownFusionPartner', 'cancerRelated']],
-        ['smallMutationGene', ['knownSmallMutation', 'cancerRelated']],
-        ['cancerRelatedGene', ['cancerRelated']],
-        # ['therapyAssociatedGene1', ['therapeuticAssociated']],
-        # ['therapyAssociatedGene2', ['therapeuticAssociated']],
-        # ['therapyAssociatedGene3', ['therapeuticAssociated']],
-        ['oncoGene', ['oncogene']],
-        ['tumourSuppressorGene', ['tumourSuppressor']],
-    ],
-)
-def test_get_gene_information(gene, flags, monkeypatch):
-    # mock the API connection class
-    graphkb_conn = Mock(
-        query=QueryMock(
+def test_get_gene_information(graphkb_conn):
+    GENES = {
+        'not_a_gene': set([]),
+        'AKT3': set(['cancerRelated', 'knownSmallMutation', 'oncogene', 'therapeuticAssociated']),
+        'TP53': set(
             [
-                # variants to return
-                [
-                    {'reference1': 'fusionGene1', 'reference2': 'fusionPartnerGene'},
-                    {
-                        'reference1': 'smallMutationGene',
-                        '@class': 'PositionalVariant',
-                        'reference2': None,
-                    },
-                    {
-                        'reference1': 'cancerRelatedGene',
-                        '@class': 'CategoryVariant',
-                        'reference2': None,
-                    },
-                ],
-                # mock the return statements
-                [
-                    {'reviewStatus': FAILED_REVIEW_STATUS},
-                    {
-                        'reviewStatus': '',
-                        'conditions': [
-                            {'@class': 'Feature', '@rid': 'therapyAssociatedGene1'},
-                            {
-                                '@class': 'Variant',
-                                'reference1': {
-                                    '@rid': 'therapyAssociatedGene2',
-                                    '@class': 'Feature',
-                                },
-                                'reference2': None,
-                            },
-                            {
-                                '@class': 'PositionalVariant',
-                                'reference1': {
-                                    '@rid': 'therapyAssociatedGene2',
-                                    '@class': 'Feature',
-                                },
-                                'reference2': None,
-                            },
-                            {
-                                '@class': 'CategoryVariant',
-                                'reference1': {'@rid': 'someGene', '@class': 'Feature'},
-                                'reference2': {
-                                    '@rid': 'therapyAssociatedGene3',
-                                    '@class': 'Feature',
-                                },
-                            },
-                        ],
-                    },
-                ],
+                'knownFusionPartner',
+                'cancerRelated',
+                'therapeuticAssociated',
+                'knownSmallMutation',
+                'tumourSuppressor',
             ]
         ),
-        cache={},
-    )
+        'BRAF': set(
+            [
+                'knownFusionPartner',
+                'cancerRelated',
+                'therapeuticAssociated',
+                'knownSmallMutation',
+                'oncogene',
+            ]
+        ),
+        'ERBB2': set(
+            [
+                'knownFusionPartner',
+                'cancerRelated',
+                'therapeuticAssociated',
+                'knownSmallMutation',
+                'oncogene',
+            ]
+        ),
+        'ABCB1': set(['cancerRelated', 'therapeuticAssociated', 'knownSmallMutation']),
+    }
+    info = get_gene_information(graphkb_conn, GENES.keys())
 
-    monkeypatch.setattr(gkb_vocab, 'get_terms_set', lambda conn, term: ['anything'])
-    monkeypatch.setattr(gkb_genes, 'get_oncokb_oncogenes', lambda conn: [{'@rid': 'oncoGene'}])
-    monkeypatch.setattr(
-        gkb_genes, 'get_oncokb_tumour_supressors', lambda conn: [{'@rid': 'tumourSuppressorGene'}]
-    )
-    monkeypatch.setattr(gkb_match, 'get_equivalent_features', lambda conn, term: [{'@rid': term}])
+    assert info, f"get_gene_information failed for {GENES.keys()}"
+    fails = []
 
-    info = get_gene_information(graphkb_conn, [gene])
-
-    assert info, f"get_gene_information failed for {gene}"
-    gene_info = [i for i in info if i['name'] == gene]
-    assert len(gene_info) == 1
-    gene_info = gene_info[0]
-    for flag in flags:
-        assert flag in gene_info
-        assert gene_info[flag]
-
-    for attr in gene_info:
-        if attr not in {'name'} | set(flags):
-            assert not gene_info[attr], f'expected {attr} to be False'
+    for gene, flags in GENES.items():
+        gene_info = [i for i in info if i['name'] == gene]
+        if not flags:
+            assert not gene_info, f"{gene} assumed to have all False (blank) got {gene_info}"
+        else:
+            gene_info_flags = set([key for key in gene_info[0].keys() if key != 'name'])
+            if flags != gene_info_flags:
+                fails.append(f"Expected {gene}: {sorted(flags)} - got {sorted(gene_info_flags)}")
+    assert not fails, '\n'.join(fails)
