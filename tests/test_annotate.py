@@ -14,7 +14,6 @@ from ipr.annotate import (
 from ipr.constants import FAILED_REVIEW_STATUS
 from ipr.types import IprSmallMutationVariant
 
-from .constants import EXCLUDE_INTEGRATION_TESTS
 from .util import QueryMock
 
 # TP53 examples from https://www.bcgsc.ca/jira/browse/SDEV-3122

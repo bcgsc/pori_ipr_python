@@ -6,17 +6,16 @@ from requests.exceptions import HTTPError
 from graphkb import GraphKBConnection
 from graphkb import genes as gkb_genes
 from graphkb import match as gkb_match
-from graphkb.constants import STATEMENT_RETURN_PROPERTIES
 from graphkb.genes import get_therapeutic_associated_genes
 from graphkb.match import INPUT_COPY_CATEGORIES
 from graphkb.statement import get_statements_from_variants
 from graphkb.types import Variant
-from graphkb.util import FeatureNotFoundError, convert_to_rid_list
+from graphkb.util import FeatureNotFoundError
 from pandas import isnull
 from progressbar import progressbar
 from typing import Any, Dict, List, Sequence, Set, cast
 
-from .constants import FAILED_REVIEW_STATUS, TMB_HIGH_CATEGORY
+from .constants import TMB_HIGH_CATEGORY
 from .ipr import convert_statements_to_alterations
 from .types import (
     GkbStatement,
