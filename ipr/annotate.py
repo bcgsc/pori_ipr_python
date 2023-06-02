@@ -44,21 +44,23 @@ def get_gene_information(
         'target': 'Variant',
         'returnProperties': ['@class', 'reference1', 'reference2'],
     }
+
+    gene_names = sorted(set(gene_names))
     if len(gene_names) < 100:
-        # SDEV-3148 - Filter by gene_ids to improve speed
+        # SDEV-3148 - Add a filter for a subset of gene_ids for faster query.
+        logger.info(f"Fetching {len(gene_names)} Variant records from {graphkb_conn.url}")
+        logger.info("get all related gene_ids from gene names")
         gene_ids = set()
         for gene_name in gene_names:
             gene_ids.update(
                 convert_to_rid_set(gkb_match.get_equivalent_features(graphkb_conn, gene_name))
             )
         genes = sorted(gene_ids)
-        filters = [{'reference1': genes}, {'reference2': genes}]
-        variants = []
-        for ref_filter in filters:
-            body['filters'] = ref_filter
-            variants.extend(graphkb_conn.query(body))
+        body['filters'] = {'OR': [{'reference1': genes}, {'reference2': genes}]}
+        logger.info("Query GraphKB gene data")
     else:
-        variants = graphkb_conn.query(body)
+        logger.info(f"Fetching all Variant records from {graphkb_conn.url}")
+    variants = graphkb_conn.query(body)
 
     gene_flags: Dict[str, Set[str]] = {
         'cancerRelated': set(),
@@ -83,11 +85,13 @@ def get_gene_information(
     gene_flags['tumourSuppressor'] = convert_to_rid_set(
         gkb_genes.get_oncokb_tumour_supressors(graphkb_conn)
     )
+
     logger.info('fetching therapeutic associated genes lists')
     gene_flags['therapeuticAssociated'] = convert_to_rid_set(
         get_therapeutic_associated_genes(graphkb_conn)
     )
 
+    logger.info(f"Setting gene_info flags on {len(gene_names)} genes")
     result = []
     for gene_name in gene_names:
         equivalent = convert_to_rid_set(gkb_match.get_equivalent_features(graphkb_conn, gene_name))
