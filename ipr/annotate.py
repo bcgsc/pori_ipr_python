@@ -15,7 +15,7 @@ from pandas import isnull
 from progressbar import progressbar
 from typing import Any, Dict, List, Sequence, Set
 
-from .constants import TMB_HIGH_CATEGORY
+from .constants import FAILED_REVIEW_STATUS, TMB_HIGH_CATEGORY
 from .ipr import convert_statements_to_alterations
 from .types import (
     GkbStatement,
@@ -64,7 +64,7 @@ def get_gene_information(
 
     gene_names = sorted(set(gene_names))
     statements = graphkb_conn.query(body)
-    statements = [s for s in statements if s.get('reviewStatus') != 'failed']
+    statements = [s for s in statements if s.get('reviewStatus') != FAILED_REVIEW_STATUS]
 
     gene_flags: Dict[str, Set[str]] = {
         'cancerRelated': set(),
