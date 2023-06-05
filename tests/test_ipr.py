@@ -148,7 +148,7 @@ def graphkb_conn():
     class QueryMock:
         return_values = [
             # get approved evidence levels
-            [{"@rid": v} for v in APPROVED_EVIDENCE_RIDS],
+            [{"@rid": v} for v in APPROVED_EVIDENCE_RIDS]
         ]
         index = -1
 
@@ -171,11 +171,7 @@ def base_graphkb_statement(
     statement = GkbStatement(  # type: ignore
         {
             "conditions": [
-                {
-                    "@class": "Disease",
-                    "@rid": disease_id,
-                    "displayName": "disease_display_name",
-                },
+                {"@class": "Disease", "@rid": disease_id, "displayName": "disease_display_name"},
                 {
                     "@class": "CategoryVariant",
                     "@rid": "variant_rid",
@@ -186,10 +182,7 @@ def base_graphkb_statement(
             "subject": None,
             "source": None,
             "sourceId": None,
-            "relevance": {
-                "@rid": relevance_rid,
-                "displayName": "relevance_display_name",
-            },
+            "relevance": {"@rid": relevance_rid, "displayName": "relevance_display_name"},
             "@rid": "statement_rid",
         }
     )

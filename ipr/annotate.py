@@ -40,22 +40,16 @@ def get_gene_information(
         gene_names ([type]): [description]
     """
     logger.info('fetching variant related genes list')
-    stat_ret_props = [
-        '@rid',
-        'sourceId',
-        'source.name',
-        'source.displayName',
-        'conditions.name',
+    # debug_ret_props = ['@rid', 'sourceId', 'source.name', 'source.displayName', 'conditions.name']
+    # For query speed, only fetch the minimum needed details
+    ret_props = [
         'conditions.@rid',
         'conditions.@class',
         'conditions.reference1',
         'conditions.reference2',
         'reviewStatus',
     ]
-    body: Dict[str, Any] = {
-        'target': 'Statement',
-        'returnProperties': stat_ret_props,
-    }
+    body: Dict[str, Any] = {'target': 'Statement', 'returnProperties': ret_props}
 
     gene_names = sorted(set(gene_names))
     statements = graphkb_conn.query(body)
@@ -67,8 +61,8 @@ def get_gene_information(
         'knownSmallMutation': set(),
     }
 
-    for ref in statements:
-        for condition in ref['conditions']:
+    for statement in statements:
+        for condition in statement['conditions']:
             if not condition.get('reference1'):
                 continue
             gene_flags['cancerRelated'].add(condition['reference1'])
@@ -400,7 +394,7 @@ def annotate_msi(
             },
             'queryType': 'similarTo',
             'returnProperties': ['@rid', 'displayName'],
-        },
+        }
     )
     if msi_categories:
         for ipr_row in get_ipr_statements_from_variants(graphkb_conn, msi_categories, disease_name):
@@ -411,9 +405,7 @@ def annotate_msi(
 
 
 def annotate_tmb(
-    graphkb_conn: GraphKBConnection,
-    disease_name: str = 'cancer',
-    category: str = TMB_HIGH_CATEGORY,
+    graphkb_conn: GraphKBConnection, disease_name: str = 'cancer', category: str = TMB_HIGH_CATEGORY
 ) -> List[KbMatch]:
     """Annotate Tumour Mutation Burden (tmb) categories from GraphKB in the IPR alterations format.
 
@@ -440,7 +432,7 @@ def annotate_tmb(
             },
             'queryType': 'similarTo',
             'returnProperties': ['@rid', 'displayName'],
-        },
+        }
     )
     if categories:
         for ipr_row in get_ipr_statements_from_variants(graphkb_conn, categories, disease_name):
