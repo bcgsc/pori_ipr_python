@@ -33,11 +33,22 @@ REPORTED_COPY_VARIANTS = (INPUT_COPY_CATEGORIES.AMP, INPUT_COPY_CATEGORIES.DEEP)
 def get_gene_information(
     graphkb_conn: GraphKBConnection, gene_names: Sequence[str]
 ) -> List[IprGene]:
-    """Create the Gene Info object for upload to IPR with the other report information.
+    """Create a list of gene_info flag dicts for IPR report upload.
+
+    Gene flags (categories) are: ['cancerRelated', 'knownFusionPartner', 'knownSmallMutation',
+                                  'oncogene', 'therapeuticAssociated', 'tumourSuppressor']
 
     Args:
         graphkb_conn ([type]): [description]
         gene_names ([type]): [description]
+    Returns:
+        List of gene_info dicts of form [{'name':<gene_str>, <flag>: True}]
+        Keys of False values are simply omitted from ipr upload to reduce info transfer.
+            eg. [{'cancerRelated': True,
+                  'knownFusionPartner': True,
+                  'knownSmallMutation': True,
+                  'name': 'TERT',
+                  'oncogene': True}]
     """
     logger.info('fetching variant related genes list')
     # debug_ret_props = ['@rid', 'sourceId', 'source.name', 'source.displayName', 'conditions.name']
