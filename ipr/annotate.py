@@ -51,7 +51,6 @@ def get_gene_information(
                   'oncogene': True}]
     """
     logger.info('fetching variant related genes list')
-    # debug_ret_props = ['@rid', 'sourceId', 'source.name', 'source.displayName', 'conditions.name']
     # For query speed, only fetch the minimum needed details
     ret_props = [
         'conditions.@rid',
