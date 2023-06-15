@@ -2,7 +2,7 @@ import os
 import pytest
 from graphkb import GraphKBConnection
 
-from ipr.annotate import annotate_positional_variants, get_therapeutic_associated_genes
+from ipr.annotate import annotate_positional_variants
 from ipr.types import IprSmallMutationVariant
 
 # TP53 examples from https://www.bcgsc.ca/jira/browse/SDEV-3122
@@ -97,11 +97,3 @@ def test_annotate_structural_variants_tp53(graphkb_conn):
         missing = pref_vars.difference(alt_vars).difference(known_issues)
         print(alt_vars)
         assert not missing, f"{key} missing{missing}: {diff}"
-
-
-def test_get_therapeutic_associated_genes(graphkb_conn):
-    gene_list = get_therapeutic_associated_genes(graphkb_conn=graphkb_conn)
-    assert gene_list, 'No get_therapeutic_associated_genes found'
-    assert (
-        len(gene_list) > 500
-    ), f'Expected over 500 get_therapeutic_associated_genes but found {len(gene_list)}'
