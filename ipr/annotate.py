@@ -4,111 +4,21 @@ handles annotating variants with annotation information from graphkb
 from requests.exceptions import HTTPError
 
 from graphkb import GraphKBConnection
-from graphkb import genes as gkb_genes
 from graphkb import match as gkb_match
-from graphkb.genes import get_therapeutic_associated_genes
 from graphkb.match import INPUT_COPY_CATEGORIES
 from graphkb.statement import get_statements_from_variants
 from graphkb.types import Variant
 from graphkb.util import FeatureNotFoundError
 from pandas import isnull
 from progressbar import progressbar
-from typing import Any, Dict, List, Sequence, Set
+from typing import Dict, List, Sequence
 
-from .constants import FAILED_REVIEW_STATUS, TMB_HIGH_CATEGORY
+from .constants import TMB_HIGH_CATEGORY
 from .ipr import convert_statements_to_alterations
-from .types import (
-    GkbStatement,
-    IprCopyVariant,
-    IprExprVariant,
-    IprGene,
-    IprStructuralVariant,
-    KbMatch,
-)
+from .types import GkbStatement, IprCopyVariant, IprExprVariant, IprStructuralVariant, KbMatch
 from .util import Hashabledict, convert_to_rid_set, logger
 
 REPORTED_COPY_VARIANTS = (INPUT_COPY_CATEGORIES.AMP, INPUT_COPY_CATEGORIES.DEEP)
-
-
-def get_gene_information(
-    graphkb_conn: GraphKBConnection, gene_names: Sequence[str]
-) -> List[IprGene]:
-    """Create a list of gene_info flag dicts for IPR report upload.
-
-    Gene flags (categories) are: ['cancerRelated', 'knownFusionPartner', 'knownSmallMutation',
-                                  'oncogene', 'therapeuticAssociated', 'tumourSuppressor']
-
-    Args:
-        graphkb_conn ([type]): [description]
-        gene_names ([type]): [description]
-    Returns:
-        List of gene_info dicts of form [{'name':<gene_str>, <flag>: True}]
-        Keys of False values are simply omitted from ipr upload to reduce info transfer.
-            eg. [{'cancerRelated': True,
-                  'knownFusionPartner': True,
-                  'knownSmallMutation': True,
-                  'name': 'TERT',
-                  'oncogene': True}]
-    """
-    logger.info('fetching variant related genes list')
-    # For query speed, only fetch the minimum needed details
-    ret_props = [
-        'conditions.@rid',
-        'conditions.@class',
-        'conditions.reference1',
-        'conditions.reference2',
-        'reviewStatus',
-    ]
-    body: Dict[str, Any] = {'target': 'Statement', 'returnProperties': ret_props}
-
-    gene_names = sorted(set(gene_names))
-    statements = graphkb_conn.query(body)
-    statements = [s for s in statements if s.get('reviewStatus') != FAILED_REVIEW_STATUS]
-
-    gene_flags: Dict[str, Set[str]] = {
-        'cancerRelated': set(),
-        'knownFusionPartner': set(),
-        'knownSmallMutation': set(),
-    }
-
-    for statement in statements:
-        for condition in statement['conditions']:
-            if not condition.get('reference1'):
-                continue
-            gene_flags['cancerRelated'].add(condition['reference1'])
-            if condition['reference2']:
-                gene_flags['cancerRelated'].add(condition['reference2'])
-                gene_flags['knownFusionPartner'].add(condition['reference1'])
-                gene_flags['knownFusionPartner'].add(condition['reference2'])
-            elif condition['@class'] == 'PositionalVariant':
-                gene_flags['knownSmallMutation'].add(condition['reference1'])
-
-    logger.info('fetching oncogenes list')
-    gene_flags['oncogene'] = convert_to_rid_set(gkb_genes.get_oncokb_oncogenes(graphkb_conn))
-    logger.info('fetching tumour supressors list')
-    gene_flags['tumourSuppressor'] = convert_to_rid_set(
-        gkb_genes.get_oncokb_tumour_supressors(graphkb_conn)
-    )
-
-    logger.info('fetching therapeutic associated genes lists')
-    gene_flags['therapeuticAssociated'] = convert_to_rid_set(
-        get_therapeutic_associated_genes(graphkb_conn)
-    )
-
-    logger.info(f"Setting gene_info flags on {len(gene_names)} genes")
-    result = []
-    for gene_name in gene_names:
-        equivalent = convert_to_rid_set(gkb_match.get_equivalent_features(graphkb_conn, gene_name))
-        row = IprGene({'name': gene_name})
-        flagged = False
-        for flag in gene_flags:
-            # make smaller JSON to upload since all default to false already
-            if equivalent.intersection(gene_flags[flag]):
-                row[flag] = flagged = True
-        if flagged:
-            result.append(row)
-
-    return result
 
 
 def get_second_pass_variants(

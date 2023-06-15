@@ -2,11 +2,7 @@ import os
 import pytest
 from graphkb import GraphKBConnection
 
-from ipr.annotate import (
-    annotate_positional_variants,
-    get_gene_information,
-    get_therapeutic_associated_genes,
-)
+from ipr.annotate import annotate_positional_variants, get_therapeutic_associated_genes
 from ipr.types import IprSmallMutationVariant
 
 # TP53 examples from https://www.bcgsc.ca/jira/browse/SDEV-3122
@@ -109,52 +105,3 @@ def test_get_therapeutic_associated_genes(graphkb_conn):
     assert (
         len(gene_list) > 500
     ), f'Expected over 500 get_therapeutic_associated_genes but found {len(gene_list)}'
-
-
-def test_get_gene_information(graphkb_conn):
-    GENES = {
-        'not_a_gene': set([]),
-        'AKT3': set(['cancerRelated', 'knownSmallMutation', 'oncogene', 'therapeuticAssociated']),
-        'TP53': set(
-            [
-                'knownFusionPartner',
-                'cancerRelated',
-                'therapeuticAssociated',
-                'knownSmallMutation',
-                'tumourSuppressor',
-            ]
-        ),
-        'BRAF': set(
-            [
-                'knownFusionPartner',
-                'cancerRelated',
-                'therapeuticAssociated',
-                'knownSmallMutation',
-                'oncogene',
-            ]
-        ),
-        'ERBB2': set(
-            [
-                'knownFusionPartner',
-                'cancerRelated',
-                'therapeuticAssociated',
-                'knownSmallMutation',
-                'oncogene',
-            ]
-        ),
-        'ABCB1': set(['cancerRelated', 'therapeuticAssociated', 'knownSmallMutation']),
-    }
-    info = get_gene_information(graphkb_conn, GENES.keys())
-
-    assert info, f"get_gene_information failed for {GENES.keys()}"
-    fails = []
-
-    for gene, flags in GENES.items():
-        gene_info = [i for i in info if i['name'] == gene]
-        if not flags:
-            assert not gene_info, f"{gene} assumed to have all False (blank) got {gene_info}"
-        else:
-            gene_info_flags = set([key for key in gene_info[0].keys() if key != 'name'])
-            if flags != gene_info_flags:
-                fails.append(f"Expected {gene}: {sorted(flags)} - got {sorted(gene_info_flags)}")
-    assert not fails, '\n'.join(fails)
