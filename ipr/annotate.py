@@ -4,104 +4,21 @@ handles annotating variants with annotation information from graphkb
 from requests.exceptions import HTTPError
 
 from graphkb import GraphKBConnection
-from graphkb import genes as gkb_genes
 from graphkb import match as gkb_match
-from graphkb.constants import STATEMENT_RETURN_PROPERTIES
-from graphkb.genes import get_therapeutic_associated_genes
 from graphkb.match import INPUT_COPY_CATEGORIES
 from graphkb.statement import get_statements_from_variants
 from graphkb.types import Variant
-from graphkb.util import FeatureNotFoundError, convert_to_rid_list
+from graphkb.util import FeatureNotFoundError
 from pandas import isnull
 from progressbar import progressbar
-from typing import Any, Dict, List, Sequence, Set, cast
+from typing import Dict, List, Sequence
 
-from .constants import FAILED_REVIEW_STATUS, TMB_HIGH_CATEGORY
+from .constants import TMB_HIGH_CATEGORY
 from .ipr import convert_statements_to_alterations
-from .types import (
-    GkbStatement,
-    IprCopyVariant,
-    IprExprVariant,
-    IprGene,
-    IprStructuralVariant,
-    KbMatch,
-)
+from .types import GkbStatement, IprCopyVariant, IprExprVariant, IprStructuralVariant, KbMatch
 from .util import Hashabledict, convert_to_rid_set, logger
 
 REPORTED_COPY_VARIANTS = (INPUT_COPY_CATEGORIES.AMP, INPUT_COPY_CATEGORIES.DEEP)
-
-
-def get_gene_information(
-    graphkb_conn: GraphKBConnection, gene_names: Sequence[str]
-) -> List[IprGene]:
-    """Create the Gene Info object for upload to IPR with the other report information.
-
-    Args:
-        graphkb_conn ([type]): [description]
-        gene_names ([type]): [description]
-    """
-    logger.info('fetching variant related genes list')
-    body: Dict[str, Any] = {
-        'target': 'Variant',
-        'returnProperties': ['@class', 'reference1', 'reference2'],
-    }
-    if len(gene_names) < 100:
-        # SDEV-3148 - Filter by gene_ids to improve speed
-        gene_ids = set()
-        for gene_name in gene_names:
-            gene_ids.update(
-                convert_to_rid_set(gkb_match.get_equivalent_features(graphkb_conn, gene_name))
-            )
-        genes = sorted(gene_ids)
-        filters = [{'reference1': genes}, {'reference2': genes}]
-        variants = []
-        for ref_filter in filters:
-            body['filters'] = ref_filter
-            variants.extend(graphkb_conn.query(body))
-    else:
-        variants = graphkb_conn.query(body)
-
-    gene_flags: Dict[str, Set[str]] = {
-        'cancerRelated': set(),
-        'knownFusionPartner': set(),
-        'knownSmallMutation': set(),
-    }
-
-    for variant in [cast(Variant, v) for v in variants]:
-        if 'reference1' not in variant:
-            continue
-        gene_flags['cancerRelated'].add(variant['reference1'])
-        if variant['reference2']:
-            gene_flags['cancerRelated'].add(variant['reference2'])
-            gene_flags['knownFusionPartner'].add(variant['reference1'])
-            gene_flags['knownFusionPartner'].add(variant['reference2'])
-        elif variant['@class'] == 'PositionalVariant':
-            gene_flags['knownSmallMutation'].add(variant['reference1'])
-
-    logger.info('fetching oncogenes list')
-    gene_flags['oncogene'] = convert_to_rid_set(gkb_genes.get_oncokb_oncogenes(graphkb_conn))
-    logger.info('fetching tumour supressors list')
-    gene_flags['tumourSuppressor'] = convert_to_rid_set(
-        gkb_genes.get_oncokb_tumour_supressors(graphkb_conn)
-    )
-    logger.info('fetching therapeutic associated genes lists')
-    gene_flags['therapeuticAssociated'] = convert_to_rid_set(
-        get_therapeutic_associated_genes(graphkb_conn)
-    )
-
-    result = []
-    for gene_name in gene_names:
-        equivalent = convert_to_rid_set(gkb_match.get_equivalent_features(graphkb_conn, gene_name))
-        row = IprGene({'name': gene_name})
-        flagged = False
-        for flag in gene_flags:
-            # make smaller JSON to upload since all default to false already
-            if equivalent & gene_flags[flag]:
-                row[flag] = flagged = True
-        if flagged:
-            result.append(row)
-
-    return result
 
 
 def get_second_pass_variants(
@@ -397,7 +314,7 @@ def annotate_msi(
             },
             'queryType': 'similarTo',
             'returnProperties': ['@rid', 'displayName'],
-        },
+        }
     )
     if msi_categories:
         for ipr_row in get_ipr_statements_from_variants(graphkb_conn, msi_categories, disease_name):
@@ -408,9 +325,7 @@ def annotate_msi(
 
 
 def annotate_tmb(
-    graphkb_conn: GraphKBConnection,
-    disease_name: str = 'cancer',
-    category: str = TMB_HIGH_CATEGORY,
+    graphkb_conn: GraphKBConnection, disease_name: str = 'cancer', category: str = TMB_HIGH_CATEGORY
 ) -> List[KbMatch]:
     """Annotate Tumour Mutation Burden (tmb) categories from GraphKB in the IPR alterations format.
 
@@ -437,7 +352,7 @@ def annotate_tmb(
             },
             'queryType': 'similarTo',
             'returnProperties': ['@rid', 'displayName'],
-        },
+        }
     )
     if categories:
         for ipr_row in get_ipr_statements_from_variants(graphkb_conn, categories, disease_name):

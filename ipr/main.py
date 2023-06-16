@@ -5,6 +5,7 @@ import logging
 import os
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
 from graphkb import GraphKBConnection
+from graphkb.genes import get_gene_information
 from typing import Dict, List, Sequence
 
 from .annotate import (
@@ -13,7 +14,6 @@ from .annotate import (
     annotate_msi,
     annotate_positional_variants,
     annotate_tmb,
-    get_gene_information,
 )
 from .connection import IprConnection
 from .constants import DEFAULT_URL, TMB_HIGH, TMB_HIGH_CATEGORY
