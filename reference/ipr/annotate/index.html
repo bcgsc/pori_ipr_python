@@ -15,7 +15,7 @@
         <link rel="next" href="../connection/">
       
       <link rel="icon" href="../../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.4.3, mkdocs-material-9.1.13">
+      <meta name="generator" content="mkdocs-1.4.3, mkdocs-material-9.1.16">
     
     
       
@@ -23,7 +23,7 @@
       
     
     
-      <link rel="stylesheet" href="../../../assets/stylesheets/main.85bb2934.min.css">
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.26e3688c.min.css">
       
       
 
@@ -320,20 +320,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#get_gene_information" class="md-nav__link">
-    get_gene_information()
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#get_statements_from_variants" class="md-nav__link">
-    get_statements_from_variants()
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#get_second_pass_variants" class="md-nav__link">
     get_second_pass_variants()
   </a>
@@ -550,20 +536,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#get_gene_information" class="md-nav__link">
-    get_gene_information()
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#get_statements_from_variants" class="md-nav__link">
-    get_statements_from_variants()
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#get_second_pass_variants" class="md-nav__link">
     get_second_pass_variants()
   </a>
@@ -635,36 +607,6 @@
 <h2 id="reported_copy_variants">REPORTED_COPY_VARIANTS</h2>
 <pre><code class="language-python">REPORTED_COPY_VARIANTS = (INPUT_COPY_CATEGORIES.AMP, INPUT_COPY_CATEGORIES.DEEP)
 </code></pre>
-<h2 id="get_gene_information">get_gene_information()</h2>
-<p>Create the Gene Info object for upload to IPR with the other report information.</p>
-<pre><code class="language-python">def get_gene_information(
-    graphkb_conn: GraphKBConnection, gene_names: Sequence[str]
-) -&gt; List[IprGene]:
-</code></pre>
-<p><strong>Args</strong></p>
-<ul>
-<li>graphkb_conn (<code>GraphKBConnection</code>): [description]</li>
-<li>gene_names (<code>Sequence[str]</code>): [description]</li>
-</ul>
-<p><strong>Returns</strong></p>
-<ul>
-<li>List[<a href="../types/#class-iprgene">IprGene</a>]</li>
-</ul>
-<h2 id="get_statements_from_variants">get_statements_from_variants()</h2>
-<p>Given a list of variant records from GraphKB, return all the related statements.</p>
-<pre><code class="language-python">def get_statements_from_variants(
-    graphkb_conn: GraphKBConnection, variants: List[Variant]
-) -&gt; List[GkbStatement]:
-</code></pre>
-<p><strong>Args</strong></p>
-<ul>
-<li>graphkb_conn (<code>GraphKBConnection</code>): the graphkb api connection object</li>
-<li>variants (<code>List[Variant]</code>): list of variant records</li>
-</ul>
-<p><strong>Returns</strong></p>
-<ul>
-<li>List[<a href="../types/#class-gkbstatement">GkbStatement</a>]: list of Statement records from graphkb</li>
-</ul>
 <h2 id="get_second_pass_variants">get_second_pass_variants()</h2>
 <p>Given a list of statements that have been matched, convert these to
 new category variants to be used in a second-pass matching.</p>
@@ -782,9 +724,7 @@ again with the inferred variants. Then returns the results formatted for upload 
 <p>Annotate Tumour Mutation Burden (tmb) categories from GraphKB in the IPR alterations format.</p>
 <p>Match to GraphKb Category variants with similar names</p>
 <pre><code class="language-python">def annotate_tmb(
-    graphkb_conn: GraphKBConnection,
-    disease_name: str = 'cancer',
-    category: str = TMB_HIGH_CATEGORY,
+    graphkb_conn: GraphKBConnection, disease_name: str = 'cancer', category: str = TMB_HIGH_CATEGORY
 ) -&gt; List[KbMatch]:
 </code></pre>
 <p><strong>Args</strong></p>
@@ -837,7 +777,7 @@ again with the inferred variants. Then returns the results formatted for upload 
     <script id="__config" type="application/json">{"base": "../../..", "features": [], "search": "../../../assets/javascripts/workers/search.208ed371.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
     
     
-      <script src="../../../assets/javascripts/bundle.b4d07000.min.js"></script>
+      <script src="../../../assets/javascripts/bundle.a51614de.min.js"></script>
       
     
   </body>
