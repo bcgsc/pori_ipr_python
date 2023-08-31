@@ -117,7 +117,7 @@ def clean_unsupported_content(upload_content: Dict) -> Dict:
         'smallMutations',
         'copyVariants',
         'structuralVariants',
-        # 'probeResults',  # TODO: DEVSU-2034 - add probeResults displayName once possible.
+        'probeResults',
         'msi',
     ]
     for variant_list_section in VARIANT_LIST_KEYS:
