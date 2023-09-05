@@ -111,16 +111,30 @@ def clean_unsupported_content(upload_content: Dict) -> Dict:
     to implement but is not yet supported by the upload
     """
     drop_columns = ['variant', 'variantType', 'histogramImage']
-    for variant_section in [
+    # DEVSU-2034 - use a 'displayName'
+    VARIANT_LIST_KEYS = [
         'expressionVariants',
         'smallMutations',
         'copyVariants',
         'structuralVariants',
-    ]:
-        for variant in upload_content[variant_section]:
+        'probeResults',
+        'msi',
+    ]
+    for variant_list_section in VARIANT_LIST_KEYS:
+        for variant in upload_content.get(variant_list_section, []):
+            if not variant.get('displayName'):
+                variant['displayName'] = (
+                    variant.get('variant') or variant.get('kbCategory') or variant.get('key', '')
+                )
             for col in drop_columns:
                 if col in variant:
                     del variant[col]
+    # tmburMutationBurden is a single value, not list
+    if upload_content.get('tmburMutationBurden'):
+        if not upload_content['tmburMutationBurden'].get('displayName'):
+            upload_content['tmburMutationBurden']['displayName'] = upload_content[
+                'tmburMutationBurden'
+            ].get('kbCategory', '')
 
     for row in upload_content['kbMatches']:
         del row['kbContextId']
