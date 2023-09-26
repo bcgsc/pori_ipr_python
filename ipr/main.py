@@ -126,6 +126,10 @@ def clean_unsupported_content(upload_content: Dict) -> Dict:
                 variant['displayName'] = (
                     variant.get('variant') or variant.get('kbCategory') or variant.get('key', '')
                 )
+            if variant_list_section == 'probeResults':
+                # currently probeResults will error if they do NOT have a 'variant' column.
+                # smallMutations will error if they DO have a 'variant' column.
+                continue
             for col in drop_columns:
                 if col in variant:
                     del variant[col]
