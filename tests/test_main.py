@@ -109,6 +109,6 @@ class TestCreateReport:
         genes = report_upload_content['genes']
         assert any([g.get('tumourSuppressor', False) for g in genes])
 
-    def test_found_cancer_related_gene(self, report_upload_content: Dict) -> None:
+    def test_found_kb_statement_related_gene(self, report_upload_content: Dict) -> None:
         genes = report_upload_content['genes']
-        assert any([g.get('cancerRelated', False) for g in genes])
+        assert any([g.get('kbStatementRelated', False) for g in genes])
