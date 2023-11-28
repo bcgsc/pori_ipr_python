@@ -40,6 +40,7 @@ class IprGene(TypedDict):
     tumourSuppressor: Optional[bool]
     oncogene: Optional[bool]
     therapeuticAssociated: Optional[bool]
+    cancerGeneListMatch: Optional[bool]
 
 
 class IprVariantBase(TypedDict):
