@@ -281,8 +281,10 @@ def annotate_positional_variants(
 
     # drop duplicates
     alterations: List[KbMatch] = list(set(alterations))
+
+    variant_types = ", ".join(sorted(set([alt['variantType'] for alt in alterations])))
     logger.info(
-        f'matched {len(variants)} positional variants to {len(alterations)} graphkb annotations'
+        f'matched {len(variants)} {variant_types} positional variants to {len(alterations)} graphkb annotations'
     )
 
     return alterations
