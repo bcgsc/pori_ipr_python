@@ -48,7 +48,6 @@ def report_upload_content(tmp_path_factory) -> Dict:
             }
         )
     )
-
     with patch.object(
         sys,
         'argv',
@@ -66,7 +65,8 @@ def report_upload_content(tmp_path_factory) -> Dict:
         ],
     ):
         with patch.object(IprConnection, 'upload_report', new=mock):
-            command_interface()
+            with patch.object(IprConnection, 'get_spec', return_value={}):
+                command_interface()
 
     assert mock.called
 
