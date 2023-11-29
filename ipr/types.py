@@ -42,6 +42,7 @@ class IprGene(TypedDict):
     therapeuticAssociated: Optional[bool]
     cancerGeneListMatch: Optional[bool]
 
+
 class IprVariantBase(TypedDict):
     """Required properties of all variants for IPR."""
 
