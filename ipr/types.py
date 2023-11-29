@@ -34,13 +34,13 @@ class KbMatch(TypedDict):
 
 class IprGene(TypedDict):
     name: str
-    cancerRelated: Optional[bool]
+    kbStatementRelated: Optional[bool]
     knownFusionPartner: Optional[bool]
     knownSmallMutation: Optional[bool]
     tumourSuppressor: Optional[bool]
     oncogene: Optional[bool]
     therapeuticAssociated: Optional[bool]
-
+    cancerGeneListMatch: Optional[bool]
 
 class IprVariantBase(TypedDict):
     """Required properties of all variants for IPR."""
