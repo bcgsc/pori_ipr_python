@@ -104,12 +104,30 @@ def command_interface() -> None:
     )
 
 
-def clean_unsupported_content(upload_content: Dict) -> Dict:
+def clean_unsupported_content(upload_content: Dict, ipr_spec: json = {}) -> Dict:
     """
     Remove unsupported content. This content is either added to facilitate creation
     or to support upcoming and soon to be supported content that we would like
     to implement but is not yet supported by the upload
     """
+
+    # check what ipr report upload expects and adjust contents to match
+    # TODO: remove this code after IPR-API is released with DEVSU-2143
+    if (
+        ipr_spec
+        and 'cancerRelated' in ipr_spec['components']['schemas']['genesCreate']['properties'].keys()
+    ):
+        for gene in upload_content['genes']:
+            gene['cancerRelated'] = gene['kbStatementRelated']
+            gene.pop('kbStatementRelated')
+    if (
+        ipr_spec
+        and 'cancerGene' in ipr_spec['components']['schemas']['genesCreate']['properties'].keys()
+    ):
+        for gene in upload_content['genes']:
+            gene['cancerGene'] = gene['cancerGeneListMatch']
+            gene.pop('cancerGeneListMatch')
+
     drop_columns = ['variant', 'variantType', 'histogramImage']
     # DEVSU-2034 - use a 'displayName'
     VARIANT_LIST_KEYS = [
@@ -207,6 +225,8 @@ def create_report(
 
     # Setup connections
     ipr_conn = IprConnection(username, password, ipr_url)
+    ipr_spec = ipr_conn.get_spec()
+
     if graphkb_url:
         logger.info(f'connecting to graphkb: {graphkb_url}')
         graphkb_conn = GraphKBConnection(graphkb_url)
@@ -327,6 +347,8 @@ def create_report(
     logger.info('fetching gene annotations')
     gene_information = get_gene_information(graphkb_conn, sorted(genes_with_variants))
 
+    # handle old and new column names coming in from GraphKB.
+    # TODO: remove this code when GraphKB is released with KBDEV-1136
     def update_old_field_name(gene):
         if 'cancerRelated' in gene.keys():
             gene['kbStatementRelated'] = gene['cancerRelated']

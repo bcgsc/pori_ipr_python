@@ -111,3 +111,9 @@ class IprConnection:
             start_index += IMAGE_MAX
         if image_errors:
             raise ValueError(f'Error uploading images ({", ".join(sorted(list(image_errors)))})')
+
+    def get_spec(self) -> Dict:
+        """
+        Get the current IPR spec, for the purposes of current report upload fields
+        """
+        return self.request(f'api/spec.json', method='GET')
