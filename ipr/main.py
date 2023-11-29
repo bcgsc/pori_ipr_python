@@ -327,6 +327,17 @@ def create_report(
     logger.info('fetching gene annotations')
     gene_information = get_gene_information(graphkb_conn, sorted(genes_with_variants))
 
+    def update_old_field_name(gene):
+        if 'cancerRelated' in gene.keys():
+            gene['kbStatementRelated'] = gene['cancerRelated']
+            gene.pop('cancerRelated')
+        if 'cancerGene' in gene.keys():
+            gene['cancerGene'] = gene['cancerGeneListMatch']
+            gene.pop('cancerGene')
+        return gene
+
+    gene_information = [update_old_field_name(gene) for gene in gene_information]
+
     if generate_therapeutics:
         logger.info('generating therapeutic options')
         targets = create_therapeutic_options(graphkb_conn, gkb_matches, all_variants)

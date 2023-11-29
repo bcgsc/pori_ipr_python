@@ -111,4 +111,9 @@ class TestCreateReport:
 
     def test_found_kb_statement_related_gene(self, report_upload_content: Dict) -> None:
         genes = report_upload_content['genes']
+        import pdb; pdb.set_trace()
         assert any([g.get('kbStatementRelated', False) for g in genes])
+
+    def test_found_cancer_gene_list_match_gene(self, report_upload_content: Dict) -> None:
+        genes = report_upload_content['genes']
+        assert any([g.get('cancerGeneListMatch', False) for g in genes])
