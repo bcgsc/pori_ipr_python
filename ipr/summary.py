@@ -197,7 +197,7 @@ def display_variant(variant: IprVariant) -> str:
     """Short, human readable variant description string."""
     gene = variant.get('gene', '')
     if not gene and 'gene1' in variant and 'gene2' in variant:
-        gene = f'({variant.get("gene1", "")},{variant.get("gene1", "")})'
+        gene = f'({variant.get("gene1", "")},{variant.get("gene2", "")})'
 
     if variant.get('kbCategory'):
         return f'{variant.get("kbCategory")} of {gene}'
@@ -214,8 +214,10 @@ def display_variant(variant: IprVariant) -> str:
 
     if gene and hgvs:
         return f'{gene}:{hgvs}'
+    elif variant.get("variant"):
+        return variant.get("variant")
 
-    raise ValueError(f'Unable to form display_variant of {variant["variant"]}: {variant}')
+    raise ValueError(f'Unable to form display_variant of {variant}')
 
 
 def display_variants(gene_name: str, variants: List[IprVariant]) -> str:
