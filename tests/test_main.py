@@ -38,9 +38,9 @@ def report_upload_content(tmp_path_factory) -> Dict:
                 'smallMutations': pd.read_csv(
                     get_test_file('small_mutations.short.tab'), sep='\t'
                 ).to_dict('records'),
-                'copyVariants': pd.read_csv(get_test_file('copy_variants.short.tab'), sep='\t').to_dict(
-                    'records'
-                ),
+                'copyVariants': pd.read_csv(
+                    get_test_file('copy_variants.short.tab'), sep='\t'
+                ).to_dict('records'),
                 'structuralVariants': pd.read_csv(get_test_file('fusions.tab'), sep='\t').to_dict(
                     'records'
                 ),
