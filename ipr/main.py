@@ -35,7 +35,7 @@ from .ipr import (
 )
 from .summary import summarize
 from .therapeutic_options import create_therapeutic_options
-from .types import IprVariant, KbMatch
+from .types import IprVariant, KbMatch, IprGene
 from .util import LOG_LEVELS, logger, trim_empty_values
 
 CACHE_GENE_MINIMUM = 5000
@@ -111,23 +111,35 @@ def clean_unsupported_content(upload_content: Dict, ipr_spec: json = {}) -> Dict
     or to support upcoming and soon to be supported content that we would like
     to implement but is not yet supported by the upload
     """
+    if (
+        ipr_spec
+        and 'components' in ipr_spec.keys()
+        and 'schemas' in ipr_spec['components'].keys()
+        and 'genesCreate' in ipr_spec['components']['schemas'].keys()
+        and 'properties' in ipr_spec['components']['schemas']['genesCreate'].keys()
+    ):
+        genes_spec = ipr_spec['components']['schemas']['genesCreate']['properties'].keys()
 
-    # check what ipr report upload expects and adjust contents to match
-    # TODO: remove this code after IPR-API is released with DEVSU-2143
-    if (
-        ipr_spec
-        and 'cancerRelated' in ipr_spec['components']['schemas']['genesCreate']['properties'].keys()
-    ):
+        # check what ipr report upload expects and adjust contents to match
+        # TODO: remove this code after IPR-API is released with DEVSU-2143
+        if 'cancerRelated' in genes_spec:
+            for gene in upload_content['genes']:
+                logger.warning(f"Renamed key 'kbStatementRelated' to 'cancerRelated' for upload in gene {gene['name']}")
+                gene['cancerRelated'] = gene['kbStatementRelated']
+                gene.pop('kbStatementRelated')
+        if 'cancerGene' in genes_spec:
+            for gene in upload_content['genes']:
+                logger.warning(f"Renamed key 'cancerGeneListMatch' to 'cancerGene' for upload in gene {gene['name']}")
+                gene['cancerGene'] = gene['cancerGeneListMatch']
+                gene.pop('cancerGeneListMatch')
+
+        # remove any unhandled incompatible keys
+        ipr_gene_keys = IprGene.__required_keys__ | IprGene.__optional_keys__
+        unexpected_keys = [item for item in genes_spec if item not in ipr_gene_keys]
         for gene in upload_content['genes']:
-            gene['cancerRelated'] = gene['kbStatementRelated']
-            gene.pop('kbStatementRelated')
-    if (
-        ipr_spec
-        and 'cancerGene' in ipr_spec['components']['schemas']['genesCreate']['properties'].keys()
-    ):
-        for gene in upload_content['genes']:
-            gene['cancerGene'] = gene['cancerGeneListMatch']
-            gene.pop('cancerGeneListMatch')
+            for key in unexpected_keys:
+                logger.warning(f"Unexpected key '{key}' removed from gene {gene['name']}")
+                gene.pop(key)
 
     drop_columns = ['variant', 'variantType', 'histogramImage']
     # DEVSU-2034 - use a 'displayName'
@@ -362,9 +374,11 @@ def ipr_report(
     # TODO: remove this code when GraphKB is released with KBDEV-1136
     def update_old_field_name(gene):
         if 'cancerRelated' in gene.keys():
+            logger.warning(f"Key 'kbStatementRelated' obtained as 'cancerRelated' in gene {gene['name']}")
             gene['kbStatementRelated'] = gene['cancerRelated']
             gene.pop('cancerRelated')
         if 'cancerGene' in gene.keys():
+            logger.warning(f"Key 'cancerGeneListMatch' obtained as 'cancerGene' in gene {gene['name']}")
             gene['cancerGeneListMatch'] = gene['cancerGene']
             gene.pop('cancerGene')
         return gene
@@ -419,7 +433,7 @@ def ipr_report(
     )
     output.setdefault('images', []).extend(select_expression_plots(gkb_matches, all_variants))
 
-    output = clean_unsupported_content(output)
+    output = clean_unsupported_content(output, ipr_spec)
     ipr_result = None
     upload_error = None
 
