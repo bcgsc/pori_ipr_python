@@ -365,7 +365,7 @@ def ipr_report(
             gene['kbStatementRelated'] = gene['cancerRelated']
             gene.pop('cancerRelated')
         if 'cancerGene' in gene.keys():
-            gene['cancerGene'] = gene['cancerGeneListMatch']
+            gene['cancerGeneListMatch'] = gene['cancerGene']
             gene.pop('cancerGene')
         return gene
 
