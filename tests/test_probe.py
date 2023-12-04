@@ -18,26 +18,27 @@ def get_test_file(name: str) -> str:
 def probe_upload_content() -> Dict:
     mock = MagicMock()
     with patch.object(IprConnection, 'upload_report', new=mock):
-        create_report(
-            content={
-                'patientId': 'PATIENT001',
-                'project': 'TEST',
-                'smallMutations': pd.read_csv(
-                    get_test_file('small_mutations_probe.tab'),
-                    sep='\t',
-                    dtype={'chromosome': 'string'},
-                ).to_dict('records'),
-                'structuralVariants': pd.read_csv(get_test_file('fusions.tab'), sep='\t').to_dict(
-                    'records'
-                ),
-                'blargh': 'some fake content',
-                'kbDiseaseMatch': 'colorectal cancer',
-            },
-            username=os.environ['IPR_USER'],
-            password=os.environ['IPR_PASS'],
-            log_level='info',
-            ipr_url='http://fake.url.ca',
-        )
+        with patch.object(IprConnection, 'get_spec', return_value={}):
+            create_report(
+                content={
+                    'patientId': 'PATIENT001',
+                    'project': 'TEST',
+                    'smallMutations': pd.read_csv(
+                        get_test_file('small_mutations_probe.tab'),
+                        sep='\t',
+                        dtype={'chromosome': 'string'},
+                    ).to_dict('records'),
+                    'structuralVariants': pd.read_csv(
+                        get_test_file('fusions.tab'), sep='\t'
+                    ).to_dict('records'),
+                    'blargh': 'some fake content',
+                    'kbDiseaseMatch': 'colorectal cancer',
+                },
+                username=os.environ['IPR_USER'],
+                password=os.environ['IPR_PASS'],
+                log_level='info',
+                ipr_url='http://fake.url.ca',
+            )
 
     assert mock.called
 

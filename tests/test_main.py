@@ -48,7 +48,6 @@ def report_upload_content(tmp_path_factory) -> Dict:
             }
         )
     )
-
     with patch.object(
         sys,
         'argv',
@@ -66,7 +65,8 @@ def report_upload_content(tmp_path_factory) -> Dict:
         ],
     ):
         with patch.object(IprConnection, 'upload_report', new=mock):
-            command_interface()
+            with patch.object(IprConnection, 'get_spec', return_value={}):
+                command_interface()
 
     assert mock.called
 
@@ -111,3 +111,11 @@ class TestCreateReport:
         genes = report_upload_content['genes']
         # eg, ZNRF3
         assert any([g.get('tumourSuppressor', False) for g in genes])
+
+    def test_found_kb_statement_related_gene(self, report_upload_content: Dict) -> None:
+        genes = report_upload_content['genes']
+        assert any([g.get('kbStatementRelated', False) for g in genes])
+
+    def test_found_cancer_gene_list_match_gene(self, report_upload_content: Dict) -> None:
+        genes = report_upload_content['genes']
+        assert any([g.get('cancerGeneListMatch', False) for g in genes])

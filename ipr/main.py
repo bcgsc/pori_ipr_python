@@ -35,7 +35,7 @@ from .ipr import (
 )
 from .summary import summarize
 from .therapeutic_options import create_therapeutic_options
-from .types import IprVariant, KbMatch
+from .types import IprVariant, KbMatch, IprGene
 from .util import LOG_LEVELS, logger, trim_empty_values
 
 CACHE_GENE_MINIMUM = 5000
@@ -105,12 +105,47 @@ def command_interface() -> None:
     )
 
 
-def clean_unsupported_content(upload_content: Dict) -> Dict:
+def clean_unsupported_content(upload_content: Dict, ipr_spec: json = {}) -> Dict:
     """
     Remove unsupported content. This content is either added to facilitate creation
     or to support upcoming and soon to be supported content that we would like
     to implement but is not yet supported by the upload
     """
+    if (
+        ipr_spec
+        and 'components' in ipr_spec.keys()
+        and 'schemas' in ipr_spec['components'].keys()
+        and 'genesCreate' in ipr_spec['components']['schemas'].keys()
+        and 'properties' in ipr_spec['components']['schemas']['genesCreate'].keys()
+    ):
+        genes_spec = ipr_spec['components']['schemas']['genesCreate']['properties'].keys()
+
+        # check what ipr report upload expects and adjust contents to match
+        # TODO: remove this code after IPR-API is released with DEVSU-2143
+        if 'cancerRelated' in genes_spec:
+            for gene in upload_content['genes']:
+                logger.warning(
+                    f"Renamed property 'kbStatementRelated' to 'cancerRelated' for upload in gene {gene['name']}"
+                )
+                gene['cancerRelated'] = gene['kbStatementRelated']
+                gene.pop('kbStatementRelated')
+        if 'cancerGene' in genes_spec:
+            for gene in upload_content['genes']:
+                logger.warning(
+                    f"Renamed property 'cancerGeneListMatch' to 'cancerGene' for upload in gene {gene['name']}"
+                )
+                gene['cancerGene'] = gene['cancerGeneListMatch']
+                gene.pop('cancerGeneListMatch')
+
+        # remove any unhandled incompatible keys
+        ipr_gene_keys = IprGene.__required_keys__ | IprGene.__optional_keys__
+        unexpected_keys = [item for item in genes_spec if item not in ipr_gene_keys]
+        for gene in upload_content['genes']:
+            for key in unexpected_keys:
+                if key in gene.keys():
+                    logger.warning(f"Unexpected property '{key}' removed from gene {gene['name']}")
+                    gene.pop(key)
+
     drop_columns = ['variant', 'variantType', 'histogramImage']
     # DEVSU-2034 - use a 'displayName'
     VARIANT_LIST_KEYS = [
@@ -218,6 +253,8 @@ def ipr_report(
 
     # Setup connections
     ipr_conn = IprConnection(username, password, ipr_url)
+    ipr_spec = ipr_conn.get_spec()
+
     if graphkb_url:
         logger.info(f'connecting to graphkb: {graphkb_url}')
         graphkb_conn = GraphKBConnection(graphkb_url)
@@ -338,6 +375,25 @@ def ipr_report(
     logger.info('fetching gene annotations')
     gene_information = get_gene_information(graphkb_conn, sorted(genes_with_variants))
 
+    # handle old and new column names coming in from GraphKB.
+    # TODO: remove this code when GraphKB is released with KBDEV-1136
+    def update_old_field_name(gene):
+        if 'cancerRelated' in gene.keys():
+            logger.warning(
+                f"Property 'kbStatementRelated' obtained as 'cancerRelated' in gene {gene['name']}"
+            )
+            gene['kbStatementRelated'] = gene['cancerRelated']
+            gene.pop('cancerRelated')
+        if 'cancerGene' in gene.keys():
+            logger.warning(
+                f"Property 'cancerGeneListMatch' obtained as 'cancerGene' in gene {gene['name']}"
+            )
+            gene['cancerGeneListMatch'] = gene['cancerGene']
+            gene.pop('cancerGene')
+        return gene
+
+    gene_information = [update_old_field_name(gene) for gene in gene_information]
+
     if generate_therapeutics:
         logger.info('generating therapeutic options')
         targets = create_therapeutic_options(graphkb_conn, gkb_matches, all_variants)
@@ -386,7 +442,7 @@ def ipr_report(
     )
     output.setdefault('images', []).extend(select_expression_plots(gkb_matches, all_variants))
 
-    output = clean_unsupported_content(output)
+    output = clean_unsupported_content(output, ipr_spec)
     ipr_result = None
     upload_error = None
 
