@@ -1,6 +1,7 @@
 import argparse
 import datetime
 import json
+import jsonschema.exceptions
 import logging
 import os
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
@@ -164,7 +165,12 @@ def clean_unsupported_content(upload_content: Dict, ipr_spec: json = {}) -> Dict
     return upload_content
 
 
-def create_report(
+def create_report(**kwargs) -> Dict:
+    logger.warning("Deprecated function 'create_report' called - use ipr_report instead")
+    return ipr_report(**kwargs)
+
+
+def ipr_report(
     username: str,
     password: str,
     content: Dict,
@@ -208,7 +214,12 @@ def create_report(
         datefmt='%m-%d-%y %H:%M:%S',
     )
     # validate the JSON content follows the specification
-    validate_report_content(content)
+    try:
+        validate_report_content(content)
+    except jsonschema.exceptions.ValidationError as err:
+        logger.error("Failed schema check - report variants may be corrupted or unmatched.")
+        logger.error(f"Failed schema check: {err}")
+
     kb_disease_match = content['kbDiseaseMatch']
 
     # validate the input variants
