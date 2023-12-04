@@ -28,9 +28,9 @@ def probe_upload_content() -> Dict:
                         sep='\t',
                         dtype={'chromosome': 'string'},
                     ).to_dict('records'),
-                    'structuralVariants': pd.read_csv(get_test_file('fusions.tab'), sep='\t').to_dict(
-                        'records'
-                    ),
+                    'structuralVariants': pd.read_csv(
+                        get_test_file('fusions.tab'), sep='\t'
+                    ).to_dict('records'),
                     'blargh': 'some fake content',
                     'kbDiseaseMatch': 'colorectal cancer',
                 },

@@ -124,12 +124,16 @@ def clean_unsupported_content(upload_content: Dict, ipr_spec: json = {}) -> Dict
         # TODO: remove this code after IPR-API is released with DEVSU-2143
         if 'cancerRelated' in genes_spec:
             for gene in upload_content['genes']:
-                logger.warning(f"Renamed property 'kbStatementRelated' to 'cancerRelated' for upload in gene {gene['name']}")
+                logger.warning(
+                    f"Renamed property 'kbStatementRelated' to 'cancerRelated' for upload in gene {gene['name']}"
+                )
                 gene['cancerRelated'] = gene['kbStatementRelated']
                 gene.pop('kbStatementRelated')
         if 'cancerGene' in genes_spec:
             for gene in upload_content['genes']:
-                logger.warning(f"Renamed property 'cancerGeneListMatch' to 'cancerGene' for upload in gene {gene['name']}")
+                logger.warning(
+                    f"Renamed property 'cancerGeneListMatch' to 'cancerGene' for upload in gene {gene['name']}"
+                )
                 gene['cancerGene'] = gene['cancerGeneListMatch']
                 gene.pop('cancerGeneListMatch')
 
@@ -375,11 +379,15 @@ def ipr_report(
     # TODO: remove this code when GraphKB is released with KBDEV-1136
     def update_old_field_name(gene):
         if 'cancerRelated' in gene.keys():
-            logger.warning(f"Property 'kbStatementRelated' obtained as 'cancerRelated' in gene {gene['name']}")
+            logger.warning(
+                f"Property 'kbStatementRelated' obtained as 'cancerRelated' in gene {gene['name']}"
+            )
             gene['kbStatementRelated'] = gene['cancerRelated']
             gene.pop('cancerRelated')
         if 'cancerGene' in gene.keys():
-            logger.warning(f"Property 'cancerGeneListMatch' obtained as 'cancerGene' in gene {gene['name']}")
+            logger.warning(
+                f"Property 'cancerGeneListMatch' obtained as 'cancerGene' in gene {gene['name']}"
+            )
             gene['cancerGeneListMatch'] = gene['cancerGene']
             gene.pop('cancerGene')
         return gene
