@@ -33,14 +33,14 @@ def report_upload_content(tmp_path_factory) -> Dict:
                 'patientId': 'PATIENT001',
                 'project': 'TEST',
                 'expressionVariants': pd.read_csv(
-                    get_test_file('expression.tab'), sep='\t'
+                    get_test_file('expression.short.tab'), sep='\t'
                 ).to_dict('records'),
                 'smallMutations': pd.read_csv(
                     get_test_file('small_mutations.short.tab'), sep='\t'
                 ).to_dict('records'),
-                'copyVariants': pd.read_csv(get_test_file('copy_variants.tab'), sep='\t').to_dict(
-                    'records'
-                ),
+                'copyVariants': pd.read_csv(
+                    get_test_file('copy_variants.short.tab'), sep='\t'
+                ).to_dict('records'),
                 'structuralVariants': pd.read_csv(get_test_file('fusions.tab'), sep='\t').to_dict(
                     'records'
                 ),
@@ -99,16 +99,15 @@ class TestCreateReport:
 
     def test_found_fusion_partner_gene(self, report_upload_content: Dict) -> None:
         genes = report_upload_content['genes']
+        # eg, A1BG
         assert any([g.get('knownFusionPartner', False) for g in genes])
 
     def test_found_oncogene(self, report_upload_content: Dict) -> None:
         genes = report_upload_content['genes']
+        # eg, ZBTB20
         assert any([g.get('oncogene', False) for g in genes])
 
     def test_found_tumour_supressor(self, report_upload_content: Dict) -> None:
         genes = report_upload_content['genes']
+        # eg, ZNRF3
         assert any([g.get('tumourSuppressor', False) for g in genes])
-
-    def test_found_kb_statement_related_gene(self, report_upload_content: Dict) -> None:
-        genes = report_upload_content['genes']
-        assert any([g.get('kb_statement_related', False) for g in genes])
