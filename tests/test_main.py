@@ -8,8 +8,17 @@ from unittest.mock import MagicMock, patch
 
 from ipr.connection import IprConnection
 from ipr.main import command_interface
+from ipr.types import IprGene
 
 from .constants import EXCLUDE_INTEGRATION_TESTS
+
+
+def get_test_spec():
+    ipr_spec = {'components': {'schemas': {'genesCreate': {'properties': {}}}}}
+    ipr_gene_keys = IprGene.__required_keys__ | IprGene.__optional_keys__
+    for key in ipr_gene_keys:
+        ipr_spec['components']['schemas']['genesCreate']['properties'][key] = ""
+    return ipr_spec
 
 
 def get_test_file(name: str) -> str:
@@ -65,7 +74,7 @@ def report_upload_content(tmp_path_factory) -> Dict:
         ],
     ):
         with patch.object(IprConnection, 'upload_report', new=mock):
-            with patch.object(IprConnection, 'get_spec', return_value={}):
+            with patch.object(IprConnection, 'get_spec', return_value=get_test_spec()):
                 command_interface()
 
     assert mock.called
