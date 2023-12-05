@@ -1,0 +1,9 @@
+chromosomeBand	gene	cnvState	kbCategory	ploidyCorrCpChange	start	end	lohState	variant
+chr1:q22.1	MYH16	Neutral		0	82238818	102114782	HET
+chr1:p36.22	TNFRSF8	Neutral		0	747529	16892759	HET
+chr1:q12	TSHZ3	Neutral		0	27733203	53323762	HET
+chr1:q13.43	A1BG	Neutral		0	53361485	59118193	HET
+chr1:q21.1	CSTA	Neutral		0	60001	129860130	HET
+chr1:p21.31	CCR2	Neutral		0	60001	129860130	HET
+chr1:q26.32	PIK3CA	Loss	shallow deletion	-1	162626037	188180169	DLOH	shallow deletion
+chr1:q12.1	ZNRF3-IT1	Neutral		0	16848080	51230286	HET
