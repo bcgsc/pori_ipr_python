@@ -656,11 +656,12 @@
 <p>Remove unsupported content. This content is either added to facilitate creation
 or to support upcoming and soon to be supported content that we would like
 to implement but is not yet supported by the upload</p>
-<pre><code class="language-python">def clean_unsupported_content(upload_content: Dict) -&gt; Dict:
+<pre><code class="language-python">def clean_unsupported_content(upload_content: Dict, ipr_spec: json = {}) -&gt; Dict:
 </code></pre>
 <p><strong>Args</strong></p>
 <ul>
 <li>upload_content (<code>Dict</code>)</li>
+<li>ipr_spec (<code>json</code>)</li>
 </ul>
 <p><strong>Returns</strong></p>
 <ul>
