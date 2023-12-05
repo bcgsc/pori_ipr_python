@@ -116,4 +116,4 @@ class IprConnection:
         """
         Get the current IPR spec, for the purposes of current report upload fields
         """
-        return self.request(f'/spec.json', method='GET')
+        return self.request('/spec.json', method='GET')
