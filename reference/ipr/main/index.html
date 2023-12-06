@@ -452,6 +452,15 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#renamed_gene_properties" class="md-nav__link">
+    <span class="md-ellipsis">
+      RENAMED_GENE_PROPERTIES
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#clean_unsupported_content" class="md-nav__link">
     <span class="md-ellipsis">
       clean_unsupported_content()
@@ -613,6 +622,15 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#renamed_gene_properties" class="md-nav__link">
+    <span class="md-ellipsis">
+      RENAMED_GENE_PROPERTIES
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#clean_unsupported_content" class="md-nav__link">
     <span class="md-ellipsis">
       clean_unsupported_content()
@@ -652,16 +670,23 @@
 <h2 id="cache_gene_minimum">CACHE_GENE_MINIMUM</h2>
 <pre><code class="language-python">CACHE_GENE_MINIMUM = 5000
 </code></pre>
+<h2 id="renamed_gene_properties">RENAMED_GENE_PROPERTIES</h2>
+<pre><code class="language-python">RENAMED_GENE_PROPERTIES = {
+    # old_name: new_name
+    'cancerRelated': 'kbStatementRelated',
+    'cancerGene': 'cancerGeneListMatch',
+</code></pre>
 <h2 id="clean_unsupported_content">clean_unsupported_content()</h2>
-<p>Remove unsupported content. This content is either added to facilitate creation
+<p>Remove unsupported content.
+This content is either added to facilitate creation
 or to support upcoming and soon to be supported content that we would like
 to implement but is not yet supported by the upload</p>
-<pre><code class="language-python">def clean_unsupported_content(upload_content: Dict, ipr_spec: json = {}) -&gt; Dict:
+<pre><code class="language-python">def clean_unsupported_content(upload_content: Dict, ipr_spec: Dict = {}) -&gt; Dict:
 </code></pre>
 <p><strong>Args</strong></p>
 <ul>
 <li>upload_content (<code>Dict</code>)</li>
-<li>ipr_spec (<code>json</code>)</li>
+<li>ipr_spec (<code>Dict</code>)</li>
 </ul>
 <p><strong>Returns</strong></p>
 <ul>
