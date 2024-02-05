@@ -1,24 +1,38 @@
 {
     "properties": {
-        "ageOfConsent": {"type": "number"},
-        "alternateIdentifier": {"type": "string"},
+        "ageOfConsent": {
+            "type": "number"
+        },
+        "alternateIdentifier": {
+            "type": "string"
+        },
         "biopsyDate": {
             "description": "the date the biopsy/sample was taken/collected",
             "example": "2021-06-04T16:36:37.279Z",
-            "type": "string",
+            "type": "string"
         },
-        "biopsyName": {"example": "biop1", "type": "string"},
+        "biopsyName": {
+            "example": "biop1",
+            "type": "string"
+        },
         "comparators": {
             "default": [],
             "items": {
                 "examples": [
-                    {"analysisRole": "mutation burden (primary)", "name": "average"},
+                    {
+                        "analysisRole": "mutation burden (primary)",
+                        "name": "average"
+                    },
                     {
                         "analysisRole": "expression (disease QC)",
                         "name": "qc_tcga_comp_TARGET_RHD_percentile_median_(6)",
-                        "size": 6,
+                        "size": 6
                     },
-                    {"analysisRole": "expression (primary site)", "name": "average", "size": 1024},
+                    {
+                        "analysisRole": "expression (primary site)",
+                        "name": "average",
+                        "size": 1024
+                    }
                 ],
                 "properties": {
                     "analysisRole": {
@@ -47,29 +61,38 @@
                             "protein expression (primary)",
                             "protein expression (secondary)",
                             "expression (internal pancancer cohort)",
-                            "expression (internal pancancer cohort QC)",
+                            "expression (internal pancancer cohort QC)"
                         ],
-                        "type": "string",
+                        "type": "string"
                     },
                     "description": {
                         "description": "Long description of the comparator",
-                        "type": "string",
+                        "type": "string"
                     },
                     "name": {
                         "description": "comparator name",
-                        "examples": ["TCGA BRCA", "GTEX breast"],
-                        "type": "string",
+                        "examples": [
+                            "TCGA BRCA",
+                            "GTEX breast"
+                        ],
+                        "type": "string"
                     },
                     "size": {
                         "description": "the number of samples included in the cohort/reference distribution",
-                        "type": "number",
+                        "type": "number"
                     },
-                    "version": {"description": "version string", "type": "string"},
+                    "version": {
+                        "description": "version string",
+                        "type": "string"
+                    }
                 },
-                "required": ["analysisRole", "name"],
-                "type": "object",
+                "required": [
+                    "analysisRole",
+                    "name"
+                ],
+                "type": "object"
             },
-            "type": "array",
+            "type": "array"
         },
         "copyVariants": {
             "default": [],
@@ -78,73 +101,117 @@
                     "chromosomeBand": {
                         "example": "X:p12.2",
                         "pattern": "^(\\S+:\\S+?)?$",
-                        "type": "string",
+                        "type": "string"
                     },
                     "cna": {
                         "description": "The copy number alteration (CNA) ratio",
                         "example": 1.22,
-                        "type": ["number", "null"],
+                        "type": [
+                            "number",
+                            "null"
+                        ]
                     },
                     "copyChange": {
                         "description": "the ploidy corrected copy change value",
                         "example": -2,
-                        "type": ["integer", "null"],
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
                     },
                     "cnvState": {
                         "description": "displayed category name",
                         "example": "Homozygous Deletion",
-                        "type": ["string", "null"],
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     },
                     "comments": {
                         "description": "variant freeform comments",
-                        "type": ["string", "null"],
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     },
                     "end": {
                         "description": "the genomic end position of the copy segment this gene copy number was called from",
-                        "type": ["integer", "null"],
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
                     },
-                    "gene": {"description": "the gene name", "example": "KRAS", "type": "string"},
-                    "germline": {"description": "germline variant", "type": ["boolean", "null"]},
+                    "gene": {
+                        "description": "the gene name",
+                        "example": "KRAS",
+                        "type": "string"
+                    },
+                    "germline": {
+                        "description": "germline variant",
+                        "type": [
+                            "boolean",
+                            "null"
+                        ]
+                    },
                     "kbCategory": {
                         "default": null,
                         "description": "the graphkb copy variant vocabulary term this variant belongs to. By default only amplifications and deep deletions are matched",
                         "oneOf": [
-                            {"type": "null"},
+                            {
+                                "type": "null"
+                            },
                             {
                                 "enum": [
                                     "amplification",
                                     "deep deletion",
                                     "low level copy gain",
-                                    "shallow deletion",
+                                    "shallow deletion"
                                 ],
-                                "type": "string",
-                            },
-                        ],
+                                "type": "string"
+                            }
+                        ]
                     },
-                    "log2Cna": {"type": ["number", "null"]},
+                    "log2Cna": {
+                        "type": [
+                            "number",
+                            "null"
+                        ]
+                    },
                     "lohState": {
                         "description": "the loss-of-heterozygosity category for this gene region",
                         "example": "HET",
-                        "type": "string",
+                        "type": "string"
                     },
                     "library": {
                         "description": "Library id string",
                         "example": "P01234",
-                        "type": ["string", "null"],
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     },
                     "start": {
                         "description": "the genomic start position of the copy segment this gene copy number was called from",
-                        "type": ["integer", "null"],
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
                     },
                     "size": {
                         "description": "size of the copy change segment in the chromosome",
-                        "type": ["number", "null"],
-                    },
+                        "type": [
+                            "number",
+                            "null"
+                        ]
+                    }
                 },
-                "required": ["gene", "kbCategory"],
-                "type": "object",
+                "required": [
+                    "gene",
+                    "kbCategory"
+                ],
+                "type": "object"
             },
-            "type": "array",
+            "type": "array"
         },
         "expressionVariants": {
             "default": [],
@@ -153,60 +220,112 @@
                     "biopsySiteFoldChange": {
                         "description": "the fold change with respect to the median of the biopsy site expression comparator cohort",
                         "pattern": "^[-+]?inf$|",
-                        "type": ["number", "null", "string"],
+                        "type": [
+                            "number",
+                            "null",
+                            "string"
+                        ]
                     },
                     "biopsySitePercentile": {
                         "description": "the percentile with respect to the biopsy site expression comparator cohort",
                         "pattern": "^[-+]?inf$|",
-                        "type": ["number", "null", "string"],
+                        "type": [
+                            "number",
+                            "null",
+                            "string"
+                        ]
                     },
                     "biopsySiteQC": {
                         "pattern": "^[-+]?inf$|",
-                        "type": ["number", "null", "string"],
+                        "type": [
+                            "number",
+                            "null",
+                            "string"
+                        ]
                     },
                     "biopsySiteZScore": {
                         "description": "the zscore with respect to the biopsy site expression comparator cohort",
                         "pattern": "^[-+]?inf$|",
-                        "type": ["number", "null", "string"],
+                        "type": [
+                            "number",
+                            "null",
+                            "string"
+                        ]
                     },
                     "biopsySitekIQR": {
                         "description": "the kIQR with respect to the biopsy site expression comparator cohort",
                         "pattern": "^[-+]?inf$|",
-                        "type": ["number", "null", "string"],
+                        "type": [
+                            "number",
+                            "null",
+                            "string"
+                        ]
                     },
                     "comments": {
                         "description": "variant freeform comments",
-                        "type": ["string", "null"],
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     },
                     "diseaseFoldChange": {
                         "description": "the fold change with respect to the median of the disease expression comparator cohort",
                         "pattern": "^[-+]?inf$|",
-                        "type": ["number", "null", "string"],
+                        "type": [
+                            "number",
+                            "null",
+                            "string"
+                        ]
                     },
                     "diseasePercentile": {
                         "description": "the percentile with respect to the disease expression comparator cohort",
                         "pattern": "^[-+]?inf$|",
-                        "type": ["number", "null", "string"],
+                        "type": [
+                            "number",
+                            "null",
+                            "string"
+                        ]
                     },
-                    "diseaseQC": {"pattern": "^[-+]?inf$|", "type": ["number", "null", "string"]},
+                    "diseaseQC": {
+                        "pattern": "^[-+]?inf$|",
+                        "type": [
+                            "number",
+                            "null",
+                            "string"
+                        ]
+                    },
                     "diseaseZScore": {
                         "description": "the zscore with respect to the disease expression comparator cohort",
                         "pattern": "^[-+]?inf$|",
-                        "type": ["number", "null", "string"],
+                        "type": [
+                            "number",
+                            "null",
+                            "string"
+                        ]
                     },
                     "diseasekIQR": {
                         "description": "the kIQR with respect to the disease expression comparator cohort",
                         "pattern": "^[-+]?inf$|",
-                        "type": ["number", "null", "string"],
+                        "type": [
+                            "number",
+                            "null",
+                            "string"
+                        ]
                     },
                     "expressionState": {
                         "description": "Overloads the kb-category just for display purposes (does not affect matching)",
-                        "type": "string",
+                        "type": "string"
                     },
-                    "gene": {"description": "gene name", "type": "string"},
+                    "gene": {
+                        "description": "gene name",
+                        "type": "string"
+                    },
                     "histogramImage": {
                         "description": "path to the expression density/histogram plot",
-                        "type": ["string", "null"],
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     },
                     "kbCategory": {
                         "default": null,
@@ -217,82 +336,145 @@
                                     "increased expression",
                                     "reduced expression",
                                     "increased RNA expression",
-                                    "reduced RNA expression",
+                                    "reduced RNA expression"
                                 ],
-                                "type": "string",
+                                "type": "string"
                             },
-                            {"type": "null"},
-                        ],
+                            {
+                                "type": "null"
+                            }
+                        ]
                     },
                     "library": {
                         "description": "Library id string",
                         "example": "P01234",
-                        "type": ["string", "null"],
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     },
                     "primarySiteFoldChange": {
                         "description": "the fold change with respect to the median of the primary site expression comparator cohort",
                         "pattern": "^[-+]?inf$|",
-                        "type": ["number", "null", "string"],
+                        "type": [
+                            "number",
+                            "null",
+                            "string"
+                        ]
                     },
                     "primarySitePercentile": {
                         "description": "the percentile with respect to the primary site expression comparator cohort",
                         "pattern": "^[-+]?inf$|",
-                        "type": ["number", "null", "string"],
+                        "type": [
+                            "number",
+                            "null",
+                            "string"
+                        ]
                     },
                     "primarySiteQC": {
                         "pattern": "^[-+]?inf$|",
-                        "type": ["number", "null", "string"],
+                        "type": [
+                            "number",
+                            "null",
+                            "string"
+                        ]
                     },
                     "primarySiteZScore": {
                         "description": "the zscore with respect to the primary site expression comparator cohort",
                         "pattern": "^[-+]?inf$|",
-                        "type": ["number", "null", "string"],
+                        "type": [
+                            "number",
+                            "null",
+                            "string"
+                        ]
                     },
                     "primarySitekIQR": {
                         "description": "the kIQR with respect to the primary site expression comparator cohort",
                         "pattern": "^[-+]?inf$|",
-                        "type": ["number", "null", "string"],
+                        "type": [
+                            "number",
+                            "null",
+                            "string"
+                        ]
                     },
                     "internalPancancerFoldChange": {
                         "description": "the fold change with respect to the median of the internal pancancer expression comparator cohort",
                         "pattern": "^[-+]?inf$|",
-                        "type": ["number", "null", "string"],
+                        "type": [
+                            "number",
+                            "null",
+                            "string"
+                        ]
                     },
                     "internalPancancerPercentile": {
                         "description": "the percentile with respect to the internal pancancer expression comparator cohort",
                         "pattern": "^[-+]?inf$|",
-                        "type": ["number", "null", "string"],
+                        "type": [
+                            "number",
+                            "null",
+                            "string"
+                        ]
                     },
                     "internalPancancerQC": {
                         "pattern": "^[-+]?inf$|",
-                        "type": ["number", "null", "string"],
+                        "type": [
+                            "number",
+                            "null",
+                            "string"
+                        ]
                     },
                     "internalPancancerZScore": {
                         "description": "the zscore with respect to the internal pancancer expression comparator cohort",
                         "pattern": "^[-+]?inf$|",
-                        "type": ["number", "null", "string"],
+                        "type": [
+                            "number",
+                            "null",
+                            "string"
+                        ]
                     },
                     "internalPancancerkIQR": {
                         "description": "the kIQR with respect to the internal pancancer expression comparator cohort",
                         "pattern": "^[-+]?inf$|",
-                        "type": ["number", "null", "string"],
+                        "type": [
+                            "number",
+                            "null",
+                            "string"
+                        ]
                     },
-                    "rnaReads": {"pattern": "^[-+]?inf$|", "type": ["number", "null", "string"]},
+                    "rnaReads": {
+                        "pattern": "^[-+]?inf$|",
+                        "type": [
+                            "number",
+                            "null",
+                            "string"
+                        ]
+                    },
                     "rpkm": {
                         "description": "reads per kilobase of transcript, per million mapped reads",
                         "pattern": "^[-+]?inf$|",
-                        "type": ["number", "null", "string"],
+                        "type": [
+                            "number",
+                            "null",
+                            "string"
+                        ]
                     },
                     "tpm": {
                         "description": "transcript per million",
                         "pattern": "^[-+]?inf$|",
-                        "type": ["number", "null", "string"],
-                    },
+                        "type": [
+                            "number",
+                            "null",
+                            "string"
+                        ]
+                    }
                 },
-                "required": ["gene", "kbCategory"],
-                "type": "object",
+                "required": [
+                    "gene",
+                    "kbCategory"
+                ],
+                "type": "object"
             },
-            "type": "array",
+            "type": "array"
         },
         "hlaTypes": {
             "items": {
@@ -300,52 +482,55 @@
                     "a1": {
                         "example": "A*02:03",
                         "pattern": "^A\\*[0-9]+:[0-9]+$",
-                        "type": "string",
+                        "type": "string"
                     },
                     "a2": {
                         "example": "A*11:01",
                         "pattern": "^A\\*[0-9]+:[0-9]+$",
-                        "type": "string",
+                        "type": "string"
                     },
                     "b1": {
                         "example": "B*40:01",
                         "pattern": "^B\\*[0-9]+:[0-9]+$",
-                        "type": "string",
+                        "type": "string"
                     },
                     "b2": {
                         "example": "B*38:02",
                         "pattern": "^B\\*[0-9]+:[0-9]+$",
-                        "type": "string",
+                        "type": "string"
                     },
                     "c1": {
                         "example": "C*07:02",
                         "pattern": "^C\\*[0-9]+:[0-9]+$",
-                        "type": "string",
+                        "type": "string"
                     },
                     "c2": {
                         "example": "C*07:02",
                         "pattern": "^C\\*[0-9]+:[0-9]+$",
-                        "type": "string",
+                        "type": "string"
                     },
                     "pathology": {
                         "description": "the disease state of this sample",
                         "example": "normal",
-                        "type": "string",
+                        "type": "string"
                     },
                     "protocol": {
                         "description": "the sequencing protocol used for ths sample",
                         "example": "DNA",
-                        "type": "string",
+                        "type": "string"
                     },
                     "library": {
                         "description": "Library id string",
                         "example": "P01234",
-                        "type": ["string", "null"],
-                    },
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
                 },
-                "type": "object",
+                "type": "object"
             },
-            "type": "array",
+            "type": "array"
         },
         "images": {
             "items": {
@@ -353,21 +538,31 @@
                     "caption": "",
                     "key": "string",
                     "path": "/path/to/image/file",
-                    "title": "",
+                    "title": ""
                 },
                 "properties": {
-                    "caption": {"type": "string"},
+                    "caption": {
+                        "type": "string"
+                    },
                     "key": {
                         "description": "image key, used by IPR to identify both the type of image and where to place it in the report",
-                        "type": "string",
+                        "type": "string"
                     },
-                    "path": {"description": "file path to the image", "type": "string"},
-                    "title": {"type": "string"},
+                    "path": {
+                        "description": "file path to the image",
+                        "type": "string"
+                    },
+                    "title": {
+                        "type": "string"
+                    }
                 },
-                "required": ["key", "path"],
-                "type": "object",
+                "required": [
+                    "key",
+                    "path"
+                ],
+                "type": "object"
             },
-            "type": "array",
+            "type": "array"
         },
         "immuneCellTypes": {
             "items": {
@@ -377,31 +572,51 @@
                             "combined T cell",
                             "B cells naive",
                             "B cells memory",
-                            "Plasma cells",
+                            "Plasma cells"
                         ],
-                        "type": "string",
+                        "type": "string"
                     },
-                    "kbCategory": {"example": "moderate", "type": "string"},
-                    "percentile": {"example": 50, "type": "number"},
-                    "score": {"example": 76, "type": "number"},
+                    "kbCategory": {
+                        "example": "moderate",
+                        "type": "string"
+                    },
+                    "percentile": {
+                        "example": 50,
+                        "type": "number"
+                    },
+                    "score": {
+                        "example": 76,
+                        "type": "number"
+                    }
                 },
-                "required": ["cellType"],
-                "type": "object",
+                "required": [
+                    "cellType"
+                ],
+                "type": "object"
             },
-            "type": "array",
+            "type": "array"
         },
         "kbDiseaseMatch": {
             "description": "the disease name to used in matching to GraphKB. This will be used to populate the matchedCancer flag",
             "example": "colorectal cancer",
-            "type": "string",
+            "type": "string"
         },
         "msi": {
             "items": {
-                "properties": {"kbCategory": {"type": "string"}, "score": {"type": "number"}},
-                "required": ["score"],
-                "type": "object",
+                "properties": {
+                    "kbCategory": {
+                        "type": "string"
+                    },
+                    "score": {
+                        "type": "number"
+                    }
+                },
+                "required": [
+                    "score"
+                ],
+                "type": "object"
             },
-            "type": "array",
+            "type": "array"
         },
         "mutationBurden": {
             "items": {
@@ -409,49 +624,56 @@
                     "indelPercentile": {
                         "description": "Percentile of the count of indels in the current sample relative to a reference distribution",
                         "example": 1,
-                        "type": "number",
+                        "type": "number"
                     },
                     "indels": {
                         "description": "Absolute number of indels in the current sample",
-                        "type": "integer",
+                        "type": "integer"
                     },
                     "indelsFrameshift": {
                         "description": "Absolute number of indels which result in a frameshift in the current sample",
-                        "type": "integer",
+                        "type": "integer"
                     },
                     "role": {
-                        "enum": ["primary", "secondary", "tertiary", "quaternary"],
-                        "type": "string",
+                        "enum": [
+                            "primary",
+                            "secondary",
+                            "tertiary",
+                            "quaternary"
+                        ],
+                        "type": "string"
                     },
                     "snv": {
                         "description": "Absolute number of single nucleotide variants in the current sample",
-                        "type": "integer",
+                        "type": "integer"
                     },
                     "snvPercentile": {
                         "description": "Percentile of the count of single nucleotide variants in the current sample relative to a reference distribution",
-                        "type": "number",
+                        "type": "number"
                     },
                     "snvTruncating": {
                         "description": "Absolute number of single nucleotide variants which are truncating in the current sample",
-                        "type": "integer",
+                        "type": "integer"
                     },
                     "sv": {
                         "description": "Absolute number of structural variants in the current sample",
-                        "type": "integer",
+                        "type": "integer"
                     },
                     "svExpressed": {
                         "description": "Absolute number of expressed (support in RNA) structural variants in the current sample",
-                        "type": "integer",
+                        "type": "integer"
                     },
                     "svPercentile": {
                         "description": "Percentile of the count of structural variants in the current sample relative to a reference distribution",
-                        "type": "number",
-                    },
+                        "type": "number"
+                    }
                 },
-                "required": ["role"],
-                "type": "object",
+                "required": [
+                    "role"
+                ],
+                "type": "object"
             },
-            "type": "array",
+            "type": "array"
         },
         "mutationSignature": {
             "items": {
@@ -459,42 +681,53 @@
                     "associations": {
                         "description": "known behaviours, processes, or phenotypes that are associated with the current signature",
                         "example": "Tobacco chewing",
-                        "type": "string",
+                        "type": "string"
                     },
-                    "cancerTypes": {"example": "stomach cancer", "type": "string"},
-                    "features": {"example": "D,T", "type": "string"},
+                    "cancerTypes": {
+                        "example": "stomach cancer",
+                        "type": "string"
+                    },
+                    "features": {
+                        "example": "D,T",
+                        "type": "string"
+                    },
                     "kbCategory": {
                         "description": "The kb category will be used to create a categorical verion of the signature variant which can be matched and annotated against GraphKB",
                         "example": "strong signature",
-                        "type": "string",
+                        "type": "string"
                     },
                     "nnls": {
                         "description": "non-negative lease squares",
                         "example": 0.344,
-                        "type": "number",
+                        "type": "number"
                     },
-                    "numCancerTypes": {"example": 1, "type": "integer"},
+                    "numCancerTypes": {
+                        "example": 1,
+                        "type": "integer"
+                    },
                     "pearson": {
                         "description": "pearson correlation",
                         "example": 0.48,
-                        "type": "number",
+                        "type": "number"
                     },
                     "selected": {
                         "default": false,
                         "description": "Flag used to determine if this signature should be highlight on the main summary page of the report",
                         "example": false,
-                        "type": "boolean",
+                        "type": "boolean"
                     },
                     "signature": {
                         "description": "name of the signature",
                         "example": "SBS1",
-                        "type": "string",
-                    },
+                        "type": "string"
+                    }
                 },
-                "required": ["signature"],
-                "type": "object",
+                "required": [
+                    "signature"
+                ],
+                "type": "object"
             },
-            "type": "array",
+            "type": "array"
         },
         "pairwiseExpressionCorrelation": {
             "items": {
@@ -504,77 +737,112 @@
                     "patientId": "UPLOADPAT02",
                     "tissueType": "liver",
                     "tumourContent": 15,
-                    "tumourType": "pancreatic cancer",
+                    "tumourType": "pancreatic cancer"
                 },
                 "properties": {
                     "correlation": {
                         "description": "The RNA correlation between this sample and the report sample",
                         "example": 0.99,
-                        "type": "number",
+                        "type": "number"
                     },
                     "library": {
                         "description": "The library name of this sample",
                         "example": "LIB002",
-                        "type": "string",
+                        "type": "string"
                     },
                     "patientId": {
                         "description": "The patient ID of this sample",
                         "example": "UPLOADPAT02",
-                        "type": "string",
+                        "type": "string"
                     },
-                    "tissueType": {"example": "liver", "type": "string"},
+                    "tissueType": {
+                        "example": "liver",
+                        "type": "string"
+                    },
                     "tumourContent": {
                         "description": "the tumour content or purity of this sample",
                         "example": 15,
-                        "type": "number",
+                        "type": "number"
                     },
                     "tumourType": {
                         "description": "the diagnosis of this sample",
                         "example": "pancreatic cancer",
-                        "type": "string",
-                    },
+                        "type": "string"
+                    }
                 },
-                "type": "object",
+                "type": "object"
             },
-            "type": "array",
+            "type": "array"
         },
-        "patientId": {"type": "string"},
+        "patientId": {
+            "type": "string"
+        },
         "patientInformation": {
             "properties": {
-                "age": {"type": "string"},
+                "age": {
+                    "type": "string"
+                },
                 "biopsySite": {
                     "description": "description of the biopsy site location",
-                    "type": "string",
+                    "type": "string"
                 },
-                "caseType": {"examples": ["Adult", "Pediatric"], "type": "string"},
-                "constitutionalProtocol": {"example": "WGS", "type": "string"},
-                "constitutionalSample": {"example": "Blood-Peripheral", "type": "string"},
-                "diagnosis": {"description": "The patient disease diagnosis", "type": "string"},
-                "gender": {"examples": ["Male", "Female", "Not Specified"], "type": "string"},
+                "caseType": {
+                    "examples": [
+                        "Adult",
+                        "Pediatric"
+                    ],
+                    "type": "string"
+                },
+                "constitutionalProtocol": {
+                    "example": "WGS",
+                    "type": "string"
+                },
+                "constitutionalSample": {
+                    "example": "Blood-Peripheral",
+                    "type": "string"
+                },
+                "diagnosis": {
+                    "description": "The patient disease diagnosis",
+                    "type": "string"
+                },
+                "gender": {
+                    "examples": [
+                        "Male",
+                        "Female",
+                        "Not Specified"
+                    ],
+                    "type": "string"
+                },
                 "physician": {
                     "description": "the treating (or enrolling) physician for the current patient",
                     "example": "Dr. Who",
-                    "type": "string",
+                    "type": "string"
                 },
-                "tumourProtocol": {"example": "WGS/RNA-seq", "type": "string"},
-                "tumourSample": {"example": "Metastatic", "type": "string"},
+                "tumourProtocol": {
+                    "example": "WGS/RNA-seq",
+                    "type": "string"
+                },
+                "tumourSample": {
+                    "example": "Metastatic",
+                    "type": "string"
+                }
             },
-            "type": "object",
+            "type": "object"
         },
         "ploidy": {
             "description": "The ploidy model used for calling copy variants and determining mutation affected alleles",
             "example": "diploid",
-            "type": "string",
+            "type": "string"
         },
         "presentationDate": {
             "description": "date this case is scheduled to be presented to the molecular tumour board",
-            "type": "string",
+            "type": "string"
         },
         "project": {
             "default": "TEST",
             "description": "The name of the project that this report will be uploaded to",
             "example": "POG",
-            "type": "string",
+            "type": "string"
         },
         "smallMutations": {
             "default": [],
@@ -583,128 +851,214 @@
                     "altSeq": {
                         "description": "the alternate sequence",
                         "example": "C",
-                        "type": "string",
+                        "type": "string"
                     },
                     "chromosome": {
                         "description": "the chromosome this mutation is located on",
                         "example": "X",
-                        "type": "string",
+                        "type": "string"
                     },
                     "comments": {
                         "description": "variant freeform comments",
-                        "type": ["string", "null"],
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     },
                     "endPosition": {
                         "description": "the genomic end poition of this variant",
                         "example": 1234,
-                        "type": ["integer", "null"],
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
                     },
-                    "gene": {"description": "the gene name", "example": "KRAS", "type": "string"},
-                    "germline": {"description": "germline variant", "type": ["boolean", "null"]},
+                    "gene": {
+                        "description": "the gene name",
+                        "example": "KRAS",
+                        "type": "string"
+                    },
+                    "germline": {
+                        "description": "germline variant",
+                        "type": [
+                            "boolean",
+                            "null"
+                        ]
+                    },
                     "hgvsCds": {
                         "description": "HGVS coding sequence notation for this variant",
                         "example": "ENST0001:c.1234+3A>G",
                         "pattern": "^(\\S+:[crn]\\.\\S+)?$",
-                        "type": ["string", "null"],
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     },
                     "hgvsGenomic": {
                         "description": "HGVS genomic notation for this variant",
                         "example": "1:g.1234A>G",
                         "pattern": "^(\\S+:g\\.\\S+)?$",
-                        "type": ["string", "null"],
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     },
                     "hgvsProtein": {
                         "description": "HGVS protein notation for this variant",
                         "example": "KRAS:p.G12D",
                         "pattern": "^(\\S+:p\\.\\S+)?$",
-                        "type": ["string", "null"],
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     },
                     "library": {
                         "description": "Library id string",
                         "example": "P01234",
-                        "type": ["string", "null"],
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     },
                     "ncbiBuild": {
                         "description": "the genome reference assembly build version",
                         "example": "GRCh37",
-                        "type": ["string", "null"],
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     },
                     "normalAltCount": {
                         "description": "the number of alternate reads in the normal genome supporting the mutation",
                         "example": 1,
-                        "type": ["integer", "null"],
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
                     },
                     "normalDepth": {
                         "description": "the total number of reads at this position in the normal genome",
                         "example": 1,
-                        "type": ["integer", "null"],
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
                     },
                     "normalRefCount": {
                         "description": "the number of reference reads in the normal genome",
                         "example": 1,
-                        "type": ["integer", "null"],
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
                     },
                     "proteinChange": {
                         "description": "the HGVS protein notation. Can also be the cds or genomic notation for variants where there is no equivalent protein notation. Protein notation is preferred.",
                         "example": "p.G12D",
-                        "type": ["string", "null"],
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     },
                     "refSeq": {
                         "description": "the reference sequence",
                         "example": "A",
-                        "type": ["string", "null"],
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     },
                     "rnaAltCount": {
                         "description": "the number of alternate reads in the rna supporting the mutation",
                         "example": 1,
-                        "type": ["integer", "null"],
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
                     },
                     "rnaDepth": {
                         "description": "the total number of reads at this position in the rna",
                         "example": 2,
-                        "type": ["integer", "null"],
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
                     },
                     "rnaRefCount": {
                         "description": "the number of reference reads in the rna",
                         "example": 1,
-                        "type": ["integer", "null"],
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
                     },
                     "startPosition": {
                         "description": "the genomic start position of this variant",
                         "example": 1234,
-                        "type": ["integer", "null"],
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
                     },
                     "transcript": {
                         "description": "the transcript name",
                         "example": "ENST00001.2",
-                        "type": ["string", "null"],
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     },
                     "tumourAltCopies": {
                         "description": "the number of gene copies in the tumour genome supporting the mutation",
                         "example": 1,
-                        "type": ["integer", "null"],
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
                     },
                     "tumourAltCount": {
                         "description": "the number of alternate reads in the tumour genome supporting the mutation",
                         "example": 1,
-                        "type": ["integer", "null"],
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
                     },
                     "tumourDepth": {
                         "description": "the total number of reads at this position in the tumour genome, if not given this will be inferred based on the ref and alt count sum",
                         "example": 2,
-                        "type": ["integer", "null"],
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
                     },
                     "tumourRefCount": {
                         "description": "the number of reference reads in the tumour genome",
                         "example": 1,
-                        "type": ["integer", "null"],
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
                     },
                     "tumourRefCopies": {
                         "description": "the number of wildtype gene copies in tumour genome",
                         "example": 1,
-                        "type": ["integer", "null"],
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
                     },
-                    "zygosity": {"examples": ["het", "hom", "sub"], "type": ["string", "null"]},
+                    "zygosity": {
+                        "examples": [
+                            "het",
+                            "hom",
+                            "sub"
+                        ],
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
                 },
                 "required": [
                     "chromosome",
@@ -714,11 +1068,11 @@
                     "altSeq",
                     "gene",
                     "proteinChange",
-                    "transcript",
+                    "transcript"
                 ],
-                "type": "object",
+                "type": "object"
             },
-            "type": "array",
+            "type": "array"
         },
         "structuralVariants": {
             "default": [],
@@ -728,129 +1082,201 @@
                         "description": "description of the breakpoints involved in this structural variant",
                         "example": "12:123456|14:1244662",
                         "pattern": "^(\\w+:\\d+\\|\\w+:\\d+)?$",
-                        "type": "string",
+                        "type": "string"
                     },
                     "ctermTranscript": {
                         "default": null,
                         "description": "the 5' transcript name",
                         "example": "ENST0004.5",
-                        "type": ["string", "null"],
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     },
                     "comments": {
                         "description": "variant freeform comments",
-                        "type": ["string", "null"],
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     },
-                    "conventionalName": {"description": "cytogenetic descriptor", "type": "string"},
+                    "conventionalName": {
+                        "description": "cytogenetic descriptor",
+                        "type": "string"
+                    },
                     "detectedIn": {
                         "description": "the sample type(s) this SV was detected in",
                         "example": "DNA",
-                        "type": "string",
+                        "type": "string"
                     },
                     "eventType": {
                         "description": "the type of underlying structural variant",
                         "example": "deletion",
-                        "type": "string",
+                        "type": "string"
                     },
                     "exon1": {
                         "description": "the 5' (n-terminal) exon",
                         "example": 1,
-                        "type": ["integer", "null"],
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
                     },
                     "exon2": {
                         "description": "the 3' (c-terminal) exon",
                         "example": 2,
-                        "type": ["integer", "null"],
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
                     },
                     "frame": {
                         "description": "Optional descriptive string for in-frame vs frame-shift SV",
                         "example": "frame-shift",
-                        "type": ["string", "null"],
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     },
                     "gene1": {
                         "description": "the 5' (n-terminal) gene name",
                         "example": "EWSR1",
                         "pattern": "^((\\w|-)+)?$",
-                        "type": "string",
+                        "type": "string"
                     },
                     "gene2": {
                         "description": "the 3' (c-terminal) gene name",
                         "example": "FLI1",
                         "pattern": "^((\\w|-)+)?$",
-                        "type": "string",
+                        "type": "string"
                     },
-                    "germline": {"description": "germline variant", "type": ["boolean", "null"]},
+                    "germline": {
+                        "description": "germline variant",
+                        "type": [
+                            "boolean",
+                            "null"
+                        ]
+                    },
                     "highQuality": {
                         "description": "This structural variant has a high level of supporting evidence",
-                        "type": ["boolean", "null"],
+                        "type": [
+                            "boolean",
+                            "null"
+                        ]
                     },
                     "library": {
                         "description": "Library id string",
                         "example": "P01234",
-                        "type": ["string", "null"],
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     },
                     "ntermTranscript": {
                         "default": null,
                         "description": "the 3' transcript name",
                         "example": "ENST0001.2",
-                        "type": ["string", "null"],
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     },
                     "omicSupport": {
                         "description": "flag to indicate this SV has supprt from both genome and transcriptome",
-                        "type": ["boolean", "null"],
+                        "type": [
+                            "boolean",
+                            "null"
+                        ]
                     },
                     "mavis_product_id": {
                         "default": null,
                         "description": "mavis product id / other tool description strings",
                         "example": "MAVIS-2.5.35-RT3556GHTR",
-                        "type": ["string", "null"],
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     },
                     "rnaAltCount": {
                         "description": "the number of alternate reads in the rna supporting the mutation",
                         "example": 1,
-                        "type": ["integer", "null"],
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
                     },
                     "rnaDepth": {
                         "description": "the total number of reads at this position in the rna",
                         "example": 2,
-                        "type": ["integer", "null"],
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
                     },
                     "svg": {
                         "description": "svg image file content for this SV",
-                        "type": ["string", "null"],
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     },
                     "svgTitle": {
                         "description": "The title to accompany this SV",
-                        "type": ["string", "null"],
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     },
                     "tumourAltCount": {
                         "description": "the number of alternate reads in the tumour genome supporting the mutation",
                         "example": 1,
-                        "type": ["integer", "null"],
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
                     },
                     "tumourDepth": {
                         "description": "the total number of reads at this position in the tumour genome",
                         "example": 2,
-                        "type": ["integer", "null"],
-                    },
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    }
                 },
-                "required": ["eventType", "breakpoint", "gene1", "gene2", "exon1", "exon2"],
-                "type": "object",
+                "required": [
+                    "eventType",
+                    "breakpoint",
+                    "gene1",
+                    "gene2",
+                    "exon1",
+                    "exon2"
+                ],
+                "type": "object"
             },
-            "type": "array",
+            "type": "array"
         },
-        "subtyping": {"example": "Luminal A", "type": "string"},
+        "subtyping": {
+            "example": "Luminal A",
+            "type": "string"
+        },
         "template": {
             "default": "genomic",
             "description": "the type of report the user is uploading. This must match the name of one of the template types in the database. These are configurable via the IPR client interface but the default values in the demo database are genomic and probe",
             "example": "genomic",
-            "type": "string",
+            "type": "string"
         },
         "tumourContent": {
             "description": "the tumour content or purity of the current sample",
             "example": 45,
-            "type": "number",
-        },
+            "type": "number"
+        }
     },
-    "required": ["patientId", "project", "kbDiseaseMatch", "template"],
-    "type": "object",
+    "required": [
+        "patientId",
+        "project",
+        "kbDiseaseMatch",
+        "template"
+    ],
+    "type": "object"
 }

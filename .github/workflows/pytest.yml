@@ -32,13 +32,15 @@ jobs:
       run: |
         pip install flake8
         # stop the build if there are Python syntax errors or undefined names
-        flake8 ipr --count --select=E9,F63,F7,F82 --show-source --statistics
+        flake8 ipr graphkb --count --select=E9,F63,F7,F82 --show-source --statistics
     - name: Check with black
       run: |
         pip install black
         black --check -S -l 100 ipr graphkb tests
     - name: Full Tests with pytest
-      run: pytest --junitxml=junit/test-results-${{ matrix.python-version }}.xml --cov ipr --cov-report term --cov-report xml
+      run: |
+        pip list
+        pytest --junitxml=junit/test-results-${{ matrix.python-version }}.xml --cov ipr --cov-report term --cov-report xml
       env:
         IPR_USER: ${{ secrets.IPR_TEST_USER }}
         IPR_PASS: ${{ secrets.IPR_TEST_PASSWORD }}
