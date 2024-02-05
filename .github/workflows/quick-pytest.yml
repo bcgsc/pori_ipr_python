@@ -39,6 +39,6 @@ jobs:
         IPR_USER: ${{ secrets.IPR_TEST_USER }}
         IPR_PASS: ${{ secrets.IPR_TEST_PASSWORD }}
         GRAPHKB_USER: ${{ secrets.GKB_TEST_USER }}
-        GRAPHKB_PASS: ${{ secrets.GKB_TEST_PASSWORD }}
+        GRAPHKB_PASS: ${{ secrets.GKB_TEST_PASS }}
         # EXCLUDE_INTEGRATION_TESTS: 1
         EXCLUDE_INTEGRATION_TESTS: ${{ matrix.python-version != '3.11' }}
