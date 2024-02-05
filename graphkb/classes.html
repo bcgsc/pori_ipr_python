@@ -1,0 +1,101 @@
+<html>
+  <body>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+      <div class="mermaid">
+    
+        classDiagram
+          class BasicPosition {
+            pos : int
+          }
+          class CytobandPosition {
+            arm : str
+            majorBand : str
+            minorBand : str
+          }
+          class FeatureNotFoundError {
+          }
+          class GraphKBConnection {
+            cache : Dict[Any, Any]
+            first_request : Optional[datetime], datetime
+            headers : dict
+            http : Session
+            last_request : Optional[datetime], datetime
+            load
+            password : str
+            request_count : int
+            token : str
+            url : str
+            username : str
+            get_record_by_id(record_id: str) Record
+            get_records_by_id(record_ids: List[str]) List[Record]
+            get_source(name: str) Record
+            login(username: str, password: str) None
+            parse(hgvs_string: str, requireFeatures: bool) ParsedVariant
+            post(uri: str, data: Dict) Dict
+            query(request_body: Dict, paginate: bool, ignore_cache: bool, force_refresh: bool, limit: int) List[Record]
+            refresh_login() None
+            request(endpoint: str, method: str) Dict
+            set_cache_data(request_body: Dict, result: List[Record]) None
+          }
+          class IterableNamespace {
+            items()
+            keys()
+            values()
+          }
+          class Ontology {
+            displayName : str
+            name : str
+            source : Union
+            sourceId : str
+          }
+          class OntologyTerm {
+            displayName : Optional[str]
+            name : Optional[str]
+            sourceId : Optional[str]
+            sourceIdVersion : Optional[str]
+          }
+          class ParsedVariant {
+            break1End : Optional[Union[Position, CytobandPosition]]
+            break1Start : Union[Position, CytobandPosition]
+            break2End : Optional[Union[Position, CytobandPosition]]
+            break2Start : Optional[Union[Position, CytobandPosition]]
+            germline : bool
+            refSeq : Optional[str]
+            reference1 : str
+            reference2 : Optional[str]
+            type : str
+            untemplatedSeq : Optional[str]
+            untemplatedSeqSize : Optional[int]
+            zygosity : str
+          }
+          class PositionalVariant {
+            break1End : Optional[Union[Position, CytobandPosition]]
+            break1Start : Union[Position, CytobandPosition]
+            break2End : Optional[Union[Position, CytobandPosition]]
+            break2Start : Optional[Union[Position, CytobandPosition]]
+            refSeq : Optional[str]
+            untemplatedSeq : Optional[str]
+            untemplatedSeqSize : Optional[int]
+          }
+          class Statement {
+            conditions : List[OntologyLink]
+            evidence : List[OntologyLink]
+            evidenceLevel : List[OntologyLink]
+            relevance : Union
+            source : Union
+            sourceId : str
+            subject : Union
+          }
+          class Variant {
+            displayName : str
+            germline : bool
+            reference1 : Union
+            reference2 : Optional[OntologyLink]
+            type : Union
+            zygosity : str
+          }
+          PositionalVariant --|> Variant
+  
+       </div>
+  </body>
+</html>

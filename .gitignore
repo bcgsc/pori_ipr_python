@@ -29,3 +29,36 @@ upload_failure.json
 # docs
 docs/reference
 build-docs
+
+
+
+# python generated files
+*.pyc
+__pycache__
+*.egg-info
+bin
+dist
+build
+.*_cache
+.coverage
+coverage.xml
+pytest.xml
+htmlcov
+build-docs
+docs/reference
+.ipynb_checkpoints
+
+# other
+.~*
+
+# common virtual environment names
+venv*
+env
+
+# editors
+.idea
+.vscode
+.vs
+
+# misc
+.DS_STORE

@@ -1,0 +1,46 @@
+<html>
+  <body>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+      <div class="mermaid">
+    
+        classDiagram
+          class graphkb {
+          }
+          class constants {
+          }
+          class genes {
+          }
+          class match {
+          }
+          class statement {
+          }
+          class types {
+          }
+          class util {
+          }
+          class vocab {
+          }
+          graphkb --> constants
+          graphkb --> util
+          constants --> types
+          genes --> constants
+          genes --> match
+          genes --> types
+          genes --> util
+          genes --> vocab
+          match --> constants
+          match --> types
+          match --> util
+          match --> vocab
+          statement --> constants
+          statement --> types
+          statement --> util
+          statement --> vocab
+          util --> constants
+          util --> types
+          vocab --> types
+          vocab --> util
+  
+       </div>
+  </body>
+</html>
