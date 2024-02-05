@@ -36,7 +36,7 @@ jobs:
     - name: Check with black
       run: |
         pip install black
-        black --check -S -l 100 ipr tests
+        black --check -S -l 100 ipr graphkb tests
     - name: Full Tests with pytest
       run: pytest --junitxml=junit/test-results-${{ matrix.python-version }}.xml --cov ipr --cov-report term --cov-report xml
       env:
@@ -45,7 +45,8 @@ jobs:
         GRAPHKB_USER: ${{ secrets.GKB_TEST_USER }}
         GRAPHKB_PASS: ${{ secrets.GKB_TEST_PASSWORD }}
         # SDEV-3381 - Turn off integration tests temporarily, till efficiency is increased
-        EXCLUDE_INTEGRATION_TESTS: 1
+        # turn on integration tests for one python version only
+        EXCLUDE_INTEGRATION_TESTS: ${{ matrix.python-version != '3.11' }}
     - name: Upload pytest test results
       uses: actions/upload-artifact@master
       with:
