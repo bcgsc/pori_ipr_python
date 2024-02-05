@@ -1,6 +1,7 @@
 """
 handles annotating variants with annotation information from graphkb
 """
+
 from requests.exceptions import HTTPError
 
 from graphkb import GraphKBConnection
