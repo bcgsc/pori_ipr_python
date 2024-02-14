@@ -1,6 +1,7 @@
 """
 upload variant and report information to IPR
 """
+
 import pandas
 from graphkb import GraphKBConnection
 from typing import Dict, List, Sequence

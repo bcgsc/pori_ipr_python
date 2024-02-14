@@ -2,6 +2,7 @@
 Contains functions specific to formatting reports for IPR that are unlikely to be used
 by other reporting systems
 """
+
 from graphkb import GraphKBConnection
 from graphkb import statement as gkb_statement
 from graphkb import vocab as gkb_vocab
@@ -131,17 +132,16 @@ def convert_statements_to_alterations(
     approved = set([ev for (ev, ipr) in ev_map.items() if ipr == 'IPR-A'])
 
     # get the recruitment status for any trial associated with a statement
-    clinical_trials = [s['subject']['@rid'] for s in statements if s['subject']['@class'] == 'ClinicalTrial']
+    clinical_trials = [
+        s['subject']['@rid'] for s in statements if s['subject']['@class'] == 'ClinicalTrial'
+    ]
     recruitment_statuses = {}
     if clinical_trials:
         clinical_trials = list(set(clinical_trials))
         for rid in clinical_trials:
             query_result = graphkb_conn.query(
                 {
-                    'target': {
-                        'target': 'ClinicalTrial',
-                        'filters': {'@rid': rid}
-                    },
+                    'target': {'target': 'ClinicalTrial', 'filters': {'@rid': rid}},
                     'returnProperties': ['@rid', 'recruitmentStatus'],
                 }
             )
@@ -193,16 +193,20 @@ def convert_statements_to_alterations(
                     'reference': pmid,
                     'relevance': statement['relevance']['displayName'],
                     'kbRelevanceId': statement['relevance']['@rid'],
-                    'externalSource': str(statement['source'].get('displayName', ''))
-                    if statement['source']
-                    else None,
+                    'externalSource': (
+                        str(statement['source'].get('displayName', ''))
+                        if statement['source']
+                        else None
+                    ),
                     'externalStatementId': statement.get('sourceId'),
                     'reviewStatus': statement.get('reviewStatus'),
-                    'kbData': {}
+                    'kbData': {},
                 }
             )
             if statement['relevance']['name'] == 'eligibility':
-                row['kbData']['recruitment_status'] = recruitment_statuses.get(row['kbContextId'], 'not found')
+                row['kbData']['recruitment_status'] = recruitment_statuses.get(
+                    row['kbContextId'], 'not found'
+                )
             rows.append(row)
     return rows
 
