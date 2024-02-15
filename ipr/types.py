@@ -1,4 +1,4 @@
-from typing import List, Optional, Union
+from typing import List, Optional, Union, Dict
 
 try:
     from typing import TypedDict  # type: ignore
@@ -30,6 +30,7 @@ class KbMatch(TypedDict):
     externalSource: str
     externalStatementId: str
     reviewStatus: str
+    kbData: Optional[Dict]
 
 
 class IprGene(TypedDict):

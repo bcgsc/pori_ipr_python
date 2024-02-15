@@ -1,6 +1,7 @@
 """
 Read/Validate the variant input files
 """
+
 import json
 import jsonschema
 import os

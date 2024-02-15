@@ -1,6 +1,7 @@
 """
 handles annotating variants with annotation information from graphkb
 """
+
 from requests.exceptions import HTTPError
 
 from graphkb import GraphKBConnection
@@ -55,7 +56,6 @@ def get_ipr_statements_from_variants(
     if not matches:
         return []
     rows = []
-
     statements = get_statements_from_variants(graphkb_conn, matches)
     existing_statements = {s['@rid'] for s in statements}
 
@@ -76,9 +76,8 @@ def get_ipr_statements_from_variants(
     for ipr_row in convert_statements_to_alterations(
         graphkb_conn, inferred_statements, disease_name, convert_to_rid_set(inferred_matches)
     ):
-        new_row = KbMatch({'kbData': {'inferred': True}})
-        new_row.update(ipr_row)
-        rows.append(new_row)
+        ipr_row['kbData']['inferred'] = True
+        rows.append(ipr_row)
 
     return rows
 

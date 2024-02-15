@@ -179,10 +179,18 @@ def base_graphkb_statement(
                 },
             ],
             "evidence": [],
-            "subject": None,
+            "subject": {
+                "@class": 'dummy_value',
+                "@rid": "101:010",
+                "displayName": 'dummy_display_name',
+            },
             "source": None,
             "sourceId": None,
-            "relevance": {"@rid": relevance_rid, "displayName": "relevance_display_name"},
+            "relevance": {
+                "@rid": relevance_rid,
+                "displayName": "relevance_display_name",
+                "name": "relevance_name",
+            },
             "@rid": "statement_rid",
         }
     )
