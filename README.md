@@ -1,4 +1,10 @@
 
+# ⚠️ DEPRECATED
+
+This repository is no longer supported or maintained. No further issues or pull requests will be considered.
+
+Functionalities of both BCGSC's [pori_ipr_python](https://github.com/bcgsc/pori_ipr_python) and [pori_graphkb_python](https://github.com/bcgsc/pori_graphkb_python) can now be found in BCGSC's [pori_python](https://github.com/bcgsc/pori_python), respectively in [pori_python/ipr](https://github.com/bcgsc/pori_python/tree/develop/pori_python/ipr) and in [pori_python/graphkb](https://github.com/bcgsc/pori_python/tree/develop/pori_python/graphkb).
+
 # IPR
 
 ![build](https://github.com/bcgsc/pori_ipr_python/workflows/build/badge.svg) [![PyPi](https://img.shields.io/pypi/v/ipr.svg)](https://pypi.org/project/ipr) [![codecov](https://codecov.io/gh/bcgsc/pori_ipr_python/branch/master/graph/badge.svg)](https://codecov.io/gh/bcgsc/pori_ipr_python) [![PyPI - Downloads](https://img.shields.io/pypi/dm/ipr)](https://pypistats.org/packages/ipr) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.5730671.svg)](https://doi.org/10.5281/zenodo.5730671)
